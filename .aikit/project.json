@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "name": "dustline",
+  "test_command": "node --test tests",
+  "topics": [
+    "aikit",
+    "aikit-integrated",
+    "source-available",
+    "aegean-game-license",
+    "drm-free",
+    "commercial-license",
+    "game",
+    "canvas",
+    "shooter"
+  ],
+  "gates": {},
+  "ui_required": false,
+  "created": "2026-10-28"
+}
