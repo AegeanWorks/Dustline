@@ -15,5 +15,12 @@
   ],
   "gates": {},
   "ui_required": false,
-  "created": "2026-10-28"
+  "created": "2026-10-28",
+  "has_ui": true,
+  "ui_kind": "game",
+  "ui_evidence": [
+    "index.html"
+  ],
+  "ui_checked_at": "2026-10-28",
+  "ui_source": "manual"
 }
