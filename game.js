@@ -274,6 +274,7 @@ let settingsReturn = 'menu';
 let upgradesReturn = 'menu';
 let statsReturn = 'menu';
 let mapReturn = 'paused';
+let manualTab = 'enemies';
 let uiButtons = [];
 let uiT = 0;
 
@@ -679,6 +680,39 @@ const RELICS = [
   { id: 'thornhide', name: 'THORNHIDE', desc: 'Reflect contact damage', color: '#8a9b3a' },
   { id: 'greedengine', name: 'GREED ENGINE', desc: '+20% shard gain', color: '#63dcc0' }
 ];
+
+const ENEMY_TIPS = {
+  grunt: 'Slow pack filler. Kite it in circles.',
+  runner: 'Fast straggler that dies to anything.',
+  tank: 'Armored bruiser; slow but very tough.',
+  marksman: 'Shoots from range. Break line of sight.',
+  spitter: 'Acid shots, then retreats. Close the gap.',
+  bomber: 'Runs in and detonates. Kill it early.',
+  swarm: 'Tiny and quick, arrives in numbers.',
+  warden: 'Plating resists hits. Crits cut through.',
+  weaver: 'Blinks toward you.',
+  splitter: 'Splits into two swarmlings when it dies.',
+  leech: 'Drains health and steals shards.',
+  shielder: 'Shields nearby allies. Kill it first.',
+  tunneler: 'Burrows, then erupts next to you.',
+  screamer: 'Enrages every mob nearby.',
+  phantom: 'Phases out and ignores damage.',
+  mortar: 'Lobs shells from range. Keep moving.',
+  widower: 'Web bolts slow you. Dodge them.',
+  husk: 'Dies into acid that burns everyone.',
+  hunter: 'Elite NetWatch killer; pays big shards.'
+};
+
+const BOSS_TIPS = {
+  warlord: 'Charges then fans fire. Sidestep the charge.',
+  overseer: 'Bullet spray; enrages below half health.',
+  bombardier: 'Lobs bombs. Watch the target reticles.',
+  hive: 'Fires bullet rings and spawns broods.',
+  sentinel: 'Telegraphs a lance beam. Leave the line.',
+  colossus: 'Three phases of radial barrages and summons.',
+  leviathan: 'Three phases of charges plus broad sprays.',
+  wyrm: 'Burrows untargetable, erupts and spawns husks.'
+};
 
 const WEAPONS = {
   ak: { name: 'AK-47', skill: 'rifle', blurb: 'Balanced auto rifle', color: '#ffd27a' },
@@ -4904,8 +4938,9 @@ function drawMenuScreen() {
   drawButton('armory', 'ARMORY', W / 2 - 134, 316, 128, 44, 'SHARDS ' + save.shards);
   drawButton('statistics', 'STATS', W / 2 + 134, 316, 128, 44);
   drawButton('upgrades', 'UPGRADES', W / 2 - 134, 370, 128, 44);
-  drawButton('settings', 'SETTINGS', W / 2 + 134, 370, 128, 44);
-  drawButton('help', 'HOW TO PLAY', W / 2, 424, 260, 44);
+  drawButton('manual', 'MANUAL', W / 2 + 134, 370, 128, 44);
+  drawButton('settings', 'SETTINGS', W / 2 - 134, 424, 128, 44);
+  drawButton('help', 'HOW TO PLAY', W / 2 + 134, 424, 128, 44);
 
   ctx.fillStyle = 'rgba(220,205,175,0.6)';
   ctx.font = '600 11px Consolas, monospace';
@@ -5296,6 +5331,150 @@ function drawSettingsScreen() {
   ctx.font = '600 10px Consolas, monospace';
   ctx.textAlign = 'center';
   ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 456);
+}
+
+function drawManualScreen() {
+  drawMenuBackdrop();
+  overlay(0.34);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2e6c8';
+  ctx.font = '700 28px Consolas, monospace';
+  ctx.fillText('FIELD MANUAL', W / 2, 56);
+  ctx.fillStyle = 'rgba(200,190,165,0.65)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('EVERY HOSTILE, BOSS AND RELIC · KILL COUNTS ARE LIFETIME', W / 2, 76);
+
+  const tabs = [
+    ['manual-enemies', 'HOSTILES · ' + Object.keys(ENEMY_TYPES).length, 'enemies'],
+    ['manual-bosses', 'BOSSES · ' + Object.keys(BOSS_TYPES).length, 'bosses'],
+    ['manual-relics', 'RELICS · ' + RELICS.length, 'relics']
+  ];
+  tabs.forEach(([id, label, key], i) => {
+    const x = W / 2 - 300 + i * 200;
+    const chosen = manualTab === key;
+    uiButtons.push({ id, label, x, y: 92, w: 190, h: 28 });
+    const hover = mouse.x >= x && mouse.x <= x + 190 && mouse.y >= 92 && mouse.y <= 120;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.26)';
+    rr(x, 92, 190, 28, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(label, x + 95, 111);
+  });
+
+  const live = G && (screen === 'play' || screen === 'paused');
+  const killsFor = (type) =>
+    (save.killsByType[type] || 0) + (live ? G.killsByType[type] || 0 : 0);
+
+  if (manualTab === 'enemies') {
+    const ids = Object.keys(ENEMY_TYPES);
+    ids.forEach((id, i) => {
+      const def = ENEMY_TYPES[id];
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const x = 28 + col * 226;
+      const y = 126 + row * 60;
+      ctx.fillStyle = 'rgba(14,18,22,0.86)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+      ctx.lineWidth = 1;
+      rr(x, y, 216, 54, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = def.color;
+      ctx.font = '700 11px Consolas, monospace';
+      ctx.fillText(def.name.toUpperCase(), x + 9, y + 15);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = killsFor(id) > 0 ? '#63dcc0' : 'rgba(150,150,150,0.5)';
+      ctx.font = '600 9px Consolas, monospace';
+      ctx.fillText(killsFor(id) + ' KILLED', x + 207, y + 15);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(175,170,155,0.75)';
+      ctx.font = '600 8px Consolas, monospace';
+      ctx.fillText('HP ' + def.hp + ' · SPD ' + def.speed + ' · DMG ' + def.touch + ' · XP ' + def.xp, x + 9, y + 30);
+      ctx.fillStyle = 'rgba(215,210,195,0.72)';
+      ctx.fillText(ENEMY_TIPS[id] || '', x + 9, y + 44);
+    });
+  } else if (manualTab === 'bosses') {
+    const ids = Object.keys(BOSS_TYPES);
+    ids.forEach((id, i) => {
+      const def = BOSS_TYPES[id];
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 120 + col * 380;
+      const y = 136 + row * 96;
+      ctx.fillStyle = 'rgba(14,18,22,0.9)';
+      ctx.strokeStyle = def.mega ? 'rgba(180,140,255,0.5)' : 'rgba(255,90,70,0.35)';
+      ctx.lineWidth = def.mega ? 2 : 1;
+      rr(x, y, 360, 86, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = def.color;
+      ctx.font = '700 15px Consolas, monospace';
+      ctx.fillText(def.name, x + 12, y + 22);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = def.mega ? '#b48cff' : '#ff8a7a';
+      ctx.font = '700 9px Consolas, monospace';
+      ctx.fillText(def.mega ? 'MEGA BOSS' : 'BOSS', x + 348, y + 22);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(175,170,155,0.75)';
+      ctx.font = '600 9px Consolas, monospace';
+      ctx.fillText('BASE HP ' + def.hp + ' · SPEED ' + def.speed + ' · TOUCH ' + def.touch, x + 12, y + 40);
+      ctx.fillStyle = 'rgba(215,210,195,0.75)';
+      ctx.font = '600 10px Consolas, monospace';
+      const words = (BOSS_TIPS[id] || '').split(' ');
+      let line = '';
+      let ly = y + 58;
+      for (const word of words) {
+        const next = line ? line + ' ' + word : word;
+        if (next.length > 46 && line) {
+          ctx.fillText(line, x + 12, ly);
+          ly += 13;
+          line = word;
+        } else {
+          line = next;
+        }
+      }
+      if (line) ctx.fillText(line, x + 12, ly);
+      ctx.fillStyle = 'rgba(150,145,130,0.55)';
+      ctx.font = '600 9px Consolas, monospace';
+      ctx.fillText('BEST WAVE ' + (save.bestWave || 1), x + 12, y + 78);
+    });
+  } else {
+    RELICS.forEach((relic, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 120 + col * 380;
+      const y = 132 + row * 70;
+      const owned = live && G.relics.indexOf(relic.id) >= 0;
+      ctx.fillStyle = 'rgba(14,18,22,0.9)';
+      ctx.strokeStyle = owned ? relic.color : 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = owned ? 2 : 1;
+      rr(x, y, 360, 60, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = relic.color;
+      ctx.font = '700 12px Consolas, monospace';
+      ctx.fillText(relic.name, x + 12, y + 20);
+      ctx.fillStyle = 'rgba(215,210,195,0.75)';
+      ctx.font = '600 10px Consolas, monospace';
+      ctx.fillText(relic.desc, x + 12, y + 38);
+      ctx.fillStyle = 'rgba(150,145,130,0.55)';
+      ctx.font = '600 8px Consolas, monospace';
+      ctx.fillText('FROM BOSS SALVAGE', x + 12, y + 52);
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(190,185,170,0.55)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText('OWN ALL TEN AND CRATES PAY 30 SHARDS INSTEAD', W / 2, 496);
+  }
+
+  ctx.textAlign = 'center';
+  drawButton('back-manual', 'BACK', W / 2, 540, 180, 32);
 }
 
 function drawHelpScreen() {
@@ -5755,6 +5934,7 @@ function drawScreens() {
   else if (screen === 'statistics') drawStatisticsScreen();
   else if (screen === 'settings') drawSettingsScreen();
   else if (screen === 'help') drawHelpScreen();
+  else if (screen === 'manual') drawManualScreen();
   else if (screen === 'upgrades') drawUpgradesScreen();
   else if (screen === 'paused') drawPauseScreen();
   else if (screen === 'mapview') drawMapView();
@@ -5867,6 +6047,18 @@ function pressButton(id) {
   }
   if (id === 'help') {
     screen = 'help';
+    return;
+  }
+  if (id === 'manual') {
+    screen = 'manual';
+    return;
+  }
+  if (id === 'back-manual') {
+    goMenu();
+    return;
+  }
+  if (id === 'manual-enemies' || id === 'manual-bosses' || id === 'manual-relics') {
+    manualTab = id.slice(7);
     return;
   }
   if (id === 'mapview-pause') {
@@ -6109,6 +6301,14 @@ window.Dustline = {
         meta: { ...save.meta }
       },
       setup: { ...setup, mutators: setup.mutators.slice() },
+      manual: {
+        tab: manualTab,
+        enemies: Object.keys(ENEMY_TYPES).length,
+        bosses: Object.keys(BOSS_TYPES).length,
+        relics: RELICS.length,
+        enemyTips: Object.keys(ENEMY_TIPS).length,
+        bossTips: Object.keys(BOSS_TIPS).length
+      },
       buttons: uiButtons.map((b) => ({ id: b.id, label: b.label, x: b.x, y: b.y, w: b.w, h: b.h }))
     };
     if (G) {
@@ -6237,8 +6437,7 @@ window.Dustline = {
         passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
       };
       snap.mode = G.mode;
-      snap.operator = G.operator;
-      snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
+      snap.operator = G.operator;      snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
       snap.relics = G.relics.slice();
       snap.relicOffers = G.relicOffers.slice();
       snap.salvage = G.salvage.length;

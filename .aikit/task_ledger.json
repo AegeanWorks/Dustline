@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-15",
+    "task_id": "dustline-v0-16",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793389685.9996352,
+    "updated_at": 1793390864.211953,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793389686.7811887
+    "completed_at": 1793390864.928374
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-9",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] Implementation and verification complete: fixed overflowing loadout row, removed dead pasted combat code from drawEnemies, added hive/sentinel art, affix rings, beam telegraph and visuals, forceBossAffix seam; 69/69 tests, 5/5 gates, autoplay and boss-cycle probe OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793378400.080935,
-      "timestamp_str": "2026-10-30 19:40:00",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-9",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-9' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793378400.2520845,
-      "timestamp_str": "2026-10-30 19:40:00",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-10",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.10 Guardian update - Aegis Field skill, active-skill evolutions, Mortar/Widower/Husk mobs, WYRM mega boss",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379006.7944133,
-      "timestamp_str": "2026-10-30 19:50:06",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The game has no defensive skill, actives cannot evolve while weapons can, the mob roster lacks artillery/slow/area-denial archetypes and the mega rotation repeats after two entries",
-        "benefits": "Fills the defense build gap, completes the evolution system, adds three distinct threat archetypes and a third mega fight",
-        "risks": "contract: snapshot gains shield/slow fields and new enemy types; dependency: none; concurrency: ledger shared; state: save schema unchanged, skills gain one key",
-        "mitigation": "Additive-only snapshot changes, reuse existing bomb/hazard/mega-phase machinery, full suite plus gates before commit"
-      }
-    },
     {
       "task_id": "dustline-v0-10",
       "phase": "in_progress",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793389686.7811904,
       "timestamp_str": "2026-10-30 22:48:06",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-16",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.16 Field Manual - menu entry and bestiary screen with enemy/boss/relic tabs, behaviour tips, lifetime and run kill counts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793390064.1594355,
+      "timestamp_str": "2026-10-30 22:54:24",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "The game now has 18 mobs, 8 bosses and 10 relics but nothing in-game explains what they do; the upgrades codex only covers skills and relics are described only at the moment of picking",
+        "benefits": "Makes the whole content library discoverable, helps new players learn counters, and turns lifetime kill data into visible progress without touching balance",
+        "risks": "contract: main menu gains a button and snapshot gains a manual field; dependency: none; concurrency: ledger shared; state: none, no save-schema change",
+        "mitigation": "Keep the manual read-only over existing tables, verify menu button layout fits the 960px canvas, add tab/content tests, full suite and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-16",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: Field Manual screen with hostile/boss/relic tabs, 19 enemy tips, 8 boss tips, lifetime kill counts, 4-column enemy grid (fixed a real overflow found by the probe), menu MANUAL button in a 3x2 layout, snapshot manual block; 100/100 tests, 5/5 gates, menu and manual layout scans OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793390864.211953,
+      "timestamp_str": "2026-10-30 23:07:44",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-16",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-16' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793390864.9283757,
+      "timestamp_str": "2026-10-30 23:07:44",
       "agent": "kilo:continue"
     }
   ]

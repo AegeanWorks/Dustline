@@ -46,7 +46,7 @@ test('boots to the main menu with the full navigation', () => {
   assert.strictEqual(s.screen, 'menu');
   assert.strictEqual(
     JSON.stringify(s.buttons.map((b) => b.id)),
-    JSON.stringify(['play', 'armory', 'statistics', 'upgrades', 'settings', 'help'])
+    JSON.stringify(['play', 'armory', 'statistics', 'upgrades', 'manual', 'settings', 'help'])
   );
   assert.strictEqual(s.settings.volume, 70);
   assert.strictEqual(s.save.shards, 0);
@@ -1924,4 +1924,45 @@ test('scavenger earns twenty percent more unbanked shards', () => {
   const scav = unbankedFor('scavenger');
   assert.ok(ranger > 0);
   assert.ok(Math.abs(scav / ranger - 1.2) < 0.02, 'ratio was ' + (scav / ranger).toFixed(3));
+});
+
+test('the field manual documents every mob, boss and relic', () => {
+  const g = boot({ seed: 1101 });
+  assert.ok(g.api.snapshot().buttons.some((b) => b.id === 'manual'));
+  g.api.clickButton('manual');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'manual');
+  assert.strictEqual(s.manual.tab, 'enemies');
+  const ids = s.buttons.map((b) => b.id);
+  for (const id of ['manual-enemies', 'manual-bosses', 'manual-relics', 'back-manual']) assert.ok(ids.includes(id), id);
+  assert.strictEqual(s.manual.enemies, 19, 'every enemy type including the hunter');
+  assert.strictEqual(s.manual.bosses, 8);
+  assert.strictEqual(s.manual.relics, 10);
+  assert.strictEqual(s.manual.enemyTips, s.manual.enemies, 'every enemy has a tip');
+  assert.strictEqual(s.manual.bossTips, s.manual.bosses, 'every boss has a tip');
+  g.api.clickButton('manual-bosses');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().manual.tab, 'bosses');
+  g.api.clickButton('manual-relics');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().manual.tab, 'relics');
+  g.steps(2);
+  g.api.clickButton('back-manual');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu');
+});
+
+test('the manual shows a behavior tip for every documented enemy', () => {
+  const g = boot({ seed: 1103 });
+  g.api.clickButton('manual');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.manual.enemyTips, 19);
+  assert.strictEqual(s.manual.bossTips, 8);
+  for (const tab of ['enemies', 'bosses', 'relics']) {
+    g.api.clickButton('manual-' + tab);
+    g.steps(2);
+    assert.strictEqual(g.api.snapshot().manual.tab, tab);
+  }
 });

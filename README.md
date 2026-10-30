@@ -48,10 +48,11 @@ Before every run you pick:
 
 ### Modes and screens
 
-- **Main menu**: Deploy, Armory, Stats, Upgrades codex, Settings, How to play, plus lifetime progress.
+- **Main menu**: Deploy, Armory, Stats, Upgrades codex, Field Manual, Settings, How to play, plus lifetime progress.
 - **Armory**: spend shards earned in runs on permanent Ballistics, Plate Carrier, Running Shoes, Scavenger Kit, Power Magnet, Loaded Dice and Loadout Rig (extra offense and defense slots) ranks.
 - **Statistics**: runs, total kills, bosses slain, victories, best survival, most kills in a run, damage dealt, rush clears, best rush time, best wave and kills by mob type.
 - **Upgrades codex**: all 19 skills, their slot group, evolutions, and what activates the seven skill combos.
+- **Field Manual**: tabbed reference for all 19 hostiles (HP, speed, touch damage, XP, a behaviour tip and your lifetime kill count), all 8 bosses (base stats and how each fight works) and all 10 salvage relics.
 - **Settings**: master volume (0-100%), screen shake and damage numbers, saved immediately.
 - **Pause menu**: Resume, Map, Upgrades, Settings, Restart run, Main menu. Restarting or quitting ends the run like death: half of the unbanked shards are burned.
 - **Map viewer**: explored territory, buildings, rocks, trees, hostiles and your facing.
