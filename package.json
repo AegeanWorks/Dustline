@@ -1,8 +1,8 @@
 {
   "name": "dustline",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
-  "description": "Dustline: Survivors — an endless horde survival shooter with 19 skills across offense and defense slots, weapon and active-skill evolutions, run mutators, map hazards, champions, achievements, affixed bosses, three mega bosses and a regenerating Aegis shield.",
+  "description": "Dustline: Survivors — an endless horde survival shooter with 19 skills across offense and defense slots, weapon and active-skill evolutions, run mutators, map hazards, champions, achievements, affixed bosses, three mega bosses, boss salvage relics and a regenerating Aegis shield.",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "node scripts/serve.js",

@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-11",
+    "task_id": "dustline-v0-12",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793383930.0773323,
+    "updated_at": 1793385168.7520614,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793383930.2905324
+    "completed_at": 1793385168.911582
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-6",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Correction: mega phase transition was asserted on the wave-20 Colossus; the wave-40 Leviathan spawn and mega flag were verified separately, not its phase transition. Everything else in the prior phase-4 note stands (44/44 tests, 5/5 gates, save persistence, zero console errors); checklists: passed; open: commit + push pending authorization",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793315566.3367643,
-      "timestamp_str": "2026-10-30 02:12:46",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-6",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-6' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793315584.9950604,
-      "timestamp_str": "2026-10-30 02:13:04",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-6-verify",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Verification and hardening pass over the uncommitted v0.5/v0.6 work: fix the statistics grid overflow, HUD panel/boss-bar overlap, wasted extraction beacon, buffered dash/bomb/overdrive keys on level-up, abandoned-run banking and seed persistence, mid-death enemy updates, and the high-entropy secret-scan false positive",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793318393.6222603,
-      "timestamp_str": "2026-10-30 02:59:53",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The user asked to verify and analyze the changes, fix bugs and gaps, then push",
-        "benefits": "Correct statistics and HUD layout, no lost banking on quit/restart, no buffered actions after level-up, deterministic per-run seeds, and a clean full-history secret scan",
-        "risks": "contract: abandon now records a loss and burns unbanked shards; dependency: none added; concurrency: none; state: save.lastSeed is written at run start",
-        "mitigation": "47 deterministic tests, two new regressions, Chromium smoke across stats/armory/weather/mega, full-repo secret scan, 5/5 gates"
-      }
-    },
     {
       "task_id": "dustline-v0-6-verify",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793383930.2905357,
       "timestamp_str": "2026-10-30 21:12:10",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-12",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.12 Salvage update - boss salvage crates with 3-choice relic cards, 10 relic effects on existing stat hooks, snapshot mods/relics and grantRelic seam",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793384175.0722911,
+      "timestamp_str": "2026-10-30 21:16:15",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "Builds are now slot-capped but every boss only pays loot and banking shards; there is no run-defining reward choice from the hardest fights",
+        "benefits": "Adds a third progression axis that does not conflict with skill slots, makes boss kills a decision point and creates build variety across runs",
+        "risks": "contract: snapshot gains relics/salvage/mods and a new screen; dependency: none; concurrency: ledger shared; state: no save change (relics are per-run)",
+        "mitigation": "Keep relics per-run only, reuse the level-up screen pattern, verify existing boss tests are unaffected, full suite and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-12",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: boss salvage crates with 3-card relic picker, 10 unique per-run relics wired to stat hooks, relic screen + world crate art, snapshot relics/salvage/mods, grantRelic and spawnSalvage seams; 86/86 tests, 5/5 gates, live crate-pick probe and 84s endurance probe with all 10 relics OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793385168.7520614,
+      "timestamp_str": "2026-10-30 21:32:48",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-12",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-12' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793385168.9115834,
+      "timestamp_str": "2026-10-30 21:32:48",
       "agent": "kilo:continue"
     }
   ]

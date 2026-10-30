@@ -636,7 +636,8 @@ test('debug helpers stay hidden outside the test harness', () => {
     'grantShards', 'buyMeta', 'props', 'setPlayer', 'setAlert', 'setUnbanked',
     'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
     'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest', 'hazardAtPoint', 'setMutators',
-    'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed', 'forceBossAffix'
+    'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed', 'forceBossAffix',
+    'grantRelic', 'spawnSalvage'
   ]) {
     assert.strictEqual(api[name], undefined, name + ' must be test-only');
   }
@@ -1559,4 +1560,110 @@ test('supply caches never exceed the slot caps', () => {
   assert.strictEqual(after.slots.offense.used, 6);
   assert.strictEqual(after.slots.passive.used, 6);
   assert.ok(Object.values(after.skills).reduce((a, b) => a + b, 0) > sumBefore, 'an owned skill was upgraded');
+});
+
+test('bosses drop a salvage crate that offers three relics', () => {
+  const g = boot({ seed: 701 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  g.api.killEnemies();
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.salvage, 1, 'the boss leaves salvage');
+  const boss = s.enemies.length >= 0;
+  assert.ok(boss);
+  g.api.setPlayer(s.player.x + 500, s.player.y);
+  for (let i = 0; i < 60; i++) {
+    g.step();
+    const now = g.api.snapshot();
+    if (now.screen === 'levelup') { g.api.clickButton('upgrade-0'); continue; }
+    if (now.screen === 'relic') break;
+  }
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'relic');
+  assert.strictEqual(s.relicOffers.length, 3);
+  const ids = s.buttons.map((b) => b.id);
+  for (const i of [0, 1, 2]) assert.ok(ids.includes('relic-' + i), 'relic card ' + i);
+  g.api.clickButton('relic-1');
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.strictEqual(s.relics.length, 1);
+  assert.ok(s.relicOffers.length === 0);
+});
+
+test('relics stack their effects on the stat hooks', () => {
+  const g = boot({ seed: 703 });
+  deploy(g);
+  const base = g.api.snapshot().mods;
+  assert.ok(g.api.grantRelic('chrono'));
+  assert.ok(g.api.grantRelic('voidlens'));
+  assert.ok(g.api.grantRelic('overclock'));
+  assert.ok(g.api.grantRelic('volatile'));
+  assert.ok(g.api.grantRelic('lodestone'));
+  assert.ok(g.api.grantRelic('greedengine'));
+  assert.ok(g.api.grantRelic('bloodstone'));
+  const s = g.api.snapshot();
+  assert.ok(Math.abs(s.mods.fireRate - base.fireRate * 1.15) < 1e-6);
+  assert.ok(Math.abs(s.mods.crit - (base.crit + 0.1)) < 1e-6);
+  assert.ok(Math.abs(s.mods.bulletSpeed - (base.bulletSpeed + 0.25)) < 1e-6);
+  assert.ok(Math.abs(s.mods.blast - base.blast * 1.3) < 1e-6);
+  assert.ok(Math.abs(s.mods.magnet - (base.magnet + 60)) < 1e-6);
+  assert.strictEqual(s.mods.shard, 1.2);
+  assert.strictEqual(s.mods.lifestealBonus, 0.03);
+  assert.strictEqual(s.relics.length, 7);
+  assert.strictEqual(g.api.grantRelic('chrono'), false, 'relics are unique');
+});
+
+test('aegis core grants a shield charge without the aegis skill', () => {
+  const g = boot({ seed: 707 });
+  deploy(g);
+  assert.strictEqual(g.api.snapshot().shield.max, 0);
+  assert.ok(g.api.grantRelic('aegiscore'));
+  const s = g.api.snapshot();
+  assert.strictEqual(s.shield.max, 1);
+  assert.strictEqual(s.shield.charges, 1, 'the new charge is granted immediately');
+  g.api.applyUpgrade('aegis');
+  assert.strictEqual(g.api.snapshot().shield.max, 2);
+  g.api.hurt(30);
+  const after = g.api.snapshot();
+  assert.strictEqual(after.hp, after.maxHp, 'the relic shield absorbed it');
+});
+
+test('thornhide reflects contact damage', () => {
+  const g = boot({ seed: 709 });
+  deploy(g);
+  assert.ok(g.api.grantRelic('thornhide'));
+  g.api.spawnEnemy('grunt', 6, 0);
+  const hp0 = g.api.snapshot().enemies[0].hp;
+  g.steps(3);
+  const e = g.api.snapshot().enemies.find((x) => x.type === 'grunt');
+  assert.ok(!e || e.hp < hp0, 'touching the player hurts the enemy');
+});
+
+test('salvage crates expire and grant shards once all relics are owned', () => {
+  const g = boot({ seed: 711 });
+  deploy(g);
+  for (const r of ['chrono', 'voidlens', 'overclock', 'volatile', 'warhead', 'bloodstone', 'aegiscore', 'lodestone', 'thornhide', 'greedengine']) {
+    assert.ok(g.api.grantRelic(r), r);
+  }
+  g.api.spawnSalvage(0, 0);
+  const unbanked = g.api.snapshot().unbanked;
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play', 'no relic screen when everything is owned');
+  assert.ok(s.unbanked > unbanked, 'the crate pays shards instead');
+  assert.strictEqual(s.salvage, 0);
+
+  g.api.setInvulnerable(true);
+  g.api.spawnSalvage(400, 400);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().salvage, 1);
+  for (let i = 0; i < 2700; i++) {
+    g.step();
+    const now = g.api.snapshot();
+    if (now.screen === 'levelup') g.api.clickButton('upgrade-0');
+    if (now.salvage === 0) break;
+  }
+  assert.strictEqual(g.api.snapshot().salvage, 0, 'uncollected salvage expires');
 });

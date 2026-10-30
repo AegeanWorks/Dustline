@@ -648,6 +648,19 @@ const COMBOS = [
   }
 ];
 
+const RELICS = [
+  { id: 'chrono', name: 'CHRONO COIL', desc: '+15% fire rate', color: '#9fd8ff' },
+  { id: 'voidlens', name: 'VOID LENS', desc: '+10% critical chance', color: '#ff8ad8' },
+  { id: 'overclock', name: 'OVERCLOCK CORE', desc: '+25% bullet speed', color: '#ffe08a' },
+  { id: 'volatile', name: 'VOLATILE ROUNDS', desc: '+30% explosion radius', color: '#ff8a5c' },
+  { id: 'warhead', name: 'WARHEAD CASING', desc: 'Bigger, stronger bombs', color: '#ffb066' },
+  { id: 'bloodstone', name: 'BLOODSTONE', desc: '+3% lifesteal on damage', color: '#ff7f8f' },
+  { id: 'aegiscore', name: 'AEGIS CORE', desc: '+1 shield charge', color: '#9fd8ff' },
+  { id: 'lodestone', name: 'LODESTONE', desc: '+60 pickup radius', color: '#9fe8e0' },
+  { id: 'thornhide', name: 'THORNHIDE', desc: 'Reflect contact damage', color: '#8a9b3a' },
+  { id: 'greedengine', name: 'GREED ENGINE', desc: '+20% shard gain', color: '#63dcc0' }
+];
+
 const WEAPONS = {
   ak: { name: 'AK-47', skill: 'rifle', blurb: 'Balanced auto rifle', color: '#ffd27a' },
   smg: { name: 'SMG-45', skill: 'smg', blurb: 'Fast and frantic', color: '#ffcf5c' },
@@ -885,6 +898,26 @@ function shieldRefill() {
   return Math.max(4, 9 - 0.8 * G.skills.aegis) * (hasCombo('bastion') ? 0.6 : 1);
 }
 
+function hasRelic(id) {
+  return !!(G && G.relics && G.relics.indexOf(id) >= 0);
+}
+
+function shieldMax() {
+  return G.skills.aegis + (hasRelic('aegiscore') ? 1 : 0);
+}
+
+function blastMult() {
+  return (
+    (hasCombo('demolition') ? 1.35 : 1) *
+    (hasRelic('volatile') ? 1.3 : 1) *
+    (hasRelic('warhead') ? 1.25 : 1)
+  );
+}
+
+function fireRateMult() {
+  return (odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1) * (hasRelic('chrono') ? 1.15 : 1);
+}
+
 function damageMult() {
   const od = odActive() ? 1.4 : 1;
   const glass = hasMutator('glass') ? 1.4 : 1;
@@ -892,20 +925,22 @@ function damageMult() {
 }
 
 function magnetRadius() {
-  return 120 + 45 * G.skills.magnet + 12 * metaRank('magnet');
+  return 120 + 45 * G.skills.magnet + 12 * metaRank('magnet') + (hasRelic('lodestone') ? 60 : 0);
 }
 
 function bulletSpeedMult() {
-  return 1 + 0.10 * G.skills.bulletSpeed;
+  return 1 + 0.10 * G.skills.bulletSpeed + (hasRelic('overclock') ? 0.25 : 0);
 }
 
 function critChance() {
-  return 0.07 * G.skills.crit + (hasEvolution('smg') ? 0.1 : 0) + (G.surgeT > 0 ? 0.15 : 0);
+  return 0.07 * G.skills.crit + (hasEvolution('smg') ? 0.1 : 0) + (G.surgeT > 0 ? 0.15 : 0) + (hasRelic('voidlens') ? 0.1 : 0);
 }
 
 function lifestealHeal(dmg) {
-  if (G.skills.lifesteal <= 0) return 0;
-  const rate = 0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1);
+  const relicRate = hasRelic('bloodstone') ? 0.03 : 0;
+  if (G.skills.lifesteal <= 0 && relicRate <= 0) return 0;
+  const rate =
+    0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1) + relicRate;
   return Math.max(1, Math.round(dmg * rate));
 }
 
@@ -923,7 +958,7 @@ function odActive() {
 
 function addUnbanked(value) {
   if (!(value > 0)) return;
-  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1) * mutatorShardMult();
+  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1) * mutatorShardMult() * (hasRelic('greedengine') ? 1.2 : 1);
 }
 
 function bankUnbanked() {
@@ -1140,6 +1175,9 @@ function startRun(options) {
     shield: { charges: 0, t: 0 },
     slowT: 0,
     pools: [],
+    relics: [],
+    relicOffers: [],
+    salvage: [],
     streak: 0,
     streakT: 0,
     bestStreak: 0,
@@ -1753,7 +1791,7 @@ function fireWeapon(id, dt) {
     }
     G.stats.shots[id] = (G.stats.shots[id] || 0) + shots;
   }
-  G.cds[id] = st.cd / ((odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1));
+  G.cds[id] = st.cd / fireRateMult();
   shake = Math.max(shake, id === 'shotgun' ? 2.2 : id === 'dmr' ? 2 : 1.1);
   muzzle(G.player.x, G.player.y, ang, st.color);
   sfx[st.sfx]();
@@ -1780,7 +1818,7 @@ function updateSkills(dt) {
             ty: cluster.y + (i ? rnd(-55, 55) : 0),
             t: 0.55,
             max: 0.55,
-            radius: (78 + 6 * lvl) * (hasCombo('demolition') ? 1.35 : 1) * (hasEvolution('grenade') ? 1.3 : 1),
+            radius: (78 + 6 * lvl) * blastMult() * (hasEvolution('grenade') ? 1.3 : 1),
             dmg: (30 + 18 * lvl) * damageMult(),
             color: '#ffb066'
           });
@@ -1842,7 +1880,7 @@ function updateSkills(dt) {
     const near = nearestEnemy(turret.x, turret.y, 430);
     if (near) turret.angle = Math.atan2(near.y - turret.y, near.x - turret.x);
     if (near && turret.fireCd <= 0) {
-      turret.fireCd = Math.max(0.18, (0.5 - 0.04 * turret.lvl) * (hasEvolution('turret') ? 0.7 : 1));
+      turret.fireCd = Math.max(0.18, (0.5 - 0.04 * turret.lvl) * (hasEvolution('turret') ? 0.7 : 1) * (hasRelic('chrono') ? 0.87 : 1));
       spawnBullet(turret.x + Math.cos(turret.angle) * 14, turret.y + Math.sin(turret.angle) * 14, turret.angle + rnd(-0.05, 0.05), 900, (9 + 4 * turret.lvl) * damageMult(), 't', '#b8c6d0');
       G.stats.shots.turret = (G.stats.shots.turret || 0) + 1;
       sfx.soldier();
@@ -2431,6 +2469,7 @@ function updateEnemies(dt) {
     if (!e.burrowed && d < e.r + 15 && e.touchCd <= 0) {
       e.touchCd = 0.9;
       damagePlayer(e.touch);
+      if (hasRelic('thornhide')) damageEnemy(e, 12 + G.time * 0.02, G.player.x, G.player.y, false);
       if (e.type === 'leech') {
         e.hp = Math.min(e.maxHp, e.hp + 6);
         const stolen = Math.min(1, Math.floor(G.unbanked));
@@ -2603,8 +2642,8 @@ function throwBomb() {
     ty,
     t: 0.85,
     max: 0.85,
-    radius: (95 + 8 * lvl) * (hasCombo('demolition') ? 1.35 : 1),
-    dmg: (70 + 12 * lvl) * damageMult(),
+    radius: (95 + 8 * lvl) * blastMult(),
+    dmg: (70 + 12 * lvl) * damageMult() * (hasRelic('warhead') ? 1.2 : 1),
     owner: 'p',
     color: '#ffb066'
   });
@@ -2742,6 +2781,7 @@ function killEnemy(e) {
       G.news = def.name + ' down. Extraction beacon armed.';
     }
     spawnBeacon(e.x, e.y);
+    G.salvage.push({ x: e.x, y: e.y, spin: 0, t: 40 });
     spawnFloater(e.x, e.y - e.r - 14, def.name + ' DOWN', '#ffd27a', 18);
     shake = Math.max(shake, settings.shake ? 14 : 0);
     sfx.victory();
@@ -2842,6 +2882,15 @@ function updatePickups(dt) {
     }
   }
   G.chests = G.chests.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  for (const s of G.salvage) {
+    s.spin += dt * 2.2;
+    s.t -= dt;
+    if (screen === 'play' && dist2(s.x, s.y, G.player.x, G.player.y) < 34 * 34) {
+      s.dead = true;
+      openSalvage();
+    }
+  }
+  G.salvage = G.salvage.filter((s) => !s.dead && s.t > 0);
   if (G.beacon && dist2(G.beacon.x, G.beacon.y, G.player.x, G.player.y) < 34 * 34) {
     const banked = bankUnbanked();
     if (banked > 0) {
@@ -2975,6 +3024,49 @@ function openLevelUp() {
   sfx.level();
 }
 
+function openSalvage() {
+  if (!G || screen !== 'play') return false;
+  const pool = RELICS.filter((r) => G.relics.indexOf(r.id) < 0);
+  if (pool.length === 0) {
+    addUnbanked(30);
+    G.banner = 'SALVAGE';
+    G.bannerSub = 'ALL RELICS FOUND · +30 SHARDS';
+    G.bannerT = 2.2;
+    sfx.chest();
+    return false;
+  }
+  const copy = pool.slice();
+  const offers = [];
+  while (offers.length < 3 && copy.length > 0) {
+    offers.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0].id);
+  }
+  G.relicOffers = offers;
+  for (const key in keys) delete keys[key];
+  screen = 'relic';
+  sfx.upgrade();
+  return true;
+}
+
+function chooseRelic(index) {
+  if (!G || screen !== 'relic') return false;
+  const id = G.relicOffers[index];
+  if (!id) return false;
+  G.relics.push(id);
+  G.relicOffers = [];
+  if (id === 'aegiscore') {
+    G.shield.charges = Math.min(shieldMax(), G.shield.charges + 1);
+    G.shield.t = shieldRefill();
+  }
+  const relic = RELICS.find((r) => r.id === id);
+  G.banner = 'RELIC · ' + relic.name;
+  G.bannerSub = relic.desc;
+  G.bannerT = 2.4;
+  G.news = relic.name + ' salvaged from the wreck.';
+  screen = 'play';
+  sfx.victory();
+  return true;
+}
+
 function addXp(value) {
   G.xp += value;
   while (G.xp >= G.xpNext) {
@@ -3001,7 +3093,7 @@ function applyUpgrade(id) {
   }
   if (id === 'aegis') {
     G.shield.t = shieldRefill();
-    G.shield.charges = Math.min(G.skills.aegis, G.shield.charges + 1);
+    G.shield.charges = Math.min(shieldMax(), G.shield.charges + 1);
   }
   announceCombos();
   checkEvolutions();
@@ -3045,10 +3137,10 @@ function updateRun(dt) {
   G.invulnT = Math.max(0, G.invulnT - dt);
   G.hurtT = Math.max(0, G.hurtT - dt);
   G.slowT = Math.max(0, G.slowT - dt);
-  if (G.skills.aegis > 0 && G.shield.charges < G.skills.aegis) {
+  if (shieldMax() > 0 && G.shield.charges < shieldMax()) {
     G.shield.t -= dt;
     if (G.shield.t <= 0) {
-      G.shield.charges = Math.min(G.skills.aegis, G.shield.charges + 1);
+      G.shield.charges = Math.min(shieldMax(), G.shield.charges + 1);
       G.shield.t = shieldRefill();
     }
   }
@@ -3389,6 +3481,33 @@ function drawProps(cam) {
 }
 
 function drawPickups() {
+  for (const s of G.salvage) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + s.spin);
+    ctx.globalAlpha = 0.2 + 0.14 * pulse;
+    ctx.fillStyle = '#63dcc0';
+    ctx.beginPath();
+    ctx.arc(0, 0, 26, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.rotate(s.spin * 0.4);
+    ctx.fillStyle = '#1a2a2a';
+    rr(-13, -13, 26, 26, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#63dcc0';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#63dcc0';
+    ctx.fillRect(-9, -3, 18, 6);
+    ctx.fillRect(-3, -9, 6, 18);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(99,220,192,0.8)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText('SALVAGE', s.x, s.y - 24);
+    ctx.textAlign = 'left';
+  }
   for (const gem of G.gems) {
     ctx.save();
     ctx.translate(gem.x, gem.y);
@@ -4487,12 +4606,12 @@ function drawHUD() {
     ctx.lineWidth = 1;
     ctx.stroke();
   }
-  if (G.skills.aegis > 0) {
+  if (shieldMax() > 0) {
     ctx.fillStyle = '#9aa7ad';
     ctx.font = '10px Consolas, monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SHIELD', 186, H - 60);
-    for (let i = 0; i < G.skills.aegis; i++) {
+    for (let i = 0; i < shieldMax(); i++) {
       ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
       ctx.fillRect(230 + i * 9, H - 68, 7, 8);
     }
@@ -5202,6 +5321,61 @@ function drawLevelUpScreen() {
   ctx.fillText('CLICK × TO BANISH (' + G.banishes + ' LEFT)', W / 2 + 120, 470);
 }
 
+function drawRelicScreen() {
+  overlay(0.74);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#63dcc0';
+  ctx.font = '700 32px Consolas, monospace';
+  ctx.fillText('SALVAGE', W / 2, 92);
+  ctx.fillStyle = 'rgba(220,210,190,0.72)';
+  ctx.font = '600 11px Consolas, monospace';
+  ctx.fillText('CHOOSE ONE RELIC — PERMANENT FOR THIS RUN — PRESS 1, 2 OR 3', W / 2, 114);
+
+  const count = G.relicOffers.length;
+  const startX = (W - (240 * count + 24 * (count - 1))) / 2;
+  const cardY = 150;
+  G.relicOffers.forEach((id, i) => {
+    const relic = RELICS.find((r) => r.id === id);
+    const x = startX + i * 264;
+    const y = cardY;
+    const w = 240;
+    const h = 240;
+    uiButtons.push({ id: 'relic-' + i, label: relic.name, x, y, w, h });
+    const hover = mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
+    ctx.fillStyle = hover ? 'rgba(36,40,44,0.98)' : 'rgba(18,22,26,0.94)';
+    ctx.strokeStyle = hover ? relic.color : 'rgba(99,220,192,0.4)';
+    rr(x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = relic.color;
+    ctx.font = '700 17px Consolas, monospace';
+    ctx.fillText(relic.name, x + w / 2, y + 58);
+    ctx.fillStyle = 'rgba(220,215,200,0.85)';
+    ctx.font = '600 12px Consolas, monospace';
+    const words = relic.desc.split(' ');
+    let line = '';
+    let ly = y + 108;
+    for (const word of words) {
+      const next = line ? line + ' ' + word : word;
+      if (next.length > 26 && line) {
+        ctx.fillText(line, x + w / 2, ly);
+        ly += 18;
+        line = word;
+      } else {
+        line = next;
+      }
+    }
+    if (line) ctx.fillText(line, x + w / 2, ly);
+    ctx.fillStyle = relic.color;
+    ctx.font = '700 40px Consolas, monospace';
+    ctx.fillText(String(i + 1), x + w / 2, y + h - 22);
+  });
+
+  ctx.fillStyle = 'rgba(190,185,170,0.55)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('RELICS OWNED ' + G.relics.length + ' / ' + RELICS.length, W / 2, 424);
+}
+
 function drawMapView() {
   overlay(0.8);
   ctx.textAlign = 'center';
@@ -5376,6 +5550,7 @@ function drawScreens() {
   else if (screen === 'paused') drawPauseScreen();
   else if (screen === 'mapview') drawMapView();
   else if (screen === 'levelup') drawLevelUpScreen();
+  else if (screen === 'relic') drawRelicScreen();
   else if (screen === 'over') drawOverScreen();
 }
 
@@ -5543,6 +5718,10 @@ function pressButton(id) {
     const index = Number(id.slice(8));
     if (screen === 'levelup') chooseUpgrade(index);
   }
+  if (id.indexOf('relic-') === 0) {
+    const index = Number(id.slice(6));
+    if (screen === 'relic') chooseRelic(index);
+  }
 }
 
 function render() {
@@ -5620,6 +5799,9 @@ function onKeyDown(e) {
   }
   if (screen === 'levelup' && (k === '1' || k === '2' || k === '3')) {
     chooseUpgrade(Number(k) - 1);
+  }
+  if (screen === 'relic' && (k === '1' || k === '2' || k === '3')) {
+    chooseRelic(Number(k) - 1);
   }
   if (screen === 'levelup' && k === 'r') {
     rerollOffers();
@@ -5823,12 +6005,25 @@ window.Dustline = {
       snap.bannerT = G.bannerT;
       snap.dash = { ready: G.dash.cd <= 0, cd: G.dash.cd, t: G.dash.t };
       snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
-      snap.shield = { charges: G.shield.charges, max: G.skills.aegis, t: G.shield.t };
+      snap.shield = { charges: G.shield.charges, max: shieldMax(), t: G.shield.t };
       snap.slow = G.slowT;
       snap.pools = G.pools.length;
       snap.slots = {
         offense: { used: slotsUsed('offense'), cap: slotCap('offense') },
         passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
+      };
+      snap.relics = G.relics.slice();
+      snap.relicOffers = G.relicOffers.slice();
+      snap.salvage = G.salvage.length;
+      snap.mods = {
+        fireRate: fireRateMult(),
+        crit: critChance(),
+        bulletSpeed: bulletSpeedMult(),
+        magnet: magnetRadius(),
+        blast: blastMult(),
+        shard: hasRelic('greedengine') ? 1.2 : 1,
+        lifestealBonus: hasRelic('bloodstone') ? 0.03 : 0,
+        shield: shieldMax()
       };
       const boss = G.enemies.find((e) => e.boss && !e.dead);
       snap.boss = boss
@@ -5986,6 +6181,20 @@ if (window.__DUSTLINE_TEST__) {
       e.hp = Math.round(e.hp * 1.15);
       e.maxHp = e.hp;
     }
+    return true;
+  };
+  window.Dustline.grantRelic = (id) => {
+    if (!G || !RELICS.some((r) => r.id === id) || G.relics.indexOf(id) >= 0) return false;
+    G.relics.push(id);
+    if (id === 'aegiscore') {
+      G.shield.charges = Math.min(shieldMax(), G.shield.charges + 1);
+      G.shield.t = shieldRefill();
+    }
+    return true;
+  };
+  window.Dustline.spawnSalvage = (x, y) => {
+    if (!G) return false;
+    G.salvage.push({ x: Number(x) || 0, y: Number(y) || 0, spin: 0, t: 40 });
     return true;
   };
   window.Dustline.hitEnemy = (index, dmg) => {
