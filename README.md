@@ -2,7 +2,7 @@
 
 [![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
 
-Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, four maps, eleven mob types plus NetWatch hunters, three rotating bosses plus two mega bosses, skill combos, risky extraction banking, sector events and a permanent out-of-run armory.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, four maps, fifteen mob types plus NetWatch hunters, three rotating bosses plus two mega bosses, weapon evolutions, champion affixes, supply caches, three difficulty tiers, skill combos, risky extraction banking, sector events and a permanent out-of-run armory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -40,6 +40,7 @@ Before every run you pick:
 - **Weapon**: AK-47 (balanced), SMG-45 (fast spray), SPAS-12 (pellet spread) or DMR-308 (slow, piercing).
 - **Map**: Dust Basin, Whiteout Ridge, Ashfall or Greenfall. Each has its own palette and cover.
 - **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
+- **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +35% loot) or Nightmare (+90% health, +50% spawns, +80% loot).
 
 ### Modes and screens
 
@@ -55,7 +56,11 @@ Before every run you pick:
 ### The run
 
 - **Infinite world**: deterministic tiles with buildings, rocks and trees; solid cover blocks bodies and bullets, and the camera follows with no bounds.
-- **Enemies**: Crawler (chase), Stalker (fast weave), Bulwark (armored), Hexer (ranged), Spitter (acid), Bomber (suicide blast) and Swarmling (fast swarm). Health, touch damage and spawn rates scale with time.
+- **Enemies**: Crawler (chase), Stalker (fast weave), Bulwark (armored), Hexer (ranged), Spitter (acid), Bomber (suicide blast), Swarmling (fast swarm), Warden (plated), Weaver (blinks), Splitter (splits into swarmlings), Leech (drains health and shards), Shielder (damage aura), Tunneler (burrows and ambushes), Screamer (enrages packs) and Phantom (phases out of damage). Health, touch damage and spawn rates scale with time and difficulty.
+- **Champions**: ~3% of mobs spawn as champions with a Volatile, Shielded or Swift affix, triple XP and a guaranteed supply cache.
+- **Supply caches**: elite drops and rare finds. The first ten grant a free field upgrade; after that they pay shards.
+- **Evolutions**: max a weapon at level 5 and raise its partner to level 3 to evolve it into Ripper (rifle), Storm (SMG), Breaker (SPAS) or Reaper (DMR).
+- **Rerolls and banishes**: each run starts with 2 rerolls (more with Loaded Dice) and 1 banish, usable on the level-up screen.
 - **Waves**: every 40 seconds the horde grows and new mob types unlock.
 - **Bosses**: every fifth wave rotates between the Warlord (charge + fan fire), the Overseer (bullet spray, enraged below half health) and the Bombardier (lobs bombs). All have health bars and guaranteed loot.
 - **Mega bosses**: every fourth boss slot (waves 20, 40, ...) summons the Colossus or the Leviathan: a three-phase fight with radial barrages, minion calls and a charge. They drop a beacon, three medkits, twenty-two gems and chips.
@@ -109,9 +114,9 @@ dustline/
 
 ## 🧪 Tests
 
-`tests/harness.js` stubs the canvas context, window events and `requestAnimationFrame`, seeds `Math.random` for reproducible runs, then boots the real `game.js` inside `node:vm` and drives frames deterministically. The suite covers menu and setup navigation, weapon/map/limit selection, deployment, auto-fire, squad recruitment and formation, all eleven regular mob types, red enemy projectiles, upgrade cards and caps, blades/grenades/dash damage, bomb throwing and cluster targeting, lifesteal, combos, boss rotation and boss attacks, mega bosses and phases, boss loot, extraction banking and death loss, variable-ratio rewards and chips, near-miss surge, warden armor, splitter swarms, alert and hunters, sector events, overdrive, contracts, survival bonus, medkit magnetism, procedural cover, map viewer, armory purchases, statistics, settings persistence, pause/restart, death and saving, time-limit victory, cross-session persistence, the endless map and camera, wave escalation, focus-loss auto-pause and the static server.
+`tests/harness.js` stubs the canvas context, window events and `requestAnimationFrame`, seeds `Math.random` for reproducible runs, then boots the real `game.js` inside `node:vm` and drives frames deterministically. The suite covers menu and setup navigation, weapon/map/limit selection, deployment, auto-fire, squad recruitment and formation, all fifteen regular mob types, champions and cache drops, weapon evolutions, difficulty scaling, rerolls and banishes, red enemy projectiles, upgrade cards and caps, blades/grenades/dash damage, bomb throwing and cluster targeting, lifesteal, combos, boss rotation and boss attacks, mega bosses and phases, boss loot, extraction banking and death loss, variable-ratio rewards and chips, near-miss surge, warden armor, splitter swarms, alert and hunters, sector events, overdrive, contracts, survival bonus, medkit magnetism, procedural cover, map viewer, armory purchases, statistics, settings persistence, pause/restart, death and saving, time-limit victory, cross-session persistence, the endless map and camera, wave escalation, focus-loss auto-pause and the static server.
 
-`game.js` publishes read-only `window.Dustline.snapshot()` in every build. State-changing helpers (`giveXp`, `spawnEnemy`, `spawnBoss`, `setTime`, `killEnemies`, `hurt`, `applyUpgrade`, `setInvulnerable`, `clickButton`, `startRun`, `throwBomb`, `spawnMedkit`, `grantShards`, `buyMeta`, `props`, `setPlayer`, `setAlert`, `setUnbanked`, `bankNow`, `triggerEvent`, `setEventCd`, `setRng`, `setEnemyHp`, `setOverdrive`, `spawnChip`, `hitEnemy`, `setHunterCd`, `forceContracts`) exist only when the harness sets `window.__DUSTLINE_TEST__`.
+`game.js` publishes read-only `window.Dustline.snapshot()` in every build. State-changing helpers (`giveXp`, `spawnEnemy`, `spawnBoss`, `setTime`, `killEnemies`, `hurt`, `applyUpgrade`, `setInvulnerable`, `clickButton`, `startRun`, `throwBomb`, `spawnMedkit`, `grantShards`, `buyMeta`, `props`, `setPlayer`, `setAlert`, `setUnbanked`, `bankNow`, `triggerEvent`, `setEventCd`, `setRng`, `setEnemyHp`, `setOverdrive`, `spawnChip`, `hitEnemy`, `setHunterCd`, `forceContracts`, `spawnChest`, `reroll`, `banish`, `forceChampion`, `setGhost`, `setBurrowed`) exist only when the harness sets `window.__DUSTLINE_TEST__`.
 
 ### UI contract note
 

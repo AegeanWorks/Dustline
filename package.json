@@ -1,8 +1,8 @@
 {
   "name": "dustline",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
-  "description": "Dustline: Survivors — an endless horde survival shooter with variable-ratio rewards, extraction banking, overdrive, contracts, eleven mobs, two mega bosses and a permanent armory.",
+  "description": "Dustline: Survivors — an endless horde survival shooter with weapon evolutions, champion affixes, supply caches, three difficulty tiers, fifteen mobs and rotating mega bosses.",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "node scripts/serve.js",

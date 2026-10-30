@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-6-verify",
+    "task_id": "dustline-v0-7",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793320244.226756,
+    "updated_at": 1793347540.2053404,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": [],
-    "completed_at": 1793320247.3133912
+    "completed_at": 1793347540.4570014
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793217857.3717725,
-      "timestamp_str": "2026-10-28 23:04:17",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-survivors-v1",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Rebuild Dustline as a Vampire Survivors style horde game with infinite map, four enemy types, four active and four passive skills, squad AI, and menu/settings/upgrades",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793222482.5562854,
-      "timestamp_str": "2026-10-29 00:21:22",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The user asked to turn the arena shooter into a wave-survivor game with an endless map, enemy and skill variety, full menus, settings, upgrades and an AI squad",
-        "benefits": "Endless replayable loop, automatic squad fire, meaningful build choices, persistent settings and best run, and every screen reachable in-game",
-        "risks": "contract: snapshot and test seam rewritten; dependency: none added; concurrency: none; state: settings and best now persist in localStorage under new keys",
-        "mitigation": "Seeded VM harness, 18 node:test cases covering every screen and mechanic, plus 60s and 150s autoplay runs and all four project gates"
-      }
-    },
-    {
-      "task_id": "dustline-survivors-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "18/18 node:test cases pass, 4/4 Phase 4 gates pass, 150s autoplay reaches wave 4 with all enemy types; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793222482.8368566,
-      "timestamp_str": "2026-10-29 00:21:22",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "dustline-survivors-v1",
       "phase": "completed",
@@ -253,6 +215,44 @@
       "status": "completed",
       "timestamp": 1793320247.3133934,
       "timestamp_str": "2026-10-30 03:30:47",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-7",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Add build depth and replayability: weapon evolutions (Ripper/Storm/Breaker/Reaper), champion mobs with Volatile/Shielded/Swift affixes, supply caches with a fair free-upgrade cap, three difficulty tiers with matching loot, level-up rerolls and banishes, and Shielder/Tunneler/Screamer/Phantom wired into the real spawn table",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793347496.5251179,
+      "timestamp_str": "2026-10-30 11:04:56",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked for continued improvements to mechanics, balance and mobs; v0.6 builds peaked early, difficulty was fixed, and four designed mobs only existed behind test seams",
+        "benefits": "Visible late-game build payoffs, scarce and valuable elites, player-chosen challenge with matching reward, mid-run build agency, and full use of the mob roster",
+        "risks": "contract: save gains champion/cache counters, snapshot/seams expand, level curve and XP pace change; dependency: none added; concurrency: none; state: setup gains difficulty and existing saves default it to normal",
+        "mitigation": "56 deterministic tests including evolution, champions/caches, difficulty, rerolls, new-mob states and persistence; seeded 4-minute balance runs; Chromium smoke with zero console errors; ADR-007"
+      }
+    },
+    {
+      "task_id": "dustline-v0-7",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "56/56 node:test cases (9 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean; Chromium smoke verified difficulty cards, evolution, champions, caches, codex and statistics with zero console errors; seeded 4-minute autoplays on Normal and Nightmare reached all 15 regular mob types, 2-4 evolutions, champion affixes and screamer rage, at ~1.6ms simulated frame time; balance re-tuned after finding 12% champions + 2-upgrade caches maxed every skill in 4 minutes (now 3% champions, 1 upgrade, 10-cache cap, steeper 6+6 XP curve); checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793347540.2053404,
+      "timestamp_str": "2026-10-30 11:05:40",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-7",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-7' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793347540.4570034,
+      "timestamp_str": "2026-10-30 11:05:40",
       "agent": "kilo:main"
     }
   ]

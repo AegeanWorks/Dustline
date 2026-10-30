@@ -77,13 +77,14 @@ function writeStore(key, value) {
   }
 }
 
-const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet'];
+const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck'];
 const META = {
   power: { name: 'BALLISTICS', desc: '+6% damage per rank', max: 5, cost: (n) => 60 + 45 * n },
   armor: { name: 'PLATE CARRIER', desc: '+10 max health per rank', max: 5, cost: (n) => 60 + 45 * n },
   speed: { name: 'RUNNING SHOES', desc: '+4% move speed per rank', max: 5, cost: (n) => 55 + 40 * n },
   greed: { name: 'SCAVENGER KIT', desc: '+10% XP per rank', max: 5, cost: (n) => 70 + 50 * n },
-  magnet: { name: 'POWER MAGNET', desc: '+12 pickup radius per rank', max: 5, cost: (n) => 50 + 35 * n }
+  magnet: { name: 'POWER MAGNET', desc: '+12 pickup radius per rank', max: 5, cost: (n) => 50 + 35 * n },
+  luck: { name: 'LOADED DICE', desc: '+1 reroll and better drops', max: 3, cost: (n) => 110 + 70 * n }
 };
 
 function defaultSave() {
@@ -103,9 +104,11 @@ function defaultSave() {
     contracts: 0,
     bankedTotal: 0,
     lostTotal: 0,
+    champions: 0,
+    chests: 0,
     lastSeed: 20261029,
     killsByType: {},
-    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0 },
+    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0 },
     unlocked: { weapons: ['ak'], maps: ['desert'] }
   };
 }
@@ -123,13 +126,13 @@ function loadSave() {
   }
   const merged = Object.assign(fresh, raw);
   merged.v = SAVE_VERSION;
-  merged.meta = Object.assign({ power: 0, armor: 0, speed: 0, greed: 0, magnet: 0 }, raw.meta || {});
+  merged.meta = Object.assign({ power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0 }, raw.meta || {});
   for (const key of META_ORDER) {
     merged.meta[key] = clamp(Math.round(Number(merged.meta[key]) || 0), 0, META[key].max);
   }
   merged.killsByType = Object.assign({}, raw.killsByType || {});
   merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert'] }, raw.unlocked || {});
-  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal']) {
+  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
   for (const key of ['bestTime', 'bestKills']) merged[key] = Math.max(0, Number(merged[key]) || 0);
@@ -296,6 +299,8 @@ const sfx = {
   soldier() { noiseShot(0.06, 0.04, 2400, 1.1); tone('square', 240, 120, 0.03, 0.04); },
   enemyShot() { noiseSweep(0.1, 0.12, 1400, 320, 'bandpass'); tone('sawtooth', 300, 120, 0.03, 0.08); },
   spit() { noiseSweep(0.09, 0.16, 700, 220, 'lowpass'); },
+  screech() { tone('sawtooth', 1400, 900, 0.05, 0.22); tone('square', 1900, 1200, 0.03, 0.18); },
+  chest() { pad([660, 880, 1174], 0.08, 0.3, 0.06); noiseShot(0.1, 0.12, 1600, 0.8); },
   bossRoar() { tone('sawtooth', 120, 45, 0.16, 0.7); noiseSweep(0.16, 0.7, 500, 70, 'lowpass'); },
   throwBomb() { tone('sine', 420, 180, 0.05, 0.16); },
   hit() { tone('triangle', 850, 320, 0.045, 0.035); },
@@ -555,6 +560,27 @@ const TIME_LIMITS = [
   { id: '15', label: '15 MIN', sec: 900 }
 ];
 
+const DIFFICULTIES = [
+  { id: 'normal', name: 'NORMAL', blurb: 'The intended fight', spawn: 1, hp: 1, dmg: 1, shard: 1, color: '#7fe0a0' },
+  { id: 'brutal', name: 'BRUTAL', blurb: 'More, tougher, hits harder', spawn: 1.25, hp: 1.4, dmg: 1.25, shard: 1.35, color: '#ffcf5c' },
+  { id: 'nightmare', name: 'NIGHTMARE', blurb: 'For the reckless', spawn: 1.5, hp: 1.9, dmg: 1.5, shard: 1.8, color: '#e2563f' }
+];
+
+const DIFFICULTY_ORDER = ['normal', 'brutal', 'nightmare'];
+
+const EVOLUTIONS = {
+  rifle: { id: 'ripper', name: 'RIPPER', needs: 'bulletSpeed', desc: 'Triple-shot spread, +60% damage' },
+  smg: { id: 'storm', name: 'STORM', needs: 'crit', desc: 'Twin-linked shots, +10% crit' },
+  shotgun: { id: 'breaker', name: 'BREAKER', needs: 'damage', desc: '+4 pellets, piercing shells' },
+  dmr: { id: 'reaper', name: 'REAPER', needs: 'lifesteal', desc: '+3 pierce, +30% damage, double leech' }
+};
+
+const CHAMPION_AFFIXES = [
+  { id: 'volatile', name: 'VOLATILE', color: '#ff8a5c', desc: 'explodes on death' },
+  { id: 'shielded', name: 'SHIELDED', color: '#9fd8ff', desc: 'takes 30% less damage' },
+  { id: 'swift', name: 'SWIFT', color: '#7fe0a0', desc: 'moves and strikes faster' }
+];
+
 const ENEMY_TYPES = {
   grunt: { hp: 26, speed: 50, r: 14, touch: 9, xp: 1, color: '#7d9a4f', dark: '#39461f', name: 'Crawler' },
   runner: { hp: 16, speed: 110, r: 11, touch: 7, xp: 1, color: '#c2704a', dark: '#4a2a1a', name: 'Stalker' },
@@ -567,6 +593,10 @@ const ENEMY_TYPES = {
   weaver: { hp: 34, speed: 74, r: 12, touch: 8, xp: 3, color: '#7a5b9e', dark: '#2f2340', name: 'Weaver', blink: true },
   splitter: { hp: 70, speed: 46, r: 18, touch: 11, xp: 3, color: '#8a6a3a', dark: '#3a2a14', name: 'Splitter', split: true },
   leech: { hp: 46, speed: 58, r: 13, touch: 5, xp: 3, color: '#7a2f3a', dark: '#3a1218', name: 'Leech', drain: true },
+  shielder: { hp: 110, speed: 38, r: 17, touch: 12, xp: 6, color: '#4f7a8a', dark: '#1d333d', name: 'Shielder', aura: true },
+  tunneler: { hp: 85, speed: 62, r: 15, touch: 14, xp: 5, color: '#6a5a3a', dark: '#2a2214', name: 'Tunneler', burrow: true },
+  screamer: { hp: 65, speed: 44, r: 15, touch: 9, xp: 4, color: '#8a4a6a', dark: '#3a1a2a', name: 'Screamer', scream: true },
+  phantom: { hp: 70, speed: 78, r: 13, touch: 12, xp: 5, color: '#5a7a8a', dark: '#20303a', name: 'Phantom', ghost: true },
   hunter: { hp: 240, speed: 98, r: 18, touch: 14, xp: 14, color: '#c23a4a', dark: '#3a0d13', name: 'HUNTER', elite: true }
 };
 
@@ -640,7 +670,7 @@ const FORMATION = [
 ];
 
 function levelNeed(level) {
-  return Math.round(5 + 5 * level);
+  return Math.round(6 + 6 * level);
 }
 
 function metaRank(id) {
@@ -675,12 +705,12 @@ function bulletSpeedMult() {
 }
 
 function critChance() {
-  return 0.07 * G.skills.crit + (G.surgeT > 0 ? 0.15 : 0);
+  return 0.07 * G.skills.crit + (hasEvolution('smg') ? 0.1 : 0) + (G.surgeT > 0 ? 0.15 : 0);
 }
 
 function lifestealHeal(dmg) {
   if (G.skills.lifesteal <= 0) return 0;
-  const rate = 0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1);
+  const rate = 0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1);
   return Math.max(1, Math.round(dmg * rate));
 }
 
@@ -698,7 +728,7 @@ function odActive() {
 
 function addUnbanked(value) {
   if (!(value > 0)) return;
-  G.unbanked += value * G.market;
+  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1);
 }
 
 function bankUnbanked() {
@@ -725,6 +755,29 @@ function applyChip(kind) {
   G.stats.chips++;
   spawnFloater(G.player.x, G.player.y - 30, chip.name, chip.color, 14);
   sfx.upgrade();
+}
+
+function openChest() {
+  if (!G) return 0;
+  addUnbanked(8);
+  let granted = 0;
+  const canUpgrade = (G.stats.chests || 0) < 10;
+  for (let i = 0; i < 1 && canUpgrade; i++) {
+    const pool = SKILL_ORDER.filter(
+      (id) => G.skills[id] < SKILLS[id].max && G.banned.indexOf(id) < 0
+    );
+    if (pool.length === 0) break;
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    if (applyUpgrade(id)) granted++;
+  }
+  if (granted === 0) addUnbanked(12);
+  G.stats.chests = (G.stats.chests || 0) + 1;
+  G.banner = 'SUPPLY CACHE';
+  G.bannerSub = granted > 0 ? '+' + granted + ' FIELD UPGRADE' + (granted > 1 ? 'S' : '') : '+8 SHARDS';
+  G.bannerT = 2.2;
+  G.news = 'Supply cache opened.';
+  sfx.chest();
+  return granted;
 }
 
 function spawnHunter() {
@@ -817,7 +870,7 @@ function addSoldier() {
   });
 }
 
-let setup = { weapon: 'ak', map: 'desert', limit: 'endless' };
+let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal' };
 
 function freshSkills() {
   const skills = {};
@@ -830,6 +883,10 @@ function findLimit(id) {
   return TIME_LIMITS.find((l) => l.id === id) || TIME_LIMITS[0];
 }
 
+function findDifficulty(id) {
+  return DIFFICULTIES.find((d) => d.id === id) || DIFFICULTIES[0];
+}
+
 function startRun(options) {
   const opts = options || {};
   if (opts.weapon && WEAPONS[opts.weapon]) setup.weapon = opts.weapon;
@@ -838,7 +895,11 @@ function startRun(options) {
     const found = TIME_LIMITS.some((l) => l.id === opts.limit);
     if (found) setup.limit = opts.limit;
   }
+  if (opts.difficulty && DIFFICULTIES.some((d) => d.id === opts.difficulty)) {
+    setup.difficulty = opts.difficulty;
+  }
   const limit = findLimit(setup.limit);
+  const diff = findDifficulty(setup.difficulty);
   const maxHp = 100 + 10 * metaRank('armor');
   const seed = (save.lastSeed >>> 0) || 20261029;
   save.lastSeed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -846,6 +907,8 @@ function startRun(options) {
   G = {
     weapon: setup.weapon,
     map: setup.map,
+    difficulty: diff.id,
+    diff,
     limitSec: limit.sec,
     limitLabel: limit.label,
     victory: false,
@@ -872,6 +935,7 @@ function startRun(options) {
     gems: [],
     medkits: [],
     chips: [],
+    chests: [],
     grenades: [],
     particles: [],
     floaters: [],
@@ -897,6 +961,10 @@ function startRun(options) {
     lost: 0,
     beacon: null,
     contracts: [],
+    evolved: {},
+    rerolls: 2 + metaRank('luck'),
+    banishes: 1,
+    banned: [],
     damageDealt: 0,
     killsByType: {},
     bossKills: 0,
@@ -921,6 +989,8 @@ function startRun(options) {
       dashes: 0,
       hunters: 0,
       contracts: 0,
+      champions: 0,
+      chests: 0,
       banked: 0,
       lost: 0
     }
@@ -968,6 +1038,8 @@ function recordRun(outcome) {
   save.contracts += G.stats.contracts;
   save.bankedTotal += Math.floor(G.banked);
   save.lostTotal += G.stats.lost;
+  save.champions += G.stats.champions || 0;
+  save.chests += G.stats.chests || 0;
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
@@ -1236,33 +1308,73 @@ function muzzle(x, y, ang, color) {
   }
 }
 
+function hasEvolution(skill) {
+  return !!(G && G.evolved && G.evolved[skill]);
+}
+
+function checkEvolutions() {
+  if (!G) return;
+  for (const skill of Object.keys(EVOLUTIONS)) {
+    if (G.evolved[skill]) continue;
+    const evo = EVOLUTIONS[skill];
+    if (G.skills[skill] >= SKILLS[skill].max && G.skills[evo.needs] >= 3) {
+      G.evolved[skill] = evo.id;
+      G.banner = 'EVOLVED · ' + evo.name;
+      G.bannerSub = SKILLS[skill].name + ' + ' + SKILLS[evo.needs].name;
+      G.bannerT = 2.8;
+      G.news = SKILLS[skill].name + ' evolved into ' + evo.name + '.';
+      shake = Math.max(shake, settings.shake ? 6 : 0);
+      sfx.victory();
+    }
+  }
+}
+
 function rifleStats() {
   const lvl = G.skills.rifle;
-  return {
+  const st = {
     dmg: (14 + 5 * (lvl - 1)) * damageMult(),
     cd: Math.max(0.16, 0.55 - 0.055 * lvl) * (hasCombo('overclocked') ? 0.8 : 1),
     range: 560,
     speed: 920,
     color: '#ffe28a',
-    sfx: 'rifle'
+    sfx: 'rifle',
+    shots: 1,
+    spread: 0
   };
+  if (hasEvolution('rifle')) {
+    st.dmg *= 1.6;
+    st.cd *= 0.85;
+    st.shots = 3;
+    st.spread = 0.18;
+    st.label = 'RIPPER';
+  }
+  return st;
 }
 
 function smgStats() {
   const lvl = G.skills.smg;
-  return {
+  const st = {
     dmg: (6 + 2.2 * (lvl - 1)) * damageMult(),
     cd: Math.max(0.07, 0.19 - 0.012 * lvl),
     range: 470,
     speed: 880,
     color: '#ffcf5c',
-    sfx: 'smg'
+    sfx: 'smg',
+    shots: 1,
+    spread: 0
   };
+  if (hasEvolution('smg')) {
+    st.cd *= 0.9;
+    st.shots = 2;
+    st.spread = 0.1;
+    st.label = 'STORM';
+  }
+  return st;
 }
 
 function shotgunStats() {
   const lvl = Math.max(1, G.skills.shotgun);
-  return {
+  const st = {
     dmg: (7 + 2 * lvl) * damageMult(),
     cd: Math.max(0.4, 1.15 - 0.06 * lvl),
     pellets: 2 + lvl,
@@ -1270,21 +1382,37 @@ function shotgunStats() {
     range: 430,
     speed: 820,
     color: '#ffb066',
-    sfx: 'shotgun'
+    sfx: 'shotgun',
+    pierce: 0
   };
+  if (hasEvolution('shotgun')) {
+    st.dmg *= 1.1;
+    st.pellets += 4;
+    st.pierce = 1;
+    st.label = 'BREAKER';
+  }
+  return st;
 }
 
 function dmrStats() {
   const lvl = G.skills.dmr;
-  return {
+  const st = {
     dmg: (34 + 14 * (lvl - 1)) * damageMult(),
     cd: Math.max(0.5, 1.0 - 0.06 * lvl),
     range: 780,
     speed: 1400,
     pierce: 2 + Math.floor(lvl / 2),
     color: '#ffeab0',
-    sfx: 'dmr'
+    sfx: 'dmr',
+    shots: 1,
+    spread: 0
   };
+  if (hasEvolution('dmr')) {
+    st.dmg *= 1.3;
+    st.pierce += 3;
+    st.label = 'REAPER';
+  }
+  return st;
 }
 
 function weaponStats(id) {
@@ -1322,23 +1450,27 @@ function fireWeapon(id, dt) {
         hit.dmg,
         'p',
         st.color,
-        { crit: hit.crit, life }
+        { crit: hit.crit, pierce: st.pierce || 0, life }
       );
     }
     G.stats.shots.shotgun += st.pellets;
   } else {
-    const hit = rollCrit(st.dmg);
-    spawnBullet(
-      G.player.x + Math.cos(ang) * 18,
-      G.player.y + Math.sin(ang) * 18,
-      ang + rnd(-0.025, 0.025),
-      speed,
-      hit.dmg,
-      'p',
-      st.color,
-      { crit: hit.crit, pierce: st.pierce || 0, life }
-    );
-    G.stats.shots[id] = (G.stats.shots[id] || 0) + 1;
+    const shots = st.shots || 1;
+    for (let i = 0; i < shots; i++) {
+      const off = shots > 1 ? (i / (shots - 1) - 0.5) * st.spread : 0;
+      const hit = rollCrit(st.dmg);
+      spawnBullet(
+        G.player.x + Math.cos(ang) * 18,
+        G.player.y + Math.sin(ang) * 18,
+        ang + off + rnd(-0.025, 0.025),
+        speed,
+        hit.dmg,
+        'p',
+        st.color,
+        { crit: hit.crit, pierce: st.pierce || 0, life }
+      );
+    }
+    G.stats.shots[id] = (G.stats.shots[id] || 0) + shots;
   }
   G.cds[id] = st.cd / ((odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1));
   shake = Math.max(shake, id === 'shotgun' ? 2.2 : id === 'dmr' ? 2 : 1.1);
@@ -1445,6 +1577,10 @@ function pickEnemyType() {
   if (t > 130) pool.push(['leech', 2 + Math.min(4, t / 100)]);
   if (t > 150) pool.push(['splitter', 2 + Math.min(4, t / 110)]);
   if (t > 180) pool.push(['warden', 1 + Math.min(3, t / 130)]);
+  if (t > 120) pool.push(['shielder', 1 + Math.min(3, t / 150)]);
+  if (t > 140) pool.push(['tunneler', 1 + Math.min(3, t / 160)]);
+  if (t > 160) pool.push(['screamer', 1 + Math.min(3, t / 170)]);
+  if (t > 175) pool.push(['phantom', 1 + Math.min(3, t / 180)]);
   let total = 0;
   for (const entry of pool) total += entry[1];
   let roll = Math.random() * total;
@@ -1463,7 +1599,8 @@ function spawnEnemyAt(type, x, y) {
   if (!G) return null;
   const boss = isBossType(type);
   const base = boss ? BOSS_TYPES[type] : (ENEMY_TYPES[type] || ENEMY_TYPES.grunt);
-  const hpScale = 1 + G.time / 120 + (boss ? G.time / 300 : 0);
+  const diffHp = G.diff ? G.diff.hp : 1;
+  const hpScale = (1 + G.time / 120 + (boss ? G.time / 300 : 0)) * diffHp;
   const e = {
     type,
     x,
@@ -1477,6 +1614,16 @@ function spawnEnemyAt(type, x, y) {
     boss,
     mega: !!base.mega,
     elite: !!base.elite,
+    champion: false,
+    affix: null,
+    auraShield: false,
+    burrowed: false,
+    burrowT: 0,
+    burrowCd: rnd(1.8, 3),
+    ghost: false,
+    ghostT: 0,
+    screamCd: rnd(2, 3.5),
+    rageT: 0,
     style: base.style || null,
     fireCd: rnd(0.6, 1.4),
     touchCd: 0,
@@ -1493,6 +1640,19 @@ function spawnEnemyAt(type, x, y) {
     nearMiss: false,
     dead: false
   };
+  if (!boss && !base.elite && srnd() < 0.03) {
+    const affix = CHAMPION_AFFIXES[Math.floor(srnd() * CHAMPION_AFFIXES.length)];
+    e.champion = true;
+    e.affix = affix.id;
+    e.hp = Math.round(e.hp * 2.1);
+    e.maxHp = e.hp;
+    e.r *= 1.12;
+    e.xp *= 3;
+    if (affix.id === 'swift') {
+      e.speed *= 1.35;
+      e.touchCd = 0;
+    }
+  }
   G.enemies.push(e);
   return e;
 }
@@ -1530,7 +1690,7 @@ function spawnBoss() {
 function updateSpawner(dt) {
   G.cds.spawn -= dt;
   if (G.cds.spawn > 0) return;
-  const ready = Math.max(0.2, 1.05 - G.time * 0.008);
+  const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1);
   G.cds.spawn = ready;
   const cap = 150;
   if (G.enemies.length >= cap) return;
@@ -1539,6 +1699,24 @@ function updateSpawner(dt) {
 }
 
 function updateEnemies(dt) {
+  const shielders = [];
+  for (const e of G.enemies) {
+    e.auraShield = false;
+    if (!e.dead && e.type === 'shielder') shielders.push(e);
+  }
+  if (shielders.length) {
+    for (const e of G.enemies) {
+      if (e.dead || e === undefined) continue;
+      for (const s of shielders) {
+        if (s === e) continue;
+        if (dist2(e.x, e.y, s.x, s.y) < 170 * 170) {
+          e.auraShield = true;
+          break;
+        }
+      }
+    }
+  }
+
   for (const e of G.enemies) {
     if (e.dead) continue;
     e.flash = Math.max(0, e.flash - dt);
@@ -1548,6 +1726,7 @@ function updateEnemies(dt) {
     e.fireCd -= dt;
     e.flip -= dt;
     e.chargeCd -= dt;
+    e.rageT = Math.max(0, e.rageT - dt);
     if (e.flip <= 0) {
       e.flip = rnd(0.8, 2.2);
       e.strafe *= -1;
@@ -1559,8 +1738,53 @@ function updateEnemies(dt) {
     const uy = dy / d;
     let vx = ux;
     let vy = uy;
-    let speed = e.speed;
+    let speed = e.speed * (e.rageT > 0 ? 1.3 : 1);
     if (G.event && G.event.id === 'sandstorm') speed *= 1.2;
+
+    if (e.type === 'tunneler') {
+      if (e.burrowed) {
+        e.burrowT -= dt;
+        speed = 0;
+        vx = 0;
+        vy = 0;
+        if (e.burrowT <= 0) {
+          e.burrowed = false;
+          e.burrowCd = rnd(2.2, 3.6);
+          const a = rnd(0, TAU);
+          const r = rnd(55, 120);
+          const p = resolveSolid(G.player.x + Math.cos(a) * r, G.player.y + Math.sin(a) * r, e.r);
+          e.x = p.x;
+          e.y = p.y;
+          burst(e.x, e.y, 10, '#6a5a3a', 170, 2.6, 0.4);
+        }
+      } else {
+        e.burrowCd -= dt;
+        if (e.burrowCd <= 0) {
+          e.burrowed = true;
+          e.burrowT = 1.5;
+          burst(e.x, e.y, 8, '#6a5a3a', 140, 2.2, 0.35);
+        }
+      }
+    } else if (e.type === 'phantom') {
+      e.ghostT -= dt;
+      if (e.ghostT <= 0) {
+        e.ghost = !e.ghost;
+        e.ghostT = e.ghost ? 0.8 : 1.6;
+        burst(e.x, e.y, 4, '#9fd8ff', 100, 1.8, 0.25);
+      }
+    } else if (e.type === 'screamer') {
+      e.screamCd -= dt;
+      if (e.screamCd <= 0) {
+        e.screamCd = rnd(3, 4.2);
+        for (const o of G.enemies) {
+          if (o.dead || o === e) continue;
+          if (dist2(o.x, o.y, e.x, e.y) < 240 * 240) o.rageT = 2.2;
+        }
+        burst(e.x, e.y, 14, '#ff9fd0', 240, 2.6, 0.4);
+        spawnFloater(e.x, e.y - e.r - 10, 'SCREECH', '#ff9fd0', 11);
+        sfx.screech();
+      }
+    }
 
     if (e.mega) {
       if (e.style === 'mega2' && e.chargeCd <= 0 && d < 520) {
@@ -1741,7 +1965,7 @@ function updateEnemies(dt) {
     } else {
       moveWithSolids(e, stepX, stepY, e.r);
     }
-    if (d < e.r + 15 && e.touchCd <= 0) {
+    if (!e.burrowed && d < e.r + 15 && e.touchCd <= 0) {
       e.touchCd = 0.9;
       damagePlayer(e.touch);
       if (e.type === 'leech') {
@@ -1885,8 +2109,12 @@ function throwBomb() {
 
 function damageEnemy(e, dmg, x, y, crit) {
   if (e.dead) return;
+  if (e.burrowed) return;
+  if (e.ghost) return;
   let dealt = dmg;
   if (e.type === 'warden' && !crit) dealt *= 0.55;
+  if (e.affix === 'shielded') dealt *= 0.7;
+  if (e.auraShield) dealt *= 0.75;
   e.hp -= dealt;
   e.flash = 0.08;
   G.damageDealt += dealt;
@@ -1927,9 +2155,10 @@ function killEnemy(e) {
   G.alert = Math.min(100, G.alert + (e.boss ? 12 : e.elite ? 4 : 0.7));
 
   const roll = srnd();
-  if (roll < 0.7) {
+  const luck = metaRank('luck');
+  if (roll < 0.68 - 0.02 * luck) {
     spawnGem(e.x, e.y, e.xp, 0);
-  } else if (roll < 0.9) {
+  } else if (roll < 0.88) {
     G.stats.jackpots++;
     spawnGem(e.x, e.y, e.xp * 2.5, 1);
     spawnFloater(e.x, e.y - e.r - 10, 'CRIT DATA x2.5', '#ffd27a', 13);
@@ -1951,6 +2180,18 @@ function killEnemy(e) {
     spawnFloater(e.x, e.y - e.r - 20, G.streak + ' STREAK  x' + streakMult().toFixed(2), '#ffd27a', 15);
   }
   if (Math.random() < 0.03) G.medkits.push({ x: e.x, y: e.y });
+
+  if (e.champion) {
+    G.stats.champions = (G.stats.champions || 0) + 1;
+    G.chests.push({ x: e.x, y: e.y, spin: 0 });
+    const affix = CHAMPION_AFFIXES.find((a) => a.id === e.affix);
+    spawnFloater(e.x, e.y - e.r - 26, (affix ? affix.name + ' CHAMPION DOWN' : 'CHAMPION DOWN'), '#ffd27a', 15);
+    if (e.affix === 'volatile') {
+      explodeAt(e.x, e.y, 96, 26 * (1 + G.time / 240), '#ff8a5c', 'e');
+    }
+  } else if (Math.random() < 0.006) {
+    G.chests.push({ x: e.x, y: e.y, spin: 0 });
+  }
 
   if (e.type === 'splitter') {
     for (const side of [-1, 1]) spawnEnemyAt('swarm', e.x + side * 22, e.y + rnd(-8, 8));
@@ -1999,7 +2240,7 @@ function killEnemy(e) {
 function damagePlayer(dmg) {
   if (!G || G.invulnerable || screen !== 'play') return;
   if (G.invulnT > 0) return;
-  const taken = odActive() ? dmg * 1.5 : dmg;
+  const taken = dmg * (G.diff ? G.diff.dmg : 1) * (odActive() ? 1.5 : 1);
   G.hp -= taken;
   if (G.streak > 0) {
     G.streak = 0;
@@ -2060,6 +2301,22 @@ function updatePickups(dt) {
     }
   }
   G.chips = G.chips.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  for (const chest of G.chests) {
+    chest.spin += dt * 2.4;
+    const dx = G.player.x - chest.x;
+    const dy = G.player.y - chest.y;
+    const d = Math.hypot(dx, dy) || 1;
+    if (d < pr) {
+      const pull = 170 + (1 - d / pr) * 260;
+      chest.x += (dx / d) * pull * dt;
+      chest.y += (dy / d) * pull * dt;
+    }
+    if (d < 30) {
+      chest.dead = true;
+      openChest();
+    }
+  }
+  G.chests = G.chests.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
   if (G.beacon && dist2(G.beacon.x, G.beacon.y, G.player.x, G.player.y) < 34 * 34) {
     const banked = bankUnbanked();
     if (banked > 0) {
@@ -2110,7 +2367,9 @@ function updateParticles(dt) {
 }
 
 function levelOffers() {
-  const pool = SKILL_ORDER.filter((id) => G.skills[id] < SKILLS[id].max);
+  const pool = SKILL_ORDER.filter(
+    (id) => G.skills[id] < SKILLS[id].max && G.banned.indexOf(id) < 0
+  );
   const picks = [];
   const copy = pool.slice();
   while (picks.length < 3 && copy.length > 0) {
@@ -2118,6 +2377,40 @@ function levelOffers() {
     picks.push(copy.splice(idx, 1)[0]);
   }
   return picks;
+}
+
+function rerollOffers() {
+  if (!G || G.rerolls <= 0) {
+    if (G) sfx.denied();
+    return false;
+  }
+  G.rerolls--;
+  G.offers = levelOffers();
+  if (G.offers.length === 0) {
+    G.pending = 0;
+    screen = 'play';
+  }
+  sfx.swap();
+  return true;
+}
+
+function banishOffer(index) {
+  if (!G || G.banishes <= 0) {
+    if (G) sfx.denied();
+    return false;
+  }
+  const id = G.offers[index];
+  if (!id) return false;
+  G.banishes--;
+  if (G.banned.indexOf(id) < 0) G.banned.push(id);
+  G.offers = levelOffers();
+  if (G.offers.length === 0) {
+    G.pending = 0;
+    screen = 'play';
+  }
+  G.news = SKILLS[id].name + ' banished for this run.';
+  sfx.denied();
+  return true;
 }
 
 function combosNow() {
@@ -2169,6 +2462,7 @@ function applyUpgrade(id) {
     G.hp = Math.min(G.maxHp, G.hp + 25);
   }
   announceCombos();
+  checkEvolutions();
   return true;
 }
 
@@ -2584,6 +2878,27 @@ function drawPickups() {
     ctx.stroke();
     ctx.restore();
   }
+  for (const chest of G.chests) {
+    ctx.save();
+    ctx.translate(chest.x, chest.y);
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + chest.spin);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#ffd27a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 18 + pulse * 4, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#8a6a3a';
+    ctx.fillRect(-9, -6, 18, 13);
+    ctx.fillStyle = '#c9a45c';
+    ctx.fillRect(-9, -6, 18, 4);
+    ctx.fillStyle = '#ffd27a';
+    ctx.fillRect(-2, -3, 4, 7);
+    ctx.strokeStyle = 'rgba(20,14,8,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-9, -6, 18, 13);
+    ctx.restore();
+  }
   for (const kit of G.medkits) {
     ctx.fillStyle = '#e8e2d6';
     ctx.fillRect(kit.x - 8, kit.y - 6, 16, 12);
@@ -2620,6 +2935,18 @@ function drawEnemies() {
     const def = enemyLook(e);
     const base = def.color;
     const dark = def.dark;
+    if (e.burrowed) {
+      ctx.fillStyle = 'rgba(20,16,10,0.5)';
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y, e.r * 1.2, e.r * 0.8, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(140,115,70,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r * Math.max(0.2, e.burrowT / 1.5), 0, TAU);
+      ctx.stroke();
+      continue;
+    }
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -2627,6 +2954,30 @@ function drawEnemies() {
     ctx.ellipse(3, 4, e.r, e.r * 0.9, 0, 0, TAU);
     ctx.fill();
     const facing = Math.atan2(G.player.y - e.y, G.player.x - e.x);
+
+    if (e.ghost) ctx.globalAlpha = 0.35;
+    if (e.champion) {
+      const affix = CHAMPION_AFFIXES.find((a) => a.id === e.affix);
+      ctx.strokeStyle = affix ? affix.color : '#ffd27a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 7, 0, TAU);
+      ctx.stroke();
+      ctx.fillStyle = affix ? affix.color : '#ffd27a';
+      ctx.beginPath();
+      ctx.moveTo(-5, -e.r - 8);
+      ctx.lineTo(0, -e.r - 15);
+      ctx.lineTo(5, -e.r - 8);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (e.auraShield) {
+      ctx.strokeStyle = 'rgba(120,200,255,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 3, 0, TAU);
+      ctx.stroke();
+    }
 
     if (e.boss) {
       ctx.rotate(facing);
@@ -2837,6 +3188,64 @@ function drawEnemies() {
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = '#ff7a8a';
+      ctx.beginPath();
+      ctx.arc(e.r * 0.3, 0, e.r * 0.22, 0, TAU);
+      ctx.fill();
+    } else if (e.type === 'shielder') {
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = dark;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(120,200,255,0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 6, 0, TAU);
+      ctx.stroke();
+      ctx.fillStyle = '#bfe6f2';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r * 0.3, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,200,255,0.14)';
+      ctx.fillStyle = 'rgba(120,200,255,0.07)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 170, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+    } else if (e.type === 'screamer') {
+      ctx.rotate(facing);
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = dark;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#1a0a12';
+      ctx.beginPath();
+      ctx.arc(e.r * 0.35, 0, e.r * 0.42, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,159,208,' + (0.3 + 0.25 * Math.sin(uiT * 8)) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 8, 0, TAU);
+      ctx.stroke();
+    } else if (e.type === 'phantom') {
+      ctx.rotate(facing);
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.moveTo(e.r, 0);
+      ctx.lineTo(0, e.r);
+      ctx.lineTo(-e.r * 0.8, 0);
+      ctx.lineTo(0, -e.r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(159,216,255,0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = dark;
       ctx.beginPath();
       ctx.arc(e.r * 0.3, 0, e.r * 0.22, 0, TAU);
       ctx.fill();
@@ -3250,7 +3659,7 @@ function drawHUD() {
   ctx.fillStyle = '#b9ac92';
   ctx.font = '600 11px Consolas, monospace';
   const limitText = G.limitSec > 0 ? '  ·  LEFT ' + fmtTime(Math.max(0, G.limitSec - G.time)) : '';
-  ctx.fillText('WAVE ' + G.wave + '   ·   LEVEL ' + G.level + limitText, W / 2, 62);
+  ctx.fillText('W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText, W / 2, 62);
 
   const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
   ctx.fillStyle = '#1d2a28';
@@ -3490,104 +3899,135 @@ function drawSetupScreen() {
   overlay(0.35);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
-  ctx.font = '700 28px Consolas, monospace';
-  ctx.fillText('LOADOUT', W / 2, 66);
+  ctx.font = '700 26px Consolas, monospace';
+  ctx.fillText('LOADOUT', W / 2, 46);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
-  ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('PICK A WEAPON, A MAP AND A TIME LIMIT', W / 2, 86);
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('WEAPON · MAP · TIME LIMIT · DIFFICULTY', W / 2, 64);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('WEAPON', 92, 120);
+  ctx.fillText('WEAPON', 92, 92);
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
     const x = 92 + i * 196;
-    const y = 130;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 184, h: 74 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 74;
+    const y = 100;
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 184, h: 62 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 62;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 74, 7);
+    rr(x, y, 184, 62, 7);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = w.color;
     ctx.font = '700 15px Consolas, monospace';
-    ctx.fillText(w.name, x + 12, y + 28);
+    ctx.fillText(w.name, x + 12, y + 26);
     ctx.fillStyle = 'rgba(210,205,190,0.72)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(w.blurb, x + 12, y + 48);
-    ctx.fillStyle = 'rgba(160,155,140,0.6)';
-    ctx.fillText('AUTO-FIRE', x + 12, y + 64);
+    ctx.fillText(w.blurb, x + 12, y + 46);
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MAP', 92, 238);
+  ctx.fillText('MAP', 92, 182);
   MAP_ORDER.forEach((id, i) => {
     const m = MAPS[id];
     const chosen = setup.map === id;
     const x = 92 + i * 196;
-    const y = 248;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 184, h: 68 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 68;
+    const y = 190;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 184, h: 58 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 58;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, 184, 68, 7);
+    rr(x, y, 184, 58, 7);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.55 : 0.3;
     ctx.fillStyle = '#06080a';
-    rr(x, y, 184, 68, 7);
+    rr(x, y, 184, 58, 7);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, 184, 68, 7);
+    rr(x, y, 184, 58, 7);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
-    ctx.font = '700 14px Consolas, monospace';
-    ctx.fillText(m.name, x + 12, y + 26);
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(m.name, x + 12, y + 23);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(m.blurb, x + 12, y + 46);
+    ctx.fillText(m.blurb, x + 12, y + 42);
     ctx.fillStyle = m.props.building;
-    ctx.fillRect(x + 132, y + 40, 12, 12);
+    ctx.fillRect(x + 138, y + 14, 9, 9);
     ctx.fillStyle = m.props.rock;
     ctx.beginPath();
-    ctx.arc(x + 154, y + 46, 6, 0, TAU);
+    ctx.arc(x + 156, y + 18, 4.5, 0, TAU);
     ctx.fill();
     ctx.fillStyle = m.props.tree;
     ctx.beginPath();
-    ctx.arc(x + 170, y + 46, 5, 0, TAU);
+    ctx.arc(x + 170, y + 18, 4, 0, TAU);
     ctx.fill();
   });
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('TIME LIMIT', 92, 350);
+  ctx.fillText('TIME LIMIT', 92, 266);
   TIME_LIMITS.forEach((lim, i) => {
     const chosen = setup.limit === lim.id;
     const x = 92 + i * 196;
-    const y = 360;
-    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 184, h: 38 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 38;
+    const y = 274;
+    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 184, h: 30 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 30;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 38, 6);
+    rr(x, y, 184, 30, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
-    ctx.font = '700 13px Consolas, monospace';
-    ctx.fillText(lim.label, x + 92, y + 24);
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(lim.label, x + 92, y + 20);
     ctx.textAlign = 'left';
   });
 
-  drawButton('setup-start', 'DEPLOY', W / 2, 436, 300, 56, WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' + findLimit(setup.limit).label);
-  drawButton('back-setup', 'BACK', W / 2, 502, 180, 38);
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('DIFFICULTY', 92, 330);
+  DIFFICULTY_ORDER.forEach((id, i) => {
+    const diff = findDifficulty(id);
+    const chosen = setup.difficulty === id;
+    const x = 92 + i * 260;
+    const y = 338;
+    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 248, h: 44 });
+    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 44;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? diff.color : 'rgba(224,178,92,0.25)';
+    rr(x, y, 248, 44, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? diff.color : '#d8d0bd';
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(diff.name, x + 12, y + 19);
+    ctx.fillStyle = 'rgba(200,195,180,0.65)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 34);
+  });
+
+  drawButton(
+    'setup-start',
+    'DEPLOY',
+    W / 2,
+    400,
+    360,
+    54,
+    WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
+      findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name
+  );
+  drawButton('back-setup', 'BACK', W / 2, 470, 180, 34);
 }
 
 function drawArmoryScreen() {
@@ -3667,6 +4107,8 @@ function drawStatisticsScreen() {
     ['NEAR MISSES', String(save.nearMisses || 0)],
     ['HUNTERS DOWN', String(save.hunters || 0)],
     ['CONTRACTS DONE', String(save.contracts || 0)],
+    ['CHAMPIONS SLAIN', String(save.champions || 0)],
+    ['CACHES OPENED', String(save.chests || 0)],
     ['ARMORY RANKS', String(META_ORDER.reduce((sum, id) => sum + metaRank(id), 0))]
   ];
   ctx.textAlign = 'left';
@@ -3674,7 +4116,7 @@ function drawStatisticsScreen() {
     const col = i % 3;
     const line = Math.floor(i / 3);
     const x = 142 + col * 228;
-    const y = 122 + line * 40;
+    const y = 118 + line * 38;
     ctx.fillStyle = 'rgba(16,20,24,0.9)';
     rr(x, y, 214, 34, 6);
     ctx.fill();
@@ -3689,7 +4131,7 @@ function drawStatisticsScreen() {
   const types = Object.keys(save.killsByType);
   ctx.fillStyle = 'rgba(180,175,155,0.7)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('KILLS BY TYPE', 142, 346);
+  ctx.fillText('KILLS BY TYPE', 142, 356);
   if (!types.length) {
     ctx.fillStyle = 'rgba(160,155,145,0.6)';
     ctx.fillText('NO KILLS RECORDED YET', 142, 368);
@@ -3698,7 +4140,7 @@ function drawStatisticsScreen() {
     types.slice(0, 12).forEach((type, i) => {
       const def = ENEMY_TYPES[type] || BOSS_TYPES[type];
       const x = 142 + (i % 4) * 180;
-      const y = 362 + Math.floor(i / 4) * 30;
+      const y = 370 + Math.floor(i / 4) * 28;
       ctx.fillStyle = def ? def.color : '#888';
       ctx.beginPath();
       ctx.arc(x + 5, y + 3, 4.5, 0, TAU);
@@ -3776,12 +4218,14 @@ function drawHelpScreen() {
     ['COMBOS', 'Some skill pairs unlock a bonus once both reach level 2.'],
     ['WAVES', 'Every 40s the horde grows. New enemy types join over time.'],
     ['BOSS', 'Bosses every 5th wave; every 4th boss is a MEGA boss.'],
+    ['EVOLVE', 'Max a weapon and take its partner to level 3 to evolve it.'],
+    ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
     ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
     ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
     ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
     ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
   ];
-  let y = 112;
+  let y = 104;
   for (const line of lines) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e0b25c';
@@ -3790,7 +4234,7 @@ function drawHelpScreen() {
     ctx.fillStyle = 'rgba(225,215,195,0.82)';
     ctx.font = '600 13px Consolas, monospace';
     ctx.fillText(line[1], 270, y);
-    y += 29;
+    y += 27;
   }
   drawButton('back-help', 'BACK', W / 2, 514, 180, 36);
 }
@@ -3845,7 +4289,11 @@ function drawUpgradesScreen() {
     if (line) ctx.fillText(line, x + 10, ly);
     ctx.fillStyle = 'rgba(180,175,155,0.6)';
     ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText('LV ' + lvl + '/' + skill.max + ' · ' + skill.kind.toUpperCase(), x + 10, y + 72);
+    const evo = EVOLUTIONS[id];
+    const tail = evo
+      ? 'LV ' + lvl + '/' + skill.max + ' · EVO ' + evo.name + ' (' + SKILLS[evo.needs].short + '3)'
+      : 'LV ' + lvl + '/' + skill.max + ' · ' + skill.kind.toUpperCase();
+    ctx.fillText(tail, x + 10, y + 72);
   });
 
   ctx.textAlign = 'left';
@@ -3889,20 +4337,27 @@ function drawLevelUpScreen() {
   overlay(0.74);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd27a';
-  ctx.font = '700 34px Consolas, monospace';
-  ctx.fillText('LEVEL ' + G.level, W / 2, 104);
+  ctx.font = '700 32px Consolas, monospace';
+  ctx.fillText('LEVEL ' + G.level, W / 2, 92);
   ctx.fillStyle = 'rgba(220,210,190,0.72)';
-  ctx.font = '600 12px Consolas, monospace';
-  ctx.fillText('CHOOSE AN UPGRADE — PRESS 1, 2 OR 3', W / 2, 128);
+  ctx.font = '600 11px Consolas, monospace';
+  ctx.fillText('CHOOSE AN UPGRADE — PRESS 1, 2 OR 3   ·   R REROLLS', W / 2, 114);
 
   const startX = (W - (240 * 3 + 24 * 2)) / 2;
+  const cardY = 142;
+  G.offers.forEach((id, i) => {
+    const x = startX + i * 264;
+    uiButtons.push({ id: 'banish-' + i, label: 'BANISH', x: x + 240 - 30, y: cardY + 8, w: 22, h: 22 });
+  });
+
   G.offers.forEach((id, i) => {
     const skill = SKILLS[id];
     const lvl = G.skills[id];
+    const evo = EVOLUTIONS[id];
     const x = startX + i * 264;
-    const y = 158;
+    const y = cardY;
     const w = 240;
-    const h = 292;
+    const h = 286;
     uiButtons.push({ id: 'upgrade-' + i, label: skill.name, x, y, w, h });
     const hover = mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
     ctx.fillStyle = hover ? 'rgba(36,40,44,0.98)' : 'rgba(18,22,26,0.94)';
@@ -3910,17 +4365,22 @@ function drawLevelUpScreen() {
     rr(x, y, w, h, 8);
     ctx.fill();
     ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(180,175,155,0.55)';
+    ctx.font = '700 14px Consolas, monospace';
+    ctx.fillText('×', x + w - 21, y + 24);
+    ctx.textAlign = 'center';
     ctx.fillStyle = skill.color;
-    ctx.font = '700 18px Consolas, monospace';
-    ctx.fillText(skill.name, x + w / 2, y + 52);
+    ctx.font = '700 17px Consolas, monospace';
+    ctx.fillText(skill.name, x + w / 2, y + 50);
     ctx.fillStyle = 'rgba(190,185,165,0.65)';
     ctx.font = '600 11px Consolas, monospace';
-    ctx.fillText(lvl === 0 ? 'NEW SKILL' : 'LEVEL ' + lvl + ' → ' + (lvl + 1), x + w / 2, y + 78);
+    ctx.fillText(lvl === 0 ? 'NEW SKILL' : 'LEVEL ' + lvl + ' → ' + (lvl + 1), x + w / 2, y + 74);
     ctx.fillStyle = 'rgba(220,215,200,0.85)';
     ctx.font = '600 12px Consolas, monospace';
     const words = skill.desc.split(' ');
     let line = '';
-    let ly = y + 128;
+    let ly = y + 122;
     for (const word of words) {
       const next = line ? line + ' ' + word : word;
       if (next.length > 26 && line) {
@@ -3932,10 +4392,25 @@ function drawLevelUpScreen() {
       }
     }
     if (line) ctx.fillText(line, x + w / 2, ly);
+    if (evo) {
+      ctx.fillStyle = G.evolved[id] ? '#7fe0a0' : 'rgba(255,210,122,0.62)';
+      ctx.font = '600 10px Consolas, monospace';
+      ctx.fillText(
+        G.evolved[id] ? 'EVOLVED · ' + evo.name : 'EVOLVES · ' + SKILLS[evo.needs].name,
+        x + w / 2,
+        y + h - 52
+      );
+    }
     ctx.fillStyle = skill.color;
-    ctx.font = '700 44px Consolas, monospace';
-    ctx.fillText(String(i + 1), x + w / 2, y + h - 30);
+    ctx.font = '700 40px Consolas, monospace';
+    ctx.fillText(String(i + 1), x + w / 2, y + h - 22);
   });
+
+  drawButton('reroll', 'REROLL (' + G.rerolls + ')', W / 2 - 120, 446, 170, 38);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(190,185,170,0.55)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('CLICK × TO BANISH (' + G.banishes + ' LEFT)', W / 2 + 120, 470);
 }
 
 function drawMapView() {
@@ -4164,6 +4639,19 @@ function pressButton(id) {
     if (TIME_LIMITS.some((l) => l.id === limit)) setup.limit = limit;
     return;
   }
+  if (id.indexOf('difficulty-') === 0) {
+    const diff = id.slice(11);
+    if (DIFFICULTIES.some((d) => d.id === diff)) setup.difficulty = diff;
+    return;
+  }
+  if (id === 'reroll') {
+    rerollOffers();
+    return;
+  }
+  if (id.indexOf('banish-') === 0) {
+    banishOffer(Number(id.slice(7)));
+    return;
+  }
   if (id === 'armory') {
     screen = 'armory';
     return;
@@ -4330,6 +4818,9 @@ function onKeyDown(e) {
   if (screen === 'levelup' && (k === '1' || k === '2' || k === '3')) {
     chooseUpgrade(Number(k) - 1);
   }
+  if (screen === 'levelup' && k === 'r') {
+    rerollOffers();
+  }
   if (k === 'm') {
     if (screen === 'play') {
       mapReturn = 'play';
@@ -4401,6 +4892,8 @@ window.Dustline = {
         contracts: save.contracts || 0,
         bankedTotal: save.bankedTotal || 0,
         lostTotal: save.lostTotal || 0,
+        champions: save.champions || 0,
+        chests: save.chests || 0,
         killsByType: { ...save.killsByType },
         meta: { ...save.meta }
       },
@@ -4421,6 +4914,12 @@ window.Dustline = {
       snap.skills = { ...G.skills };
       snap.combos = activeCombos().map((c) => c.id);
       snap.weapon = G.weapon;
+      snap.difficulty = G.difficulty;
+      snap.diffMods = { spawn: G.diff.spawn, hp: G.diff.hp, dmg: G.diff.dmg, shard: G.diff.shard };
+      snap.evolved = { ...G.evolved };
+      snap.rerolls = G.rerolls;
+      snap.banishes = G.banishes;
+      snap.banned = G.banned.slice();
       snap.map = G.map;
       snap.limitSec = G.limitSec;
       snap.victory = G.victory;
@@ -4468,10 +4967,17 @@ window.Dustline = {
         maxHp: e.maxHp,
         r: e.r,
         boss: !!e.boss,
-        style: e.style || null
+        style: e.style || null,
+        champion: !!e.champion,
+        affix: e.affix || null,
+        shielding: !!e.auraShield,
+        ghost: !!e.ghost,
+        burrowed: !!e.burrowed,
+        rage: e.rageT || 0
       }));
       snap.enemyTypes = Array.from(new Set(G.enemies.map((e) => e.type)));
       snap.gems = G.gems.length;
+      snap.chests = G.chests.length;
       snap.medkits = G.medkits.length;
       snap.floaters = G.floaters.length;
       snap.bombs = G.bombs.length;
@@ -4493,6 +4999,8 @@ window.Dustline = {
         dashes: G.stats.dashes,
         hunters: G.stats.hunters,
         contracts: G.stats.contracts,
+        champions: G.stats.champions || 0,
+        chests: G.stats.chests || 0,
         banked: G.stats.banked,
         lost: G.stats.lost
       };
@@ -4599,6 +5107,37 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.spawnChip = (kind, x, y) => {
     if (!G) return;
     G.chips.push({ kind: CHIPS[kind] ? kind : 'shards', x: G.player.x + (x || 0), y: G.player.y + (y || 0), spin: 0 });
+  };
+  window.Dustline.spawnChest = (x, y) => {
+    if (!G) return;
+    G.chests.push({ x: G.player.x + (x || 0), y: G.player.y + (y || 0), spin: 0 });
+  };
+  window.Dustline.reroll = () => (G ? rerollOffers() : false);
+  window.Dustline.banish = (index) => (G ? banishOffer(Number(index) || 0) : false);
+  window.Dustline.setGhost = (index, value) => {
+    if (!G || !G.enemies[index]) return false;
+    G.enemies[index].ghost = !!value;
+    G.enemies[index].ghostT = value ? 99 : 99;
+    return true;
+  };
+  window.Dustline.setBurrowed = (index, value) => {
+    if (!G || !G.enemies[index]) return false;
+    G.enemies[index].burrowed = !!value;
+    G.enemies[index].burrowT = value ? 99 : 0;
+    G.enemies[index].burrowCd = 99;
+    return true;
+  };
+  window.Dustline.forceChampion = (index, affix) => {
+    if (!G || !G.enemies[index]) return false;
+    const e = G.enemies[index];
+    const chosen = CHAMPION_AFFIXES.find((a) => a.id === affix) || CHAMPION_AFFIXES[0];
+    e.champion = true;
+    e.affix = chosen.id;
+    e.hp = Math.round(e.hp * 2.1);
+    e.maxHp = e.hp;
+    e.xp *= 3;
+    if (chosen.id === 'swift') e.speed *= 1.35;
+    return true;
   };
   window.Dustline.hitEnemy = (index, dmg) => {
     if (!G || !G.enemies[index]) return false;

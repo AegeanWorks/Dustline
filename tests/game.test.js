@@ -33,6 +33,7 @@ function deploy(g, opts) {
   if (opts && opts.weapon) g.api.clickButton('weapon-' + opts.weapon);
   if (opts && opts.map) g.api.clickButton('map-' + opts.map);
   if (opts && opts.limit) g.api.clickButton('limit-' + opts.limit);
+  if (opts && opts.difficulty) g.api.clickButton('difficulty-' + opts.difficulty);
   if (opts) g.steps(1);
   assert.ok(g.api.clickButton('setup-start'), 'deploy button exists');
   g.steps(1);
@@ -64,7 +65,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
-  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10' }));
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal' }));
   g.api.clickButton('setup-start');
   g.steps(1);
   const s = g.api.snapshot();
@@ -123,7 +124,7 @@ test('squad upgrades add soldiers that keep formation', () => {
 test('every mob type exists with distinct stats', () => {
   const g = boot({ seed: 13 });
   deploy(g);
-  const types = ['grunt', 'runner', 'tank', 'marksman', 'spitter', 'bomber', 'swarm', 'warden', 'weaver', 'splitter', 'leech'];
+  const types = ['grunt', 'runner', 'tank', 'marksman', 'spitter', 'bomber', 'swarm', 'warden', 'weaver', 'splitter', 'leech', 'shielder', 'tunneler', 'screamer', 'phantom'];
   types.forEach((type, i) => g.api.spawnEnemy(type, 240 + i * 10, -140 + i * 30));
   g.steps(1);
   const s = g.api.snapshot();
@@ -153,7 +154,7 @@ test('enemy projectiles are red', () => {
 test('leveling offers three distinct upgrades and enforces the cap', () => {
   const g = boot({ seed: 19 });
   deploy(g);
-  g.api.giveXp(10);
+  g.api.giveXp(12);
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.screen, 'levelup');
@@ -634,7 +635,8 @@ test('debug helpers stay hidden outside the test harness', () => {
     'spawnBoss', 'setTime', 'killEnemies', 'startRun', 'throwBomb', 'spawnMedkit',
     'grantShards', 'buyMeta', 'props', 'setPlayer', 'setAlert', 'setUnbanked',
     'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
-    'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'enemyLimit'
+    'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest',
+    'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed'
   ]) {
     assert.strictEqual(api[name], undefined, name + ' must be test-only');
   }
@@ -897,4 +899,172 @@ test('mega bosses barrage and summon on phase change', () => {
   const after = g.api.snapshot();
   assert.ok(after.boss.phase >= 1, 'the mega boss enters a new phase');
   assert.ok(after.enemies.length > maxEnemies - 1, 'the phase change adds minions');
+});
+
+
+test('maxing a weapon and its partner evolves it', () => {
+  const g = boot({ seed: 401 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 4; i++) assert.ok(g.api.applyUpgrade('rifle'));
+  assert.ok(!g.api.snapshot().evolved.rifle, 'a maxed weapon alone does not evolve');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  let s = g.api.snapshot();
+  assert.strictEqual(s.evolved.rifle, 'ripper');
+  assert.ok(s.bannerT > 0, 'the evolution is announced');
+  g.api.spawnEnemy('tank', 200, 0);
+  const before = s.shots.rifle;
+  g.steps(40);
+  s = g.api.snapshot();
+  assert.ok(s.shots.rifle - before >= 3, 'the Ripper fires a triple shot');
+});
+
+test('champions carry affixes and drop supply caches', () => {
+  const g = boot({ seed: 403 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 120, 0);
+  assert.ok(g.api.forceChampion(0, 'shielded'));
+  let s = g.api.snapshot();
+  assert.strictEqual(s.enemies[0].champion, true);
+  assert.strictEqual(s.enemies[0].affix, 'shielded');
+  const before = s.skills;
+  g.api.setEnemyHp(0, 10);
+  g.api.hitEnemy(0, 999);
+  s = g.api.snapshot();
+  assert.strictEqual(s.stats.champions, 1);
+  assert.strictEqual(s.chests, 1, 'a champion always drops a cache');
+  g.api.setPlayer(120, 0);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.chests, 0);
+  assert.strictEqual(s.stats.chests, 1);
+  const gained = Object.keys(s.skills).filter((id) => s.skills[id] > before[id]);
+  assert.ok(gained.length >= 1, 'the cache grants at least one field upgrade');
+});
+
+test('difficulty scales enemies, damage and loot', () => {
+  const normal = boot({ seed: 407 });
+  const brutal = boot({ seed: 407 });
+  deploy(normal);
+  deploy(brutal, { difficulty: 'brutal' });
+  normal.api.spawnEnemy('grunt', 300, 0);
+  brutal.api.spawnEnemy('grunt', 300, 0);
+  const n = normal.api.snapshot();
+  const b = brutal.api.snapshot();
+  assert.strictEqual(b.difficulty, 'brutal');
+  assert.ok(b.enemies[0].maxHp > n.enemies[0].maxHp * 1.3, 'brutal mobs are tougher');
+  normal.api.hurt(20);
+  brutal.api.hurt(20);
+  assert.ok(brutal.api.snapshot().hp < normal.api.snapshot().hp, 'brutal hits harder');
+  normal.api.setEnemyHp(0, 1);
+  brutal.api.setEnemyHp(0, 1);
+  normal.api.hitEnemy(0, 50);
+  brutal.api.hitEnemy(0, 50);
+  assert.ok(brutal.api.snapshot().unbanked > normal.api.snapshot().unbanked, 'brutal pays more');
+});
+
+test('rerolls and banishes reshape the level-up offers', () => {
+  const g = boot({ seed: 409 });
+  deploy(g);
+  g.api.giveXp(12);
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'levelup');
+  assert.strictEqual(s.rerolls, 2);
+  assert.ok(g.api.reroll());
+  s = g.api.snapshot();
+  assert.strictEqual(s.rerolls, 1);
+  const target = s.offers[0];
+  assert.ok(g.api.banish(0));
+  s = g.api.snapshot();
+  assert.strictEqual(s.banishes, 0);
+  assert.ok(s.banned.includes(target));
+  assert.ok(!s.offers.includes(target), 'a banished skill is gone for this run');
+});
+
+test('the luck meta grants an extra reroll', () => {
+  const g = boot({ seed: 411 });
+  g.api.grantShards(1000);
+  assert.ok(g.api.buyMeta('luck'));
+  deploy(g);
+  assert.strictEqual(g.api.snapshot().rerolls, 3);
+});
+
+test('shielder auras reduce incoming damage', () => {
+  const g = boot({ seed: 413 });
+  deploy(g);
+  g.api.spawnEnemy('tank', 0, 0);
+  g.api.spawnEnemy('shielder', 60, 0);
+  g.api.setEnemyHp(0, 5000);
+  g.steps(1);
+  g.api.hitEnemy(0, 100);
+  const s = g.api.snapshot();
+  const tank = s.enemies.find((e) => e.type === 'tank');
+  assert.ok(5000 - tank.hp <= 80, 'the aura cuts damage');
+  assert.ok(tank.shielding, 'the tank is marked as shielded');
+});
+
+test('phantoms and tunnelers are untouchable in their special states', () => {
+  const g = boot({ seed: 419 });
+  deploy(g);
+  g.api.spawnEnemy('phantom', 120, 0);
+  g.api.spawnEnemy('tunneler', 200, 0);
+  g.api.setEnemyHp(0, 800);
+  g.api.setEnemyHp(1, 800);
+  assert.ok(g.api.setGhost(0, true));
+  assert.ok(g.api.setBurrowed(1, true));
+  g.api.hitEnemy(0, 200);
+  g.api.hitEnemy(1, 200);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.enemies[0].hp, 800, 'ghosted phantoms take no damage');
+  assert.strictEqual(s.enemies[1].hp, 800, 'burrowed tunnelers take no damage');
+  g.api.setGhost(0, false);
+  g.api.setBurrowed(1, false);
+  g.api.hitEnemy(0, 200);
+  g.api.hitEnemy(1, 200);
+  s = g.api.snapshot();
+  assert.ok(s.enemies[0].hp < 800);
+  assert.ok(s.enemies[1].hp < 800);
+});
+
+test('screamers enrage nearby enemies', () => {
+  const g = boot({ seed: 421 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('screamer', 40, 0);
+  g.api.spawnEnemy('tank', 90, 0);
+  g.api.setEnemyHp(0, 100000);
+  g.api.setEnemyHp(1, 100000);
+  let raged = false;
+  for (let i = 0; i < 300 && !raged; i++) {
+    g.step();
+    raged = g.api.snapshot().enemies.some((e) => e.type === 'tank' && e.rage > 0);
+  }
+  assert.ok(raged, 'the screech buffs nearby mobs');
+});
+
+test('champions and caches persist in the career record', () => {
+  const store = makeStore();
+  const g = boot({ seed: 423, storage: store });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 60, 0);
+  g.api.forceChampion(0, 'swift');
+  g.api.setEnemyHp(0, 5);
+  g.api.hitEnemy(0, 999);
+  g.steps(1);
+  g.api.setPlayer(60, 0);
+  g.steps(2);
+  for (let i = 0; i < 20 && g.api.snapshot().screen === 'levelup'; i++) g.api.clickButton('upgrade-0');
+  g.api.setInvulnerable(false);
+  g.api.hurt(9999);
+  g.steps(2);
+  const saved = g.api.snapshot().save;
+  assert.ok(saved.champions >= 1);
+  assert.ok(saved.chests >= 1);
+  const g2 = boot({ seed: 425, storage: store });
+  const reloaded = g2.api.snapshot().save;
+  assert.strictEqual(reloaded.champions, saved.champions);
+  assert.strictEqual(reloaded.chests, saved.chests);
 });
