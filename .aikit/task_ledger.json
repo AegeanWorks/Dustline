@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-16",
+    "task_id": "dustline-v0-17",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793390864.211953,
+    "updated_at": 1793392669.3727915,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793390864.928374
+    "completed_at": 1793392669.5111518
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-10",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: Aegis shield skill with Bastion combo, evolutions for blades/grenade/turret/aura, Mortar/Widower/Husk mobs with webs and acid pools, WYRM burrow/erupt mega boss, upgrades screen relaid out for 19 skills and 7 combos; 77/77 tests, 5/5 gates, 231s live probe and wyrm cycle probe OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793382639.923973,
-      "timestamp_str": "2026-10-30 20:50:39",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-10",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-10' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793382640.1137295,
-      "timestamp_str": "2026-10-30 20:50:40",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-11",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.11 Loadout update - offense/passive skill slot caps, armory Loadout Rig expansion, slot-aware level-up offers and HUD",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793382785.2648506,
-      "timestamp_str": "2026-10-30 20:53:05",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Runs can currently take all 19 skills, so builds converge and level-up choices lose meaning; the user asked for limits on skill number",
-        "benefits": "Creates build identity and real level-up tradeoffs, ties into existing armory metaprogression, keeps the 'everything caps at 5' contract",
-        "risks": "contract: level-up offers and applyUpgrade gain slot rules, snapshot gains slot fields; dependency: none; concurrency: ledger shared; state: save.meta gains one additive key",
-        "mitigation": "Enforce in both offer generation and applyUpgrade, default missing meta keys to zero, full suite plus slot-specific tests and gates before commit"
-      }
-    },
     {
       "task_id": "dustline-v0-11",
       "phase": "in_progress",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793390864.9283757,
       "timestamp_str": "2026-10-30 23:07:44",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-17",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.17 Daily Challenge - UTC-day seeded run with forced operator/weapon/map/difficulty/mode/mutators, daily screen with ruleset and best, per-day best records pruned to 30 days, two daily achievements",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793391253.7547002,
+      "timestamp_str": "2026-10-30 23:14:13",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "The game has modes, operators and records but nothing that gives players a shared, date-driven reason to return and compare; runs are always local and arbitrary",
+        "benefits": "Adds a repeatable daily hook with a comparable seed and ruleset, reuses setup/mode/operator/mutator systems, and gives the record screen a new axis",
+        "risks": "contract: menu and snapshot gain daily fields, startRun accepts seed/operator/mutators; dependency: none; concurrency: ledger shared; state: save gains dailyBest map, pruned and clamped",
+        "mitigation": "Daily seeding is deterministic and testable through a setDay seam, records are pruned to 30 keys with zero defaults, existing setup flow untouched, full suite and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-17",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: daily challenge with UTC-day ruleset (operator/weapon/map/difficulty/mode/mutator) and fixed seed, daily screen with ruleset and best, per-day best map pruned to 30 days, daily HUD flag, DAILY DRIVER and DAILY ACE achievements, setDay seam, menu 2-column grid, help compacted for 19 lines; 105/105 tests, 5/5 gates, layout/determinism/prune/lastSeed probes OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793392669.3727915,
+      "timestamp_str": "2026-10-30 23:37:49",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-17",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-17' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793392669.5111532,
+      "timestamp_str": "2026-10-30 23:37:49",
       "agent": "kilo:continue"
     }
   ]

@@ -46,7 +46,7 @@ test('boots to the main menu with the full navigation', () => {
   assert.strictEqual(s.screen, 'menu');
   assert.strictEqual(
     JSON.stringify(s.buttons.map((b) => b.id)),
-    JSON.stringify(['play', 'armory', 'statistics', 'upgrades', 'manual', 'settings', 'help'])
+    JSON.stringify(['play', 'armory', 'daily', 'statistics', 'upgrades', 'manual', 'settings', 'help'])
   );
   assert.strictEqual(s.settings.volume, 70);
   assert.strictEqual(s.save.shards, 0);
@@ -1965,4 +1965,146 @@ test('the manual shows a behavior tip for every documented enemy', () => {
     g.steps(2);
     assert.strictEqual(g.api.snapshot().manual.tab, tab);
   }
+});
+
+test('the daily screen shows a deterministic ruleset per day', () => {
+  const g = boot({ seed: 1201 });
+  g.api.setDay(20000);
+  g.steps(1);
+  assert.ok(g.api.snapshot().buttons.some((b) => b.id === 'daily'));
+  g.api.clickButton('daily');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'daily');
+  const rules = s.daily.rules;
+  assert.strictEqual(rules.day, 20000);
+  assert.ok(rules.seed > 0);
+  assert.ok(['normal', 'brutal', 'nightmare'].includes(rules.difficulty));
+  assert.ok(['survivors', 'bossrush'].includes(rules.mode));
+  assert.ok(rules.mutators.length <= 1);
+  assert.strictEqual(s.daily.best, null);
+
+  const h = boot({ seed: 1203 });
+  h.api.setDay(20000);
+  h.steps(1);
+  assert.strictEqual(JSON.stringify(h.api.snapshot().daily.rules), JSON.stringify(rules), 'same day, same rules');
+  h.api.setDay(20001);
+  h.steps(1);
+  const next = h.api.snapshot().daily.rules;
+  assert.notStrictEqual(next.seed, rules.seed, 'a new day gets a new seed');
+  assert.strictEqual(next.day, 20001);
+});
+
+test('starting the daily forces the ruleset and a fixed seed', () => {
+  const g = boot({ seed: 1205 });
+  g.api.setDay(20000);
+  g.steps(1);
+  const rules = g.api.snapshot().daily.rules;
+  g.api.clickButton('daily');
+  g.steps(1);
+  g.api.clickButton('start-daily');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.strictEqual(s.daily.active, true);
+  assert.strictEqual(s.operator, rules.operator);
+  assert.strictEqual(s.weapon, rules.weapon);
+  assert.strictEqual(s.map, rules.map);
+  assert.strictEqual(s.mode, rules.mode);
+  assert.strictEqual(s.difficulty, rules.difficulty);
+  assert.strictEqual(s.seed, rules.seed, 'the daily seed is fixed');
+  const h = boot({ seed: 1207 });
+  h.api.setDay(20000);
+  h.steps(1);
+  h.api.clickButton('daily');
+  h.steps(1);
+  h.api.clickButton('start-daily');
+  h.steps(1);
+  assert.strictEqual(h.api.snapshot().seed, rules.seed, 'every attempt uses the same seed');
+});
+
+test('daily runs record their best and keep only the better result', () => {
+  const g = boot({ seed: 1209 });
+  g.api.setDay(20002);
+  g.steps(1);
+  const rules = g.api.snapshot().daily.rules;
+  g.api.clickButton('daily');
+  g.steps(1);
+  g.api.clickButton('start-daily');
+  g.steps(1);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 3; i++) {
+    g.api.spawnEnemy('tank', 300 + i * 60, 0);
+    g.api.setEnemyHp(i, 1);
+    g.api.hitEnemy(i, 50);
+  }
+  assert.strictEqual(g.api.snapshot().kills, 3);
+  g.api.setInvulnerable(false);
+  g.api.hurt(999);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.save.dailyBest[rules.day].kills, 3);
+  assert.strictEqual(s.save.dailyBest[rules.day].win, false);
+
+  g.api.clickButton('menu-over');
+  g.steps(1);
+  g.api.clickButton('daily');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().daily.best.kills, 3, 'the screen shows today best');
+  g.api.clickButton('start-daily');
+  g.steps(1);
+  g.api.setInvulnerable(false);
+  g.api.hurt(999);
+  s = g.api.snapshot();
+  assert.strictEqual(s.save.dailyBest[rules.day].kills, 3, 'a worse run does not overwrite');
+  assert.ok(s.save.achievements.daily_done === true, 'finishing a daily unlocks the achievement');
+});
+
+test('winning a boss rush daily unlocks the daily ace', () => {
+  const g = boot({ seed: 1211 });
+  g.api.setDay(20216);
+  g.steps(1);
+  const rules = g.api.snapshot().daily.rules;
+  assert.strictEqual(rules.mode, 'bossrush', 'day 20216 is a boss rush daily');
+  g.api.clickButton('daily');
+  g.steps(1);
+  g.api.clickButton('start-daily');
+  g.steps(1);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 8; i++) {
+    let s = g.api.snapshot();
+    let guard = 0;
+    while (!s.rush.alive && guard++ < 600) {
+      g.step();
+      s = g.api.snapshot();
+      if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); s = g.api.snapshot(); }
+    }
+    assert.ok(s.rush.alive, 'boss ' + (i + 1) + ' spawned');
+    g.api.killEnemies();
+    let after = g.api.snapshot();
+    let spin = 0;
+    while (after.screen === 'relic' && spin++ < 4) { g.api.clickButton('relic-0'); after = g.api.snapshot(); }
+    if (i < 7) {
+      for (let f = 0; f < 500 && !g.api.snapshot().rush.alive; f++) {
+        g.step();
+        const t = g.api.snapshot();
+        if (t.screen === 'levelup') g.api.clickButton('upgrade-0');
+        if (t.screen === 'relic') g.api.clickButton('relic-0');
+      }
+    }
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.victory, true);
+  assert.strictEqual(s.save.dailyBest[rules.day].win, true);
+  assert.strictEqual(s.save.achievements.daily_done, true);
+  assert.strictEqual(s.save.achievements.daily_win, true);
+});
+
+test('legacy saves default dailyBest to an empty map', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({ v: 2, totalKills: 9, shards: 5 });
+  const g = boot({ seed: 1213, storage: store });
+  assert.deepStrictEqual(g.api.snapshot().save.dailyBest, {});
+  assert.strictEqual(g.api.snapshot().daily.best, null);
 });

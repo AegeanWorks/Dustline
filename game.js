@@ -114,7 +114,9 @@ const ACHIEVEMENTS = [
   { id: 'relic_hoarder', name: 'RELIC HOARDER', desc: 'Hold 5 salvage relics at once', goal: (s) => s.relics || 0, target: 5, reward: 50 },
   { id: 'wyrm_slayer', name: 'WYRM SLAYER', desc: 'Kill a WYRM', goal: (s) => s.wyrmKills || 0, target: 1, reward: 70 },
   { id: 'shield_wall', name: 'SHIELD WALL', desc: 'Absorb 10 hits with the Aegis', goal: (s) => s.shieldSaves || 0, target: 10, reward: 45 },
-  { id: 'full_loadout', name: 'FULL LOADOUT', desc: 'Fill every offense and defense slot', goal: (s) => s.slotsFull || 0, target: 1, reward: 55 }
+  { id: 'full_loadout', name: 'FULL LOADOUT', desc: 'Fill every offense and defense slot', goal: (s) => s.slotsFull || 0, target: 1, reward: 55 },
+  { id: 'daily_done', name: 'DAILY DRIVER', desc: 'Finish a daily challenge', goal: (s) => s.dailyDone || 0, target: 1, reward: 40 },
+  { id: 'daily_win', name: 'DAILY ACE', desc: 'Win a daily challenge', goal: (s) => s.dailyWins || 0, target: 1, reward: 80 }
 ];
 
 function achievementUnlocked() {
@@ -140,7 +142,11 @@ function achievementStats() {
     wyrmKills: (save.killsByType.wyrm || 0) + (live ? G.killsByType.wyrm || 0 : 0),
     relics: live ? G.relics.length : 0,
     slotsFull:
-      live && slotsUsed('offense') >= slotCap('offense') && slotsUsed('passive') >= slotCap('passive') ? 1 : 0
+      live && slotsUsed('offense') >= slotCap('offense') && slotsUsed('passive') >= slotCap('passive') ? 1 : 0,
+    dailyDone: Object.keys(save.dailyBest || {}).length + (live && G.daily != null ? 1 : 0),
+    dailyWins:
+      Object.keys(save.dailyBest || {}).filter((day) => save.dailyBest[day].win).length +
+      (live && G.daily != null && G.victory ? 1 : 0)
   };
 }
 
@@ -218,6 +224,7 @@ function defaultSave() {
     rushBest: 0,
     bestWave: 1,
     shieldSaves: 0,
+    dailyBest: {},
     achievements: {},
     lastSeed: 20261029,
     killsByType: {},
@@ -252,6 +259,24 @@ function loadSave() {
   for (const key of ['bestTime', 'bestKills', 'rushBest']) merged[key] = Math.max(0, Number(merged[key]) || 0);
   merged.bestWave = Math.max(1, Math.round(Number(merged.bestWave) || 1));
   merged.lastSeed = (Number(merged.lastSeed) >>> 0) || 20261029;
+  const cleanBest = {};
+  if (merged.dailyBest && typeof merged.dailyBest === 'object') {
+    const days = Object.keys(merged.dailyBest)
+      .map((k) => Number(k))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => b - a)
+      .slice(0, 30);
+    for (const day of days) {
+      const e = merged.dailyBest[day] || merged.dailyBest[String(day)];
+      if (!e || typeof e !== 'object') continue;
+      cleanBest[day] = {
+        win: !!e.win,
+        kills: Math.max(0, Math.round(Number(e.kills) || 0)),
+        time: Math.max(0, Number(e.time) || 0)
+      };
+    }
+  }
+  merged.dailyBest = cleanBest;
   return merged;
 }
 
@@ -275,6 +300,7 @@ let upgradesReturn = 'menu';
 let statsReturn = 'menu';
 let mapReturn = 'paused';
 let manualTab = 'enemies';
+let dailyOverride = null;
 let uiButtons = [];
 let uiT = 0;
 
@@ -931,6 +957,35 @@ function operatorDefName() {
   return op ? op.name : OPERATORS[0].name;
 }
 
+const DAY_MS = 86400000;
+const DAILY_DIFFS = ['normal', 'brutal', 'nightmare'];
+
+function dailyDay() {
+  if (dailyOverride !== null) return dailyOverride;
+  return Math.floor(Date.now() / DAY_MS);
+}
+
+function dailyRules(day) {
+  const d = Number(day) || 0;
+  const mode = d % 3 === 2 ? 'bossrush' : 'survivors';
+  return {
+    day: d,
+    seed: (Math.imul(d, 2654435761) >>> 0) || 20261029,
+    operator: OPERATOR_ORDER[d % OPERATOR_ORDER.length],
+    weapon: WEAPON_ORDER[(d + 2) % WEAPON_ORDER.length],
+    map: MAP_ORDER[d % MAP_ORDER.length],
+    difficulty: DAILY_DIFFS[d % DAILY_DIFFS.length],
+    mode,
+    mutators: mode === 'survivors' ? [MUTATOR_ORDER[(d * 7) % MUTATOR_ORDER.length]] : []
+  };
+}
+
+function dailyInfo() {
+  const rules = dailyRules(dailyDay());
+  const best = (save.dailyBest && save.dailyBest[rules.day]) || null;
+  return { rules, best, active: !!(G && G.daily === rules.day) };
+}
+
 function isOperator(id) {
   return !!(G && G.operator === id);
 }
@@ -1228,16 +1283,20 @@ function startRun(options) {
     setup.difficulty = opts.difficulty;
   }
   if (opts.mode && MODES.some((m) => m.id === opts.mode)) setup.mode = opts.mode;
+  if (opts.operator && OPERATOR_ORDER.indexOf(opts.operator) >= 0) setup.operator = opts.operator;
+  if (Array.isArray(opts.mutators)) setup.mutators = opts.mutators.slice(0, 2);
   const limit = findLimit(setup.limit);
   const diff = findDifficulty(setup.difficulty);
   const maxHp = 100 + 10 * metaRank('armor') + (setup.operator === 'vanguard' ? 30 : 0);
-  const seed = (save.lastSeed >>> 0) || 20261029;
-  save.lastSeed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+  const fixedSeed = opts.seed != null ? Number(opts.seed) >>> 0 : null;
+  const seed = fixedSeed !== null && fixedSeed > 0 ? fixedSeed : (save.lastSeed >>> 0) || 20261029;
+  if (fixedSeed === null) save.lastSeed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
   writeStore(SAVE_KEY, save);
   G = {
     weapon: setup.weapon,
     mode: setup.mode,
     operator: OPERATOR_ORDER.indexOf(setup.operator) >= 0 ? setup.operator : 'ranger',
+    daily: opts.daily != null ? Number(opts.daily) : null,
     rush: setup.mode === 'bossrush' ? { index: 0, target: RUSH_TARGET, next: 2, alive: false } : null,
     map: setup.map,
     difficulty: diff.id,
@@ -1386,6 +1445,21 @@ function recordRun(outcome) {
   save.megaKills += G.megaKills || 0;
   save.chests += G.stats.chests || 0;
   save.shieldSaves += G.stats.shieldSaves || 0;
+  if (G.daily != null) {
+    const prev = save.dailyBest[G.daily] || null;
+    const cand = { win: outcome === 'win', kills: G.kills, time: G.time };
+    const better =
+      !prev ||
+      (cand.win && !prev.win) ||
+      (cand.win === prev.win && (cand.win ? cand.time < prev.time : cand.kills > prev.kills));
+    if (better) {
+      save.dailyBest[G.daily] = cand;
+      const days = Object.keys(save.dailyBest).map(Number).sort((a, b) => b - a).slice(0, 30);
+      const pruned = {};
+      for (const day of days) pruned[day] = save.dailyBest[day];
+      save.dailyBest = pruned;
+    }
+  }
   if (G.mode === 'bossrush') {
     if (outcome === 'win') {
       save.rushClears += 1;
@@ -4683,7 +4757,7 @@ function drawHUD() {
     G.mode === 'bossrush'
       ? 'BOSS ' + Math.min(G.rush.index + 1, G.rush.target) + ' / ' + G.rush.target + ' · L' + G.level + limitText
       : 'W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText;
-  ctx.fillText(runText, W / 2, 62);
+  ctx.fillText((G.daily != null ? 'DAILY · ' : '') + runText, W / 2, 62);
 
   const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
   ctx.fillStyle = '#1d2a28';
@@ -4934,13 +5008,14 @@ function drawMenuScreen() {
   ctx.font = '600 12px Consolas, monospace';
   ctx.fillText('You move. The squad shoots. The horde never ends.', W / 2, 224);
 
-  drawButton('play', 'DEPLOY', W / 2, 252, 260, 52);
-  drawButton('armory', 'ARMORY', W / 2 - 134, 316, 128, 44, 'SHARDS ' + save.shards);
-  drawButton('statistics', 'STATS', W / 2 + 134, 316, 128, 44);
-  drawButton('upgrades', 'UPGRADES', W / 2 - 134, 370, 128, 44);
-  drawButton('manual', 'MANUAL', W / 2 + 134, 370, 128, 44);
-  drawButton('settings', 'SETTINGS', W / 2 - 134, 424, 128, 44);
-  drawButton('help', 'HOW TO PLAY', W / 2 + 134, 424, 128, 44);
+  drawButton('play', 'DEPLOY', W / 2, 246, 260, 48);
+  drawButton('armory', 'ARMORY', W / 2 - 134, 302, 128, 40, 'SHARDS ' + save.shards);
+  drawButton('daily', 'DAILY', W / 2 + 134, 302, 128, 40);
+  drawButton('statistics', 'STATS', W / 2 - 134, 350, 128, 40);
+  drawButton('upgrades', 'UPGRADES', W / 2 + 134, 350, 128, 40);
+  drawButton('manual', 'MANUAL', W / 2 - 134, 398, 128, 40);
+  drawButton('settings', 'SETTINGS', W / 2 + 134, 398, 128, 40);
+  drawButton('help', 'HOW TO PLAY', W / 2, 446, 260, 40);
 
   ctx.fillStyle = 'rgba(220,205,175,0.6)';
   ctx.font = '600 11px Consolas, monospace';
@@ -5333,6 +5408,84 @@ function drawSettingsScreen() {
   ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 456);
 }
 
+function startDaily() {
+  const rules = dailyRules(dailyDay());
+  dailyOverride !== null ? null : null;
+  startRun({
+    weapon: rules.weapon,
+    map: rules.map,
+    difficulty: rules.difficulty,
+    mode: rules.mode,
+    operator: rules.operator,
+    mutators: rules.mutators,
+    seed: rules.seed,
+    daily: rules.day
+  });
+  G.banner = 'DAILY CHALLENGE';
+  G.bannerSub = OPERATORS.find((o) => o.id === rules.operator).name + ' · ' + rules.difficulty.toUpperCase() + ' · ' + (rules.mode === 'bossrush' ? 'BOSS RUSH' : 'SURVIVORS');
+  G.bannerT = 3;
+  G.news = 'Daily seed ' + rules.seed + ' engaged.';
+}
+
+function drawDailyScreen() {
+  drawMenuBackdrop();
+  overlay(0.34);
+  const info = dailyInfo();
+  const r = info.rules;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#63dcc0';
+  ctx.font = '700 30px Consolas, monospace';
+  ctx.fillText('DAILY CHALLENGE', W / 2, 78);
+  ctx.fillStyle = 'rgba(200,190,165,0.7)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('ONE SEED SHARED BY EVERYONE · BEST RUN OF THE DAY IS KEPT', W / 2, 100);
+
+  const rows = [
+    ['OPERATOR', OPERATORS.find((o) => o.id === r.operator).name],
+    ['WEAPON', WEAPONS[r.weapon].name],
+    ['MAP', MAPS[r.map].name],
+    ['DIFFICULTY', findDifficulty(r.difficulty).name],
+    ['MODE', r.mode === 'bossrush' ? 'BOSS RUSH · ' + RUSH_TARGET + ' BOSSES' : 'SURVIVORS'],
+    ['MUTATORS', r.mutators.length ? r.mutators.map((id) => mutatorDef(id).name).join(' + ') : 'NONE'],
+    ['SEED', String(r.seed)]
+  ];
+  rows.forEach((row, i) => {
+    const x = 240;
+    const y = 132 + i * 40;
+    ctx.fillStyle = 'rgba(16,20,24,0.9)';
+    rr(x, y, 480, 32, 6);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(99,220,192,0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(170,165,150,0.75)';
+    ctx.font = '600 10px Consolas, monospace';
+    ctx.fillText(row[0], x + 14, y + 20);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#e6efe9';
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(row[1], x + 466, y + 20);
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(200,195,180,0.65)';
+  ctx.font = '600 10px Consolas, monospace';
+  if (info.best) {
+    const b = info.best;
+    ctx.fillText(
+      'TODAY BEST · ' + (b.win ? 'WIN' : 'LOSS') + ' · ' + b.kills + ' KILLS · ' + fmtTime(b.time),
+      W / 2,
+      432
+    );
+  } else {
+    ctx.fillText('NO ATTEMPT YET TODAY', W / 2, 432);
+  }
+
+  drawButton('start-daily', 'START DAILY', W / 2, 458, 300, 44);
+  drawButton('back-daily', 'BACK', W / 2, 512, 180, 32);
+}
+
 function drawManualScreen() {
   drawMenuBackdrop();
   overlay(0.34);
@@ -5501,20 +5654,22 @@ function drawHelpScreen() {
     ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
     ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
     ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
+    ['DAILY', 'One seeded run per day with a fixed loadout. Beat your best.'],
+    ['SLOTS', 'Six offense and six defense skills per run. Rig ranks add more.'],
     ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
   ];
   let y = 100;
   for (const line of lines) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e0b25c';
-    ctx.font = '700 12px Consolas, monospace';
+    ctx.font = '700 11px Consolas, monospace';
     ctx.fillText(line[0], 146, y);
     ctx.fillStyle = 'rgba(225,215,195,0.82)';
-    ctx.font = '600 13px Consolas, monospace';
+    ctx.font = '600 12px Consolas, monospace';
     ctx.fillText(line[1], 270, y);
-    y += 25;
+    y += 22;
   }
-  drawButton('back-help', 'BACK', W / 2, 530, 180, 32);
+  drawButton('back-help', 'BACK', W / 2, 532, 180, 30);
 }
 
 function drawUpgradesScreen() {
@@ -5935,6 +6090,7 @@ function drawScreens() {
   else if (screen === 'settings') drawSettingsScreen();
   else if (screen === 'help') drawHelpScreen();
   else if (screen === 'manual') drawManualScreen();
+  else if (screen === 'daily') drawDailyScreen();
   else if (screen === 'upgrades') drawUpgradesScreen();
   else if (screen === 'paused') drawPauseScreen();
   else if (screen === 'mapview') drawMapView();
@@ -6051,6 +6207,18 @@ function pressButton(id) {
   }
   if (id === 'manual') {
     screen = 'manual';
+    return;
+  }
+  if (id === 'daily') {
+    screen = 'daily';
+    return;
+  }
+  if (id === 'back-daily') {
+    goMenu();
+    return;
+  }
+  if (id === 'start-daily') {
+    startDaily();
     return;
   }
   if (id === 'back-manual') {
@@ -6295,12 +6463,14 @@ window.Dustline = {
         rushBest: save.rushBest || 0,
         bestWave: save.bestWave || 1,
         shieldSaves: save.shieldSaves || 0,
+        dailyBest: JSON.parse(JSON.stringify(save.dailyBest || {})),
         achievements: Object.assign({}, save.achievements || {}),
         achievementCount: achievementUnlocked(),
         killsByType: { ...save.killsByType },
         meta: { ...save.meta }
       },
       setup: { ...setup, mutators: setup.mutators.slice() },
+      daily: dailyInfo(),
       manual: {
         tab: manualTab,
         enemies: Object.keys(ENEMY_TYPES).length,
@@ -6437,7 +6607,9 @@ window.Dustline = {
         passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
       };
       snap.mode = G.mode;
-      snap.operator = G.operator;      snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
+      snap.operator = G.operator;
+      snap.daily = G.daily != null ? dailyInfo() : null;
+      snap.dailyDay = dailyDay();      snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
       snap.relics = G.relics.slice();
       snap.relicOffers = G.relicOffers.slice();
       snap.salvage = G.salvage.length;
@@ -6623,6 +6795,10 @@ if (window.__DUSTLINE_TEST__) {
     if (!G) return false;
     G.salvage.push({ x: Number(x) || 0, y: Number(y) || 0, spin: 0, t: 40 });
     return true;
+  };
+  window.Dustline.setDay = (day) => {
+    dailyOverride = Number.isFinite(Number(day)) ? Number(day) : null;
+    return dailyDay();
   };
   window.Dustline.hitEnemy = (index, dmg) => {
     if (!G || !G.enemies[index]) return false;
