@@ -1,49 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-9",
+    "task_id": "dustline-v0-10",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793378400.080935,
+    "updated_at": 1793382639.923973,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793378400.2520833
+    "completed_at": 1793382640.1137283
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-5",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "31/31 node:test cases pass, 5/5 Phase 4 gates pass; seed 2026 autoplay reached wave 10 (Warlord + Overseer) at level 47 with all six combos and 151 live mobs; save v1 migration, unknown-version refusal and corrupt-save default probed; checklists: passed; open: commit + push pending user authorization",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793297631.6390321,
-      "timestamp_str": "2026-10-29 21:13:51",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-5",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "32/32 node:test cases pass, 5/5 Phase 4 gates pass; Playwright run in Chromium drove menu, setup, armory, stats, codex, settings, help, map viewer, pause and live combat with zero console errors; seed 2026 autoplay reached wave 10 with all 6 combos; save migration/refusal probes pass; checklists: passed; open: commit + push pending authorization",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793302114.3722227,
-      "timestamp_str": "2026-10-29 22:28:34",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-5",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-5' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793302114.6481097,
-      "timestamp_str": "2026-10-29 22:28:34",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "dustline-v0-6",
       "phase": "phase 2",
@@ -253,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793378400.2520845,
       "timestamp_str": "2026-10-30 19:40:00",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-10",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.10 Guardian update - Aegis Field skill, active-skill evolutions, Mortar/Widower/Husk mobs, WYRM mega boss",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793379006.7944133,
+      "timestamp_str": "2026-10-30 19:50:06",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "The game has no defensive skill, actives cannot evolve while weapons can, the mob roster lacks artillery/slow/area-denial archetypes and the mega rotation repeats after two entries",
+        "benefits": "Fills the defense build gap, completes the evolution system, adds three distinct threat archetypes and a third mega fight",
+        "risks": "contract: snapshot gains shield/slow fields and new enemy types; dependency: none; concurrency: ledger shared; state: save schema unchanged, skills gain one key",
+        "mitigation": "Additive-only snapshot changes, reuse existing bomb/hazard/mega-phase machinery, full suite plus gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-10",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: Aegis shield skill with Bastion combo, evolutions for blades/grenade/turret/aura, Mortar/Widower/Husk mobs with webs and acid pools, WYRM burrow/erupt mega boss, upgrades screen relaid out for 19 skills and 7 combos; 77/77 tests, 5/5 gates, 231s live probe and wyrm cycle probe OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793382639.923973,
+      "timestamp_str": "2026-10-30 20:50:39",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-10",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-10' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793382640.1137295,
+      "timestamp_str": "2026-10-30 20:50:40",
       "agent": "kilo:continue"
     }
   ]

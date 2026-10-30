@@ -1335,3 +1335,158 @@ test('the boss cycle extends past the mega to sentinel and hive', () => {
     assert.strictEqual(s.boss.type, type, 't=' + time + ' should spawn ' + type);
   }
 });
+
+test('the aegis shield absorbs hits and recharges', () => {
+  const g = boot({ seed: 501 });
+  deploy(g);
+  g.api.applyUpgrade('aegis');
+  g.api.applyUpgrade('aegis');
+  let s = g.api.snapshot();
+  assert.strictEqual(s.shield.max, 2);
+  assert.strictEqual(s.shield.charges, 2, 'each level grants a charge');
+  g.api.hurt(40);
+  s = g.api.snapshot();
+  assert.strictEqual(s.hp, s.maxHp, 'the shield absorbed the hit instead of health');
+  assert.strictEqual(s.shield.charges, 1);
+  const t0 = s.shield.t;
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 40; i++) {
+    g.step();
+    if (g.api.snapshot().screen === 'levelup') g.api.clickButton('upgrade-0');
+  }
+  s = g.api.snapshot();
+  assert.ok(s.shield.t < t0, 'the recharge timer counts down');
+  for (let i = 0; i < 560; i++) {
+    g.step();
+    if (g.api.snapshot().screen === 'levelup') g.api.clickButton('upgrade-0');
+  }
+  s = g.api.snapshot();
+  assert.strictEqual(s.shield.charges, 2, 'the spent charge comes back');
+});
+
+test('active skills evolve into tempest, cluster, overwatch and solar crown', () => {
+  const g = boot({ seed: 503 });
+  deploy(g);
+  const plans = [
+    ['blades', 'dashPower', 'tempest'],
+    ['grenade', 'damage', 'cluster'],
+    ['turret', 'crit', 'overwatch'],
+    ['aura', 'vitality', 'crown']
+  ];
+  for (const [skill, partner, evo] of plans) {
+    for (let i = 0; i < 5; i++) g.api.applyUpgrade(skill);
+    for (let i = 0; i < 3; i++) g.api.applyUpgrade(partner);
+    assert.strictEqual(g.api.snapshot().evolved[skill], evo, skill + ' should evolve');
+  }
+  const s = g.api.snapshot();
+  assert.ok(s.auraRadius > 72 + 9 * 5, 'solar crown widens the ember aura');
+  assert.strictEqual(s.shield.max, 0);
+});
+
+test('the bastion combo speeds up shield recharge', () => {
+  const g = boot({ seed: 505 });
+  deploy(g);
+  g.api.applyUpgrade('aegis');
+  g.api.applyUpgrade('aegis');
+  g.api.applyUpgrade('vitality');
+  g.api.applyUpgrade('vitality');
+  g.api.hurt(10);
+  const fast = g.api.snapshot().shield.t;
+  const h = boot({ seed: 505 });
+  deploy(h);
+  h.api.applyUpgrade('aegis');
+  h.api.applyUpgrade('aegis');
+  h.api.hurt(10);
+  const slow = h.api.snapshot().shield.t;
+  assert.ok(fast < slow * 0.7, 'bastion recharges 40% faster');
+});
+
+test('mortars lob telegraphed shells from range', () => {
+  const g = boot({ seed: 507 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('mortar', 520, 0);
+  let sawBomb = false;
+  for (let i = 0; i < 260; i++) {
+    g.step();
+    if (g.api.snapshot().bombs > 0) { sawBomb = true; break; }
+  }
+  assert.ok(sawBomb, 'the mortar lobs an arcing shell');
+});
+
+test('widower webs slow the player', () => {
+  const g = boot({ seed: 509 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('widower', 300, 0);
+  let webbed = false;
+  for (let i = 0; i < 320; i++) {
+    g.step();
+    const s = g.api.snapshot();
+    if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); continue; }
+    if (s.slow > 0) { webbed = true; break; }
+  }
+  assert.ok(webbed, 'a web bolt applies slow');
+});
+
+test('husks leave acid pools that burn the horde', () => {
+  const g = boot({ seed: 511 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setPlayer(-800, 0);
+  g.api.spawnEnemy('husk', 120, 0);
+  g.api.setEnemyHp(0, 1);
+  g.api.hitEnemy(0, 50);
+  assert.strictEqual(g.api.snapshot().pools, 1, 'the husk leaves acid behind');
+  g.api.spawnEnemy('tank', 120, 0);
+  const tank = g.api.snapshot().enemies.find((e) => e.type === 'tank');
+  const hp0 = tank.hp;
+  g.steps(40);
+  const after = g.api.snapshot().enemies.find((e) => e.type === 'tank');
+  assert.ok(after && after.hp < hp0, 'acid damages enemies standing in it');
+});
+
+test('the third mega boss WYRM burrows and erupts', () => {
+  const g = boot({ seed: 513 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(2360);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.ok(s.boss, 'a mega boss spawned at wave 60');
+  assert.strictEqual(s.boss.type, 'wyrm');
+  let submerged = false;
+  let erupted = false;
+  let husks = false;
+  for (let i = 0; i < 700; i++) {
+    g.step();
+    s = g.api.snapshot();
+    if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); continue; }
+    const wyrm = s.enemies.find((e) => e.type === 'wyrm');
+    if (wyrm && wyrm.burrowed) submerged = true;
+    if (submerged && wyrm && !wyrm.burrowed) erupted = true;
+    if (s.enemyTypes.includes('husk')) husks = true;
+    if (submerged && erupted && husks) break;
+  }
+  assert.ok(submerged, 'the wyrm burrows underground');
+  assert.ok(erupted, 'the wyrm surfaces again');
+  assert.ok(husks, 'the eruption spawns husks');
+});
+
+test('mortar, widower and husk join the spawn table', () => {
+  const g = boot({ seed: 517 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(140);
+  const seen = new Set();
+  for (let i = 0; i < 1800; i++) {
+    g.step();
+    const s = g.api.snapshot();
+    if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); continue; }
+    for (const t of s.enemyTypes) seen.add(t);
+    if (seen.has('mortar') && seen.has('widower') && seen.has('husk')) break;
+  }
+  assert.ok(seen.has('mortar'), 'mortars spawn');
+  assert.ok(seen.has('widower'), 'widowers spawn');
+  assert.ok(seen.has('husk'), 'husks spawn');
+});

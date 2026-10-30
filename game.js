@@ -434,7 +434,7 @@ const sfx = {
 
 const SKILL_ORDER = [
   'rifle', 'smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret', 'aura',
-  'squad', 'speed', 'vitality', 'magnet', 'damage',
+  'squad', 'speed', 'vitality', 'aegis', 'magnet', 'damage',
   'bulletSpeed', 'lifesteal', 'dashPower', 'crit'
 ];
 
@@ -535,6 +535,14 @@ const SKILLS = {
     desc: '+25 max health and heals 25.',
     color: '#7fe0a0'
   },
+  aegis: {
+    name: 'Aegis Field',
+    short: 'AEG',
+    max: 5,
+    kind: 'passive',
+    desc: 'Regenerating shield blocks one hit per charge.',
+    color: '#9fd8ff'
+  },
   magnet: {
     name: 'Field Magnet',
     short: 'MG',
@@ -627,6 +635,13 @@ const COMBOS = [
     needs: ['magnet', 'speed'],
     desc: 'Pickups are worth +1 XP',
     color: '#9be59b'
+  },
+  {
+    id: 'bastion',
+    name: 'BASTION',
+    needs: ['aegis', 'vitality'],
+    desc: 'Shield recharges 40% faster',
+    color: '#9fd8ff'
   }
 ];
 
@@ -697,7 +712,11 @@ const EVOLUTIONS = {
   smg: { id: 'storm', name: 'STORM', needs: 'crit', desc: 'Twin-linked shots, +10% crit' },
   shotgun: { id: 'breaker', name: 'BREAKER', needs: 'damage', desc: '+4 pellets, piercing shells' },
   dmr: { id: 'reaper', name: 'REAPER', needs: 'lifesteal', desc: '+3 pierce, +30% damage, double leech' },
-  rail: { id: 'lancer', name: 'LANCER', needs: 'bulletSpeed', desc: 'Infinite pierce, +40% damage, faster' }
+  rail: { id: 'lancer', name: 'LANCER', needs: 'bulletSpeed', desc: 'Infinite pierce, +40% damage, faster' },
+  blades: { id: 'tempest', name: 'TEMPEST', needs: 'dashPower', desc: '+2 blades, +50% spin and damage' },
+  grenade: { id: 'cluster', name: 'CLUSTER', needs: 'damage', desc: 'Twin grenades, +30% blast' },
+  turret: { id: 'overwatch', name: 'OVERWATCH', needs: 'crit', desc: 'Third turret, +30% fire rate and life' },
+  aura: { id: 'crown', name: 'SOLAR CROWN', needs: 'vitality', desc: '+35% radius, pulses 60% faster' }
 };
 
 const BOSS_AFFIXES = [
@@ -728,6 +747,9 @@ const ENEMY_TYPES = {
   tunneler: { hp: 85, speed: 62, r: 15, touch: 14, xp: 5, color: '#6a5a3a', dark: '#2a2214', name: 'Tunneler', burrow: true },
   screamer: { hp: 65, speed: 44, r: 15, touch: 9, xp: 4, color: '#8a4a6a', dark: '#3a1a2a', name: 'Screamer', scream: true },
   phantom: { hp: 70, speed: 78, r: 13, touch: 12, xp: 5, color: '#5a7a8a', dark: '#20303a', name: 'Phantom', ghost: true },
+  mortar: { hp: 90, speed: 34, r: 16, touch: 8, xp: 6, color: '#8a7a5a', dark: '#3a3222', name: 'Mortar', artillery: true },
+  widower: { hp: 95, speed: 56, r: 16, touch: 8, xp: 6, color: '#6a5a8a', dark: '#2a2240', name: 'Widower', web: true },
+  husk: { hp: 55, speed: 68, r: 14, touch: 7, xp: 3, color: '#7a8a4a', dark: '#2f3a1a', name: 'Husk', acid: true },
   hunter: { hp: 240, speed: 98, r: 18, touch: 14, xp: 14, color: '#c23a4a', dark: '#3a0d13', name: 'HUNTER', elite: true }
 };
 
@@ -744,11 +766,15 @@ const BOSS_TYPES = {
   leviathan: {
     hp: 2400, speed: 27, r: 58, touch: 38, xp: 190, color: '#5a2f4f', dark: '#241020',
     name: 'LEVIATHAN', style: 'mega2', mega: true
+  },
+  wyrm: {
+    hp: 2600, speed: 30, r: 52, touch: 34, xp: 200, color: '#7a5a3a', dark: '#2e2114',
+    name: 'WYRM', style: 'wyrm', mega: true
   }
 };
 
 const BOSS_ORDER = ['warlord', 'overseer', 'bombardier', 'hive', 'sentinel'];
-const MEGA_ORDER = ['colossus', 'leviathan'];
+const MEGA_ORDER = ['colossus', 'leviathan', 'wyrm'];
 const BOSS_EVERY = 5;
 const MEGA_EVERY_BOSSES = 4;
 
@@ -822,6 +848,14 @@ function activeCombos() {
 
 function playerSpeed() {
   return 210 * (1 + 0.08 * G.skills.speed) * (1 + 0.04 * metaRank('speed'));
+}
+
+function auraRadius() {
+  return G.skills.aura > 0 ? (72 + 9 * G.skills.aura) * (hasEvolution('aura') ? 1.35 : 1) : 0;
+}
+
+function shieldRefill() {
+  return Math.max(4, 9 - 0.8 * G.skills.aegis) * (hasCombo('bastion') ? 0.6 : 1);
 }
 
 function damageMult() {
@@ -1078,6 +1112,9 @@ function startRun(options) {
     cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
     dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false },
     bomb: { cd: 0, max: 6, held: false },
+    shield: { charges: 0, t: 0 },
+    slowT: 0,
+    pools: [],
     streak: 0,
     streakT: 0,
     bestStreak: 0,
@@ -1472,6 +1509,7 @@ function spawnBullet(x, y, ang, speed, dmg, owner, color, opts) {
     color,
     pierce: o.pierce || 0,
     crit: !!o.crit,
+    web: !!o.web,
     hits: [],
     life: o.life || 1.4,
     dead: false
@@ -1642,7 +1680,8 @@ function weaponStats(id) {
 
 function bladesCount() {
   const lvl = G.skills.blades;
-  return lvl > 0 ? lvl + 1 : 0;
+  if (lvl <= 0) return 0;
+  return lvl + 1 + (hasEvolution('blades') ? 2 : 0);
 }
 
 function fireWeapon(id, dt) {
@@ -1707,28 +1746,31 @@ function updateSkills(dt) {
       const cluster = clusterPoint(130);
       const lvl = G.skills.grenade;
       if (cluster) {
-        G.grenades.push({
-          x: G.player.x,
-          y: G.player.y,
-          tx: cluster.x,
-          ty: cluster.y,
-          t: 0.55,
-          max: 0.55,
-          radius: (78 + 6 * lvl) * (hasCombo('demolition') ? 1.35 : 1),
-          dmg: (30 + 18 * lvl) * damageMult(),
-          color: '#ffb066'
-        });
+        const throws = hasEvolution('grenade') ? 2 : 1;
+        for (let i = 0; i < throws; i++) {
+          G.grenades.push({
+            x: G.player.x,
+            y: G.player.y,
+            tx: cluster.x + (i ? rnd(-55, 55) : 0),
+            ty: cluster.y + (i ? rnd(-55, 55) : 0),
+            t: 0.55,
+            max: 0.55,
+            radius: (78 + 6 * lvl) * (hasCombo('demolition') ? 1.35 : 1) * (hasEvolution('grenade') ? 1.3 : 1),
+            dmg: (30 + 18 * lvl) * damageMult(),
+            color: '#ffb066'
+          });
+        }
         G.cds.grenade = Math.max(1.6, 3.6 - 0.28 * lvl);
         sfx.throwBomb();
       }
     }
   }
 
-  G.cds.bladeAngle += dt * 2.6;
+  G.cds.bladeAngle += dt * 2.6 * (hasEvolution('blades') ? 1.5 : 1);
   const count = bladesCount();
   if (count > 0) {
     const radius = 64;
-    const dmg = (8 + 6 * G.skills.blades) * damageMult();
+    const dmg = (8 + 6 * G.skills.blades) * damageMult() * (hasEvolution('blades') ? 1.5 : 1);
     for (let i = 0; i < count; i++) {
       const a = G.cds.bladeAngle + (i / count) * TAU;
       const bx = G.player.x + Math.cos(a) * radius;
@@ -1761,8 +1803,9 @@ function updateSkills(dt) {
     G.cds.turret -= dt;
     if (G.cds.turret <= 0) {
       G.cds.turret = Math.max(5, 11 - 1.1 * lvl);
-      if (G.turrets.length >= 2) G.turrets.shift();
-      G.turrets.push({ x: G.player.x, y: G.player.y, angle: G.player.angle, fireCd: 0.2, life: 10 + 1.5 * lvl, max: 10 + 1.5 * lvl, lvl });
+      if (G.turrets.length >= (hasEvolution('turret') ? 3 : 2)) G.turrets.shift();
+      const life = (10 + 1.5 * lvl) * (hasEvolution('turret') ? 1.3 : 1);
+      G.turrets.push({ x: G.player.x, y: G.player.y, angle: G.player.angle, fireCd: 0.2, life, max: life, lvl });
       G.stats.turrets = (G.stats.turrets || 0) + 1;
       spawnFloater(G.player.x, G.player.y - 26, 'TURRET DEPLOYED', '#b8c6d0', 11);
       sfx.swap();
@@ -1774,7 +1817,7 @@ function updateSkills(dt) {
     const near = nearestEnemy(turret.x, turret.y, 430);
     if (near) turret.angle = Math.atan2(near.y - turret.y, near.x - turret.x);
     if (near && turret.fireCd <= 0) {
-      turret.fireCd = Math.max(0.18, 0.5 - 0.04 * turret.lvl);
+      turret.fireCd = Math.max(0.18, (0.5 - 0.04 * turret.lvl) * (hasEvolution('turret') ? 0.7 : 1));
       spawnBullet(turret.x + Math.cos(turret.angle) * 14, turret.y + Math.sin(turret.angle) * 14, turret.angle + rnd(-0.05, 0.05), 900, (9 + 4 * turret.lvl) * damageMult(), 't', '#b8c6d0');
       G.stats.shots.turret = (G.stats.shots.turret || 0) + 1;
       sfx.soldier();
@@ -1785,8 +1828,8 @@ function updateSkills(dt) {
   if (G.skills.aura > 0) {
     G.cds.aura -= dt;
     if (G.cds.aura <= 0) {
-      G.cds.aura = 0.5;
-      const radius = 72 + 9 * G.skills.aura;
+      G.cds.aura = 0.5 * (hasEvolution('aura') ? 0.4 : 1);
+      const radius = auraRadius();
       const dmg = (4 + 3 * G.skills.aura) * damageMult();
       for (const e of G.enemies) {
         if (e.dead) continue;
@@ -1840,6 +1883,9 @@ function pickEnemyType() {
   if (t > 140) pool.push(['tunneler', 1 + Math.min(3, t / 160)]);
   if (t > 160) pool.push(['screamer', 1 + Math.min(3, t / 170)]);
   if (t > 175) pool.push(['phantom', 1 + Math.min(3, t / 180)]);
+  if (t > 95) pool.push(['mortar', 1 + Math.min(3, t / 150)]);
+  if (t > 125) pool.push(['widower', 1 + Math.min(3, t / 160)]);
+  if (t > 105) pool.push(['husk', 2 + Math.min(4, t / 130)]);
   let total = 0;
   for (const entry of pool) total += entry[1];
   let roll = Math.random() * total;
@@ -1885,6 +1931,8 @@ function spawnEnemyAt(type, x, y) {
     beamT: 0,
     beamAngle: 0,
     beamHit: false,
+    subT: 0,
+    wyrmCd: rnd(5, 7),
     ghost: false,
     ghostT: 0,
     screamCd: rnd(2, 3.5),
@@ -2063,6 +2111,28 @@ function updateEnemies(dt) {
     }
 
     if (e.mega) {
+      if (e.style === 'wyrm') {
+        if (e.subT > 0) {
+          e.subT -= dt;
+          speed *= 2.8;
+          e.burrowed = true;
+          if (e.subT <= 0) {
+            e.burrowed = false;
+            explodeAt(e.x, e.y, 150, 30 * (1 + G.time / 300), '#c9a37c', 'e');
+            for (let i = 0; i < 3; i++) spawnEnemyAt('husk', e.x + rnd(-60, 60), e.y + rnd(-60, 60));
+            shake = Math.max(shake, settings.shake ? 12 : 0);
+            G.news = 'The Wyrm erupts from below.';
+            sfx.bossRoar();
+          }
+        } else {
+          e.wyrmCd -= dt;
+          if (e.wyrmCd <= 0) {
+            e.wyrmCd = rnd(6.5, 8.5);
+            e.subT = 2;
+            burst(e.x, e.y, 14, '#6a5a3a', 220, 3, 0.4);
+          }
+        }
+      }
       if (e.style === 'mega2' && e.chargeCd <= 0 && d < 520) {
         e.charge = 0.7;
         e.chargeCd = rnd(4.5, 6.5);
@@ -2215,6 +2285,51 @@ function updateEnemies(dt) {
         }
         if (e.beamT <= 0) { e.beamState = 'idle'; e.beamCd = 2.6; }
       }
+    } else if (e.type === 'mortar') {
+      if (d < 380) {
+        vx = -ux;
+        vy = -uy;
+      }
+      if (e.fireCd <= 0 && d < 720 && d > 160) {
+        e.fireCd = rnd(3.0, 4.2);
+        G.bombs.push({
+          x: e.x,
+          y: e.y,
+          tx: G.player.x + rnd(-30, 30),
+          ty: G.player.y + rnd(-30, 30),
+          t: 1.5,
+          max: 1.5,
+          radius: 84,
+          dmg: 16 * (1 + G.time / 300),
+          owner: 'e',
+          color: '#c9b89a'
+        });
+        sfx.throwBomb();
+      }
+    } else if (e.type === 'widower') {
+      if (d < 200) {
+        vx = -ux;
+        vy = -uy;
+      } else if (d < 300) {
+        vx = -uy * e.strafe;
+        vy = ux * e.strafe;
+      }
+      if (e.fireCd <= 0 && d < 560) {
+        e.fireCd = rnd(2.6, 3.6);
+        const ang = Math.atan2(dy, dx);
+        spawnBullet(
+          e.x + Math.cos(ang) * 14,
+          e.y + Math.sin(ang) * 14,
+          ang + rnd(-0.05, 0.05),
+          250,
+          6 * (1 + G.time / 400),
+          'e',
+          '#b48cff',
+          { life: 2.6, web: true }
+        );
+        G.stats.shots.enemy++;
+        sfx.spit();
+      }
     } else if (e.type === 'marksman' || e.type === 'spitter') {
       if (e.type === 'spitter') {
         if (d < 220) {
@@ -2343,8 +2458,12 @@ function updateBullets(dt) {
     if (b.owner === 'e') {
       if (segHitsCircle(x0, y0, b.x, b.y, G.player.x, G.player.y, 18)) {
         b.dead = true;
+        if (b.web) {
+          G.slowT = Math.max(G.slowT, 1.8);
+          spawnFloater(G.player.x, G.player.y - 24, 'WEBBED', '#b48cff', 12);
+        }
         damagePlayer(b.dmg);
-        burst(b.x, b.y, 4, '#ff3b30', 140, 2, 0.25);
+        burst(b.x, b.y, 4, b.web ? '#b48cff' : '#ff3b30', 140, 2, 0.25);
       }
       continue;
     }
@@ -2403,6 +2522,46 @@ function updateGrenades(dt) {
     if (b.t > 0) continue;
     G.bombs.splice(i, 1);
     explodeAt(b.tx, b.ty, b.radius, b.dmg, b.color, b.owner);
+  }
+}
+
+function updatePools(dt) {
+  for (const p of G.pools) {
+    p.t -= dt;
+    p.tick -= dt;
+    if (p.tick > 0) continue;
+    p.tick = 0.5;
+    for (const e of G.enemies) {
+      if (e.dead || e.burrowed) continue;
+      if (dist2(p.x, p.y, e.x, e.y) < (p.r + e.r) * (p.r + e.r)) damageEnemy(e, p.dmg, e.x, e.y, false);
+    }
+    if (dist2(p.x, p.y, G.player.x, G.player.y) < p.r * p.r) damagePlayer(4 * (1 + G.time / 400));
+  }
+  G.pools = G.pools.filter((p) => p.t > 0);
+}
+
+function drawPools() {
+  for (const p of G.pools) {
+    ctx.fillStyle = 'rgba(140,190,70,' + (0.14 + 0.1 * Math.min(1, p.t / 4)) + ')';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,230,120,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, TAU);
+    ctx.stroke();
+  }
+}
+
+function drawShield() {
+  if (!G.shield || G.shield.charges <= 0) return;
+  for (let i = 0; i < G.shield.charges; i++) {
+    ctx.strokeStyle = 'rgba(159,216,255,' + (0.34 - 0.04 * i) + ')';
+    ctx.lineWidth = i === 0 ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.arc(G.player.x, G.player.y, 24 + i * 5, 0, TAU);
+    ctx.stroke();
   }
 }
 
@@ -2522,6 +2681,11 @@ function killEnemy(e) {
     for (const side of [-1, 1]) spawnEnemyAt('swarm', e.x + side * 22, e.y + rnd(-8, 8));
     spawnFloater(e.x, e.y - e.r - 12, 'SPLIT', '#8a6a3a', 12);
   }
+  if (e.type === 'husk') {
+    if (G.pools.length >= 14) G.pools.shift();
+    G.pools.push({ x: e.x, y: e.y, r: 56, t: 4, tick: 0.2, dmg: 8 * (1 + G.time / 400) });
+    spawnFloater(e.x, e.y - e.r - 12, 'ACID', '#9fbf5a', 12);
+  }
   if (e.type === 'hunter') {
     G.stats.hunters++;
     addUnbanked(20);
@@ -2566,6 +2730,16 @@ function killEnemy(e) {
 function damagePlayer(dmg) {
   if (!G || G.invulnerable || screen !== 'play') return;
   if (G.invulnT > 0) return;
+  if (G.shield && G.shield.charges > 0) {
+    G.shield.charges--;
+    G.shield.t = shieldRefill();
+    G.invulnT = 0.4;
+    G.hurtT = 0.2;
+    spawnFloater(G.player.x, G.player.y - 24, 'SHIELD', '#9fd8ff', 13);
+    burst(G.player.x, G.player.y, 10, '#9fd8ff', 180, 2.6, 0.3);
+    sfx.swap();
+    return;
+  }
   const taken = dmg * (G.diff ? G.diff.dmg : 1) * (odActive() ? 1.5 : 1) * (hasMutator('glass') ? 1.6 : 1);
   G.hp -= taken;
   if (G.streak > 0) {
@@ -2787,6 +2961,10 @@ function applyUpgrade(id) {
     G.maxHp = 100 + 10 * metaRank('armor') + 25 * G.skills.vitality;
     G.hp = Math.min(G.maxHp, G.hp + 25);
   }
+  if (id === 'aegis') {
+    G.shield.t = shieldRefill();
+    G.shield.charges = Math.min(G.skills.aegis, G.shield.charges + 1);
+  }
   announceCombos();
   checkEvolutions();
   return true;
@@ -2828,6 +3006,14 @@ function updateRun(dt) {
   G.bannerT = Math.max(0, G.bannerT - dt);
   G.invulnT = Math.max(0, G.invulnT - dt);
   G.hurtT = Math.max(0, G.hurtT - dt);
+  G.slowT = Math.max(0, G.slowT - dt);
+  if (G.skills.aegis > 0 && G.shield.charges < G.skills.aegis) {
+    G.shield.t -= dt;
+    if (G.shield.t <= 0) {
+      G.shield.charges = Math.min(G.skills.aegis, G.shield.charges + 1);
+      G.shield.t = shieldRefill();
+    }
+  }
   G.streakT = Math.max(0, G.streakT - dt);
   if (G.streakT <= 0 && G.streak > 0) G.streak = 0;
   G.surgeT = Math.max(0, G.surgeT - dt);
@@ -2922,7 +3108,8 @@ function updateRun(dt) {
   } else if (len > 0) {
     const hz = HAZARDS[hazardAt(G.player.x, G.player.y)];
     const hzSpeed = hz && hz.playerSpeed ? hz.playerSpeed : 1;
-    moveWithSolids(G.player, mx * playerSpeed() * hzSpeed * dt, my * playerSpeed() * hzSpeed * dt, 15);
+    const sf = G.slowT > 0 ? 0.55 : 1;
+    moveWithSolids(G.player, mx * playerSpeed() * hzSpeed * sf * dt, my * playerSpeed() * hzSpeed * sf * dt, 15);
   }
   const fixed = resolveSolid(G.player.x, G.player.y, 15);
   G.player.x = fixed.x;
@@ -2951,6 +3138,7 @@ function updateRun(dt) {
   updateBullets(dt);
   if (screen !== 'play') return;
   updateGrenades(dt);
+  updatePools(dt);
   updatePickups(dt);
   updateParticles(dt);
   markExplored();
@@ -3425,6 +3613,25 @@ function drawEnemies() {
         ctx.beginPath();
         ctx.arc(e.r * 0.26, 0, e.r * 0.08, 0, TAU);
         ctx.fill();
+      } else if (e.style === 'wyrm') {
+        for (let i = 3; i >= 0; i--) {
+          ctx.fillStyle = i === 0 ? base : dark;
+          ctx.beginPath();
+          ctx.arc(-i * e.r * 0.5, Math.sin(uiT * 6 + i * 1.3) * e.r * 0.16, e.r * (1 - i * 0.15), 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,207,92,0.28)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#ffcf5c';
+        ctx.beginPath();
+        ctx.arc(e.r * 0.5, -e.r * 0.16, e.r * 0.09, 0, TAU);
+        ctx.arc(e.r * 0.5, e.r * 0.16, e.r * 0.09, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#3a1a0a';
+        ctx.beginPath();
+        ctx.arc(e.r * 0.74, 0, e.r * 0.2, 0, TAU);
+        ctx.fill();
       } else if (e.mega) {
         ctx.strokeStyle = 'rgba(180,140,255,0.6)';
         ctx.lineWidth = 2;
@@ -3760,7 +3967,7 @@ function drawEnemies() {
 
 function drawAura() {
   if (!G.skills.aura) return;
-  const radius = 72 + 9 * G.skills.aura;
+  const radius = auraRadius();
   const pulse = 0.5 + 0.5 * Math.sin(uiT * 4);
   ctx.strokeStyle = 'rgba(255,150,90,' + (0.18 + 0.12 * pulse) + ')';
   ctx.lineWidth = 2;
@@ -4234,6 +4441,16 @@ function drawHUD() {
     ctx.strokeStyle = '#123a52';
     ctx.lineWidth = 1;
     ctx.stroke();
+  }
+  if (G.skills.aegis > 0) {
+    ctx.fillStyle = '#9aa7ad';
+    ctx.font = '10px Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('SHIELD', 186, H - 60);
+    for (let i = 0; i < G.skills.aegis; i++) {
+      ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
+      ctx.fillRect(230 + i * 9, H - 68, 7, 8);
+    }
   }
 
   const dw = 100;
@@ -4779,29 +4996,29 @@ function drawUpgradesScreen() {
     const col = i % 5;
     const row = Math.floor(i / 5);
     const x = 42 + col * 178;
-    const y = 102 + row * 92;
+    const y = 100 + row * 72;
     const skill = SKILLS[id];
     const lvl = G ? G.skills[id] : 0;
     ctx.fillStyle = 'rgba(14,18,22,0.78)';
     ctx.strokeStyle = lvl > 0 ? skill.color : 'rgba(255,255,255,0.08)';
     ctx.lineWidth = lvl > 0 ? 1.5 : 1;
-    rr(x, y, 168, 80, 6);
+    rr(x, y, 168, 66, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = skill.color;
     ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(skill.name, x + 10, y + 20);
+    ctx.fillText(skill.name, x + 10, y + 16);
     ctx.fillStyle = 'rgba(210,205,190,0.68)';
     ctx.font = '600 9px Consolas, monospace';
     const words = skill.desc.split(' ');
     let line = '';
-    let ly = y + 36;
+    let ly = y + 30;
     for (const word of words) {
       const next = line ? line + ' ' + word : word;
       if (next.length > 27 && line) {
         ctx.fillText(line, x + 10, ly);
-        ly += 12;
+        ly += 10;
         line = word;
       } else {
         line = next;
@@ -4814,16 +5031,16 @@ function drawUpgradesScreen() {
     const tail = evo
       ? 'LV ' + lvl + '/' + skill.max + ' · EVO ' + evo.name + ' (' + SKILLS[evo.needs].short + '3)'
       : 'LV ' + lvl + '/' + skill.max + ' · ' + skill.kind.toUpperCase();
-    ctx.fillText(tail, x + 10, y + 72);
+    ctx.fillText(tail, x + 10, y + 60);
   });
 
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(180,175,155,0.7)';
   ctx.font = '600 9px Consolas, monospace';
-  ctx.fillText('COMBOS', 42, 380);
+  ctx.fillText('COMBOS', 42, 392);
   COMBOS.forEach((combo, i) => {
     const x = 42 + (i % 3) * 300;
-    const y = 394 + Math.floor(i / 3) * 38;
+    const y = 406 + Math.floor(i / 3) * 34;
     const active = G ? combo.needs.every((s) => G.skills[s] >= 2) : false;
     ctx.fillStyle = active ? combo.color : 'rgba(200,195,180,0.45)';
     ctx.font = '700 10px Consolas, monospace';
@@ -4834,7 +5051,7 @@ function drawUpgradesScreen() {
     ctx.fillText(combo.desc, x, y + 22);
   });
 
-  drawButton('back-upgrades', 'BACK', W / 2, 490, 180, 36);
+  drawButton('back-upgrades', 'BACK', W / 2, 512, 180, 34);
 }
 
 function drawPauseScreen() {
@@ -5289,6 +5506,7 @@ function render() {
     drawGround(G.cam);
     drawHazards(G.cam);
     drawProps(G.cam);
+    drawPools();
     drawPickups();
     drawGrenades();
     drawAura();
@@ -5297,6 +5515,7 @@ function render() {
     drawSoldiers();
     drawTurrets();
     drawPlayer();
+    drawShield();
     drawBullets();
     drawParticles();
     drawFloaters();
@@ -5519,7 +5738,7 @@ window.Dustline = {
       snap.gems = G.gems.length;
       snap.chests = G.chests.length;
       snap.turrets = G.turrets.length;
-      snap.auraRadius = G.skills.aura ? 72 + 9 * G.skills.aura : 0;
+      snap.auraRadius = auraRadius();
       snap.medkits = G.medkits.length;
       snap.floaters = G.floaters.length;
       snap.bombs = G.bombs.length;
@@ -5553,6 +5772,9 @@ window.Dustline = {
       snap.bannerT = G.bannerT;
       snap.dash = { ready: G.dash.cd <= 0, cd: G.dash.cd, t: G.dash.t };
       snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
+      snap.shield = { charges: G.shield.charges, max: G.skills.aegis, t: G.shield.t };
+      snap.slow = G.slowT;
+      snap.pools = G.pools.length;
       const boss = G.enemies.find((e) => e.boss && !e.dead);
       snap.boss = boss
         ? {
