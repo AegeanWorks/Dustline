@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -17,21 +17,16 @@ function mulberry32(seed) {
   };
 }
 
-function createCanvasStub(width, height) {
+const TRACKED_OPS = new Set([
+  'beginPath', 'arc', 'ellipse', 'fill', 'stroke', 'fillRect', 'strokeRect', 'drawImage',
+  'clearRect', 'moveTo', 'lineTo', 'closePath', 'fillText', 'save', 'restore', 'translate',
+  'rotate', 'scale', 'setTransform', 'createRadialGradient', 'createLinearGradient',
+  'setLineDash', 'quadraticCurveTo', 'bezierCurveTo', 'clip'
+]);
+
+function createCanvasStub(width, height, counter) {
   const handlers = Object.create(null);
   const gradient = { addColorStop() {} };
-  const ctx = new Proxy(
-    {},
-    {
-      get(_t, prop) {
-        if (prop === 'canvas') return canvas;
-        return () => gradient;
-      },
-      set() {
-        return true;
-      }
-    }
-  );
   const canvas = {
     width,
     height,
@@ -42,6 +37,22 @@ function createCanvasStub(width, height) {
       handlers[type] = fn;
     }
   };
+  const ctx = new Proxy(
+    {},
+    {
+      get(_t, prop) {
+        if (prop === 'canvas') return canvas;
+        if (prop === 'measureText') return () => ({ width: 0 });
+        return () => {
+          if (counter && TRACKED_OPS.has(String(prop))) counter[prop] = (counter[prop] || 0) + 1;
+          return gradient;
+        };
+      },
+      set() {
+        return true;
+      }
+    }
+  );
   return { canvas, handlers };
 }
 
@@ -49,7 +60,8 @@ function createGame(options) {
   const opts = options || {};
   const width = 960;
   const height = 600;
-  const { canvas, handlers } = createCanvasStub(width, height);
+  const ops = Object.create(null);
+  const { canvas, handlers } = createCanvasStub(width, height, ops);
   const winHandlers = Object.create(null);
   const clock = { now: 0, raf: null };
   const math = Object.create(Math);
@@ -64,7 +76,10 @@ function createGame(options) {
   if (opts.storage) win.localStorage = opts.storage;
 
   const sandbox = {
-    document: { getElementById: () => canvas },
+    document: {
+      getElementById: () => canvas,
+      createElement: (tag) => (tag === 'canvas' ? createCanvasStub(1, 1, null).canvas : { style: {} })
+    },
     window: win,
     performance: { now: () => clock.now },
     requestAnimationFrame(fn) {
@@ -95,6 +110,7 @@ function createGame(options) {
     const fn = clock.raf;
     if (!fn) throw new Error('game stopped scheduling frames');
     clock.raf = null;
+    for (const key of Object.keys(ops)) delete ops[key];
     fn(clock.now);
   }
 
@@ -103,6 +119,7 @@ function createGame(options) {
     canvas,
     handlers,
     winHandlers,
+    ops,
     step,
     steps(n, ms) {
       for (let i = 0; i < Math.max(0, n | 0); i++) step(ms);

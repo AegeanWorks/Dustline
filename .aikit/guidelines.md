@@ -9,3 +9,4 @@ Persisted state carries a format version. A loader refuses a version it does not
 without modifying or quarantining that file; older versions migrate when a migration exists.
 
 ## Rules
+- **G-001** (user): Always analyze the project's visual layer: image/audio assets, procedural sprites, particle systems and shape models, including fidelity, consistency, readability and performance.

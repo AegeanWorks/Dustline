@@ -2108,3 +2108,88 @@ test('legacy saves default dailyBest to an empty map', () => {
   assert.deepStrictEqual(g.api.snapshot().save.dailyBest, {});
   assert.strictEqual(g.api.snapshot().daily.best, null);
 });
+
+test('the ground is blitted from cached tiles instead of being redrawn', () => {
+  const g = boot({ seed: 1301 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.steps(3);
+  const ops = g.ops;
+  assert.ok((ops.drawImage || 0) >= 40, 'tiles and vignette are blitted, saw ' + (ops.drawImage || 0));
+  assert.ok((ops.ellipse || 0) < 40, 'the ground no longer emits hundreds of ellipses, saw ' + (ops.ellipse || 0));
+});
+
+test('priority mobs no longer share the base grunt silhouette', () => {
+  const keys = ['arc', 'stroke', 'fill', 'moveTo', 'lineTo', 'quadraticCurveTo', 'ellipse', 'fillRect'];
+  function signature(type) {
+    const g = boot({ seed: 1400 + type.charCodeAt(0) });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    g.api.killEnemies();
+    g.api.spawnEnemy(type, 140, 0);
+    g.step();
+    return keys.map((k) => g.ops[k] || 0).join(',');
+  }
+  const base = signature('grunt');
+  const types = ['shielder', 'leech', 'screamer', 'widower', 'mortar', 'husk', 'phantom', 'bomber', 'hunter'];
+  const unique = new Set([base]);
+  for (const type of types) {
+    const sig = signature(type);
+    assert.notStrictEqual(sig, base, type + ' should not render exactly like a grunt');
+    unique.add(sig);
+  }
+  assert.ok(unique.size >= 7, 'silhouettes are varied, saw ' + unique.size + ' distinct shapes');
+});
+
+test('boss affixes are shape-coded, not only colour-coded', () => {
+  function bossOps(affix) {
+    const g = boot({ seed: 1500 + (affix ? affix.length : 0) });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    g.api.killEnemies();
+    g.api.spawnBoss('warlord');
+    if (affix) g.api.forceBossAffix(0, affix);
+    g.step();
+    return g.ops;
+  }
+  const plain = bossOps(null);
+  for (const affix of ['frenzied', 'shielded', 'volatile']) {
+    const o = bossOps(affix);
+    assert.ok((o.arc || 0) + (o.stroke || 0) > (plain.arc || 0) + (plain.stroke || 0) + 2,
+      affix + ' should add glyphs: ' + JSON.stringify({ arc: o.arc, stroke: o.stroke }));
+  }
+});
+
+test('a burrowed WYRM renders a mega-sized mound with ridge rings', () => {
+  function burrowedOps(type) {
+    const g = boot({ seed: 1600 + type.length });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    g.api.killEnemies();
+    g.api.spawnEnemy(type, 140, 0);
+    g.api.setBurrowed(0, true);
+    g.step();
+    return { ops: g.ops, r: g.api.snapshot().enemies[0].r, burrowed: g.api.snapshot().enemies[0].burrowed };
+  }
+  const wyrm = burrowedOps('wyrm');
+  const tunneler = burrowedOps('tunneler');
+  assert.strictEqual(wyrm.burrowed, true);
+  assert.ok(wyrm.r > tunneler.r, 'the wyrm is a much larger body');
+  assert.ok((wyrm.ops.arc || 0) >= (tunneler.ops.arc || 0) + 2, 'the wyrm draws ridge rings: ' +
+    JSON.stringify({ wyrm: wyrm.ops.arc, tunneler: tunneler.ops.arc }));
+});
+
+test('a full 150-mob frame stays inside the draw budget', () => {
+  const g = boot({ seed: 1701 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 150; i++) {
+    const a = (i / 150) * Math.PI * 2;
+    g.api.spawnEnemy('grunt', Math.cos(a) * 320, Math.sin(a) * 320);
+  }
+  g.step();
+  const total = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  assert.ok(total < 7000, '150 mobs used ' + total + ' canvas ops');
+  assert.ok((g.ops.ellipse || 0) < 400, 'ground ellipses stay cached, saw ' + (g.ops.ellipse || 0));
+});

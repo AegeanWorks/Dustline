@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-17",
+    "task_id": "dustline-v0-18",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793392669.3727915,
+    "updated_at": 1793396569.5667245,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793392669.5111518
+    "completed_at": 1793396569.705592
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-11",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: 6 offense + 6 defense skill slot caps enforced in offers, caches and applyUpgrade; Loadout Rig armory meta (+1/+1 per rank, 2 ranks); offer weighting toward owned skills; HUD, level-up card and setup slot displays; armory relaid out for 7 cards; 81/81 tests, 5/5 gates, 150s slot-discipline probe and save-compat probe OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793383930.0773323,
-      "timestamp_str": "2026-10-30 21:12:10",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-11",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-11' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793383930.2905357,
-      "timestamp_str": "2026-10-30 21:12:10",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-12",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.12 Salvage update - boss salvage crates with 3-choice relic cards, 10 relic effects on existing stat hooks, snapshot mods/relics and grantRelic seam",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793384175.0722911,
-      "timestamp_str": "2026-10-30 21:16:15",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Builds are now slot-capped but every boss only pays loot and banking shards; there is no run-defining reward choice from the hardest fights",
-        "benefits": "Adds a third progression axis that does not conflict with skill slots, makes boss kills a decision point and creates build variety across runs",
-        "risks": "contract: snapshot gains relics/salvage/mods and a new screen; dependency: none; concurrency: ledger shared; state: no save change (relics are per-run)",
-        "mitigation": "Keep relics per-run only, reuse the level-up screen pattern, verify existing boss tests are unaffected, full suite and gates before commit"
-      }
-    },
     {
       "task_id": "dustline-v0-12",
       "phase": "in_progress",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793392669.5111532,
       "timestamp_str": "2026-10-30 23:37:49",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-18",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.18 visual pass - cache procedural ground tiles and vignette gradients, distinct silhouettes for priority mobs, shape-coded boss affixes, fix WYRM burrow render bug, framerate-independent particle drag, harness draw-op counters plus op-budget tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793395259.6258397,
+      "timestamp_str": "2026-10-31 00:20:59",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "The visual audit found the ground pass costs 442 paths and 281 ellipses every frame with no enemies on screen, 19 mobs share one circular silhouette so priority threats do not read, boss affixes differ only by colour, and the WYRM renders an underground mound at 10px because burrowT is never set",
+        "benefits": "Large constant per-frame saving, readable threat priority, affix meaning visible without colour, correct mega-boss underground read, and regression tests that measure draw operations instead of pixels",
+        "risks": "contract: render internals change and the test harness gains op counters; dependency: none, offscreen canvases use the same Canvas 2D API; concurrency: ledger shared; state: none, no save-schema change",
+        "mitigation": "Keep a full-redraw fallback when offscreen canvases are unavailable, preserve all existing draw order, assert op budgets and existing suite, full gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-18",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: cached ground tiles (8 variants/map, offscreen, redraw fallback), cached vignette, 2x DPR backing store, distinct silhouettes for 9 priority mobs, shape-coded affix glyphs, WYRM mound fix, framerate-independent particle drag, harness draw-op counters; 110/110 tests, 5/5 gates, profiled 1857->348 ops idle (-81%) and 4584->3075 at 150 mobs, script cost 0.82->0.19ms idle, 3.73->1.92ms at cap; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793396569.5667245,
+      "timestamp_str": "2026-10-31 00:42:49",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-18",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-18' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793396569.7055933,
+      "timestamp_str": "2026-10-31 00:42:49",
       "agent": "kilo:continue"
     }
   ]
