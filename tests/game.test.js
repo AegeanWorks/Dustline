@@ -65,7 +65,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
-  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [] }));
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [], mode: 'survivors' }));
   g.api.clickButton('setup-start');
   g.steps(1);
   const s = g.api.snapshot();
@@ -1666,4 +1666,56 @@ test('salvage crates expire and grant shards once all relics are owned', () => {
     if (now.salvage === 0) break;
   }
   assert.strictEqual(g.api.snapshot().salvage, 0, 'uncollected salvage expires');
+});
+
+test('the setup screen offers survivors and boss rush modes', () => {
+  const g = boot({ seed: 801 });
+  enterSetup(g);
+  const ids = g.api.snapshot().buttons.map((b) => b.id);
+  assert.ok(ids.includes('mode-survivors'));
+  assert.ok(ids.includes('mode-bossrush'));
+  assert.strictEqual(g.api.snapshot().setup.mode, 'survivors');
+  g.api.clickButton('mode-bossrush');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.mode, 'bossrush');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.mode, 'bossrush');
+  assert.deepStrictEqual({ index: s.rush.index, target: s.rush.target, alive: s.rush.alive }, { index: 0, target: 8, alive: false });
+});
+
+test('boss rush spawns bosses instead of waves and wins after eight', () => {
+  const g = boot({ seed: 803 });
+  enterSetup(g);
+  g.api.clickButton('mode-bossrush');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  g.api.setInvulnerable(true);
+  const order = ['warlord', 'overseer', 'bombardier', 'hive', 'sentinel', 'colossus', 'leviathan', 'wyrm'];
+  for (let i = 0; i < order.length; i++) {
+    let s = g.api.snapshot();
+    let guard = 0;
+    while (!s.rush.alive && guard++ < 400) {
+      g.step();
+      s = g.api.snapshot();
+      if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); s = g.api.snapshot(); }
+    }
+    assert.ok(s.rush.alive, 'boss ' + (i + 1) + ' spawned');
+    assert.strictEqual(s.boss.type, order[i], 'boss ' + (i + 1) + ' type');
+    const mobs = s.enemies.filter((e) => !e.boss).length;
+    if (i === 0) assert.strictEqual(mobs, 0, 'the first boss arrives with no wave mobs');
+    g.api.killEnemies();
+    s = g.api.snapshot();
+    if (i < order.length - 1) {
+      assert.strictEqual(s.rush.index, i + 1);
+      assert.strictEqual(s.rush.alive, false);
+      assert.strictEqual(s.screen, 'play');
+    }
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.victory, true, 'clearing all eight bosses wins the run');
+  assert.strictEqual(s.rush.index, 8);
 });

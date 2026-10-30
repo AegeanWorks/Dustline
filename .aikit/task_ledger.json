@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-12",
+    "task_id": "dustline-v0-13",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793385168.7520614,
+    "updated_at": 1793386786.5954823,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793385168.911582
+    "completed_at": 1793386786.862746
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-6-verify",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "47/47 node:test cases (14 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean after removing a false positive; Chromium smoke drove statistics, armory purchase, weather events, hunters, mega boss and map viewer with zero console errors; fixed statistics overflow, HUD/boss-bar overlap, wasted empty beacon, buffered inputs on level-up, abandoned-run banking/seed persistence, post-death updates and the secret-scan false positive; clarification: quitting/restarting intentionally records a loss and burns half the unbanked shards, it does not preserve them; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793320244.226756,
-      "timestamp_str": "2026-10-30 03:30:44",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-6-verify",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-6-verify' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793320247.3133934,
-      "timestamp_str": "2026-10-30 03:30:47",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-7",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Add build depth and replayability: weapon evolutions (Ripper/Storm/Breaker/Reaper), champion mobs with Volatile/Shielded/Swift affixes, supply caches with a fair free-upgrade cap, three difficulty tiers with matching loot, level-up rerolls and banishes, and Shielder/Tunneler/Screamer/Phantom wired into the real spawn table",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793347496.5251179,
-      "timestamp_str": "2026-10-30 11:04:56",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The user asked for continued improvements to mechanics, balance and mobs; v0.6 builds peaked early, difficulty was fixed, and four designed mobs only existed behind test seams",
-        "benefits": "Visible late-game build payoffs, scarce and valuable elites, player-chosen challenge with matching reward, mid-run build agency, and full use of the mob roster",
-        "risks": "contract: save gains champion/cache counters, snapshot/seams expand, level curve and XP pace change; dependency: none added; concurrency: none; state: setup gains difficulty and existing saves default it to normal",
-        "mitigation": "56 deterministic tests including evolution, champions/caches, difficulty, rerolls, new-mob states and persistence; seeded 4-minute balance runs; Chromium smoke with zero console errors; ADR-007"
-      }
-    },
     {
       "task_id": "dustline-v0-7",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793385168.9115834,
       "timestamp_str": "2026-10-30 21:32:48",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-13",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.13 Boss Rush mode - mode selector at setup, boss-only progression with intermissions, 8-boss victory, mode-aware HUD and snapshot",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793385388.7230587,
+      "timestamp_str": "2026-10-30 21:36:28",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "Every run is the same wave-survival loop; the eight boss fights are the highlight but arrive once every five waves, and there is no short-session or mastery mode",
+        "benefits": "Adds a focused replayable mode that showcases the boss roster, gives short sessions a clear win condition and reuses existing boss, affix and relic systems",
+        "risks": "contract: setup and snapshot gain a mode field, run loop branches; dependency: none; concurrency: ledger shared; state: no save-schema change, mode not persisted",
+        "mitigation": "Default mode stays survivors so all existing flows and tests are unchanged, gate boss spawn/kill paths behind G.mode, full suite and mode-specific tests before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-13",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: Boss Rush mode with setup selector, boss-only progression in fixed order with 14%/slot HP ramp and 40% affix chance, 4s intermissions with 30% heal, 8-boss victory, mode-aware HUD/snapshot; 88/88 tests, 5/5 gates, full rush-clear probe (42s, victory), rush relic pick probe and survivors regression probe OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793386786.5954823,
+      "timestamp_str": "2026-10-30 21:59:46",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-13",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-13' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793386786.862748,
+      "timestamp_str": "2026-10-30 21:59:46",
       "agent": "kilo:continue"
     }
   ]

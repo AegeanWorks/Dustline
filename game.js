@@ -791,6 +791,12 @@ const BOSS_TYPES = {
 
 const BOSS_ORDER = ['warlord', 'overseer', 'bombardier', 'hive', 'sentinel'];
 const MEGA_ORDER = ['colossus', 'leviathan', 'wyrm'];
+const RUSH_ORDER = BOSS_ORDER.concat(MEGA_ORDER);
+const RUSH_TARGET = 8;
+const MODES = [
+  { id: 'survivors', name: 'SURVIVORS', blurb: 'Endless horde waves' },
+  { id: 'bossrush', name: 'BOSS RUSH', blurb: 'Eight bosses, no waves' }
+];
 const BOSS_EVERY = 5;
 const MEGA_EVERY_BOSSES = 4;
 
@@ -1098,7 +1104,7 @@ function addSoldier() {
   });
 }
 
-let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [] };
+let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors' };
 
 function freshSkills() {
   const skills = {};
@@ -1126,6 +1132,7 @@ function startRun(options) {
   if (opts.difficulty && DIFFICULTIES.some((d) => d.id === opts.difficulty)) {
     setup.difficulty = opts.difficulty;
   }
+  if (opts.mode && MODES.some((m) => m.id === opts.mode)) setup.mode = opts.mode;
   const limit = findLimit(setup.limit);
   const diff = findDifficulty(setup.difficulty);
   const maxHp = 100 + 10 * metaRank('armor');
@@ -1134,6 +1141,8 @@ function startRun(options) {
   writeStore(SAVE_KEY, save);
   G = {
     weapon: setup.weapon,
+    mode: setup.mode,
+    rush: setup.mode === 'bossrush' ? { index: 0, target: RUSH_TARGET, next: 2, alive: false } : null,
     map: setup.map,
     difficulty: diff.id,
     diff,
@@ -2033,6 +2042,34 @@ function spawnEnemyAt(type, x, y) {
   return e;
 }
 
+function spawnRushBoss() {
+  const rush = G.rush;
+  if (!rush || rush.index >= rush.target) return null;
+  const type = RUSH_ORDER[rush.index % RUSH_ORDER.length];
+  const ang = rnd(0, TAU);
+  const boss = spawnEnemyAt(type, G.player.x + Math.cos(ang) * 560, G.player.y + Math.sin(ang) * 560);
+  if (!boss) return null;
+  boss.hp = Math.round(boss.hp * (1 + 0.14 * rush.index));
+  boss.maxHp = boss.hp;
+  if (srnd() < 0.4) {
+    const affix = BOSS_AFFIXES[Math.floor(srnd() * BOSS_AFFIXES.length)];
+    boss.affix = affix.id;
+    if (affix.speed) boss.speed *= affix.speed;
+    if (affix.id === 'shielded') {
+      boss.hp = Math.round(boss.hp * 1.15);
+      boss.maxHp = boss.hp;
+    }
+  }
+  rush.alive = true;
+  G.banner = 'BOSS ' + (rush.index + 1) + ' / ' + rush.target;
+  G.bannerSub = BOSS_TYPES[type].name + ' · ' + (boss.affix ? boss.affix.toUpperCase() + ' · ' : '') + (boss.mega ? 'MEGA' : 'SALVAGE RUN');
+  G.bannerT = 2.6;
+  G.news = BOSS_TYPES[type].name + ' engaged.';
+  shake = Math.max(shake, settings.shake ? 10 : 0);
+  sfx.bossRoar();
+  return boss;
+}
+
 function spawnWaveEnemy() {
   const ang = rnd(0, TAU);
   const radius = rnd(640, 780);
@@ -2073,6 +2110,7 @@ function spawnBoss() {
 }
 
 function updateSpawner(dt) {
+  if (G.mode === 'bossrush') return;
   G.cds.spawn -= dt;
   if (G.cds.spawn > 0) return;
   const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1) / (hasMutator('swarm') ? 1.5 : 1);
@@ -2785,6 +2823,18 @@ function killEnemy(e) {
     spawnFloater(e.x, e.y - e.r - 14, def.name + ' DOWN', '#ffd27a', 18);
     shake = Math.max(shake, settings.shake ? 14 : 0);
     sfx.victory();
+    if (G.mode === 'bossrush' && G.rush) {
+      G.rush.index++;
+      G.rush.alive = false;
+      if (G.rush.index >= G.rush.target) {
+        G.news = 'All ' + G.rush.target + ' bosses destroyed.';
+        winRun();
+        return;
+      }
+      G.rush.next = 4;
+      G.hp = Math.min(G.maxHp, G.hp + Math.round(G.maxHp * 0.3));
+      G.news = 'Boss down. Next signature in 4s.';
+    }
   } else {
     sfx.kill(G.streak);
   }
@@ -3124,14 +3174,22 @@ function updateRun(dt) {
     winRun();
     return;
   }
-  const wave = 1 + Math.floor(G.time / 40);
-  if (wave !== G.wave) {
-    G.wave = wave;
-    G.banner = 'WAVE ' + wave;
-    G.bannerSub = 'THE HORDE GROWS';
-    G.bannerT = 2.2;
-    sfx.wave();
-    if (wave % BOSS_EVERY === 0) spawnBoss();
+  if (G.mode === 'bossrush') {
+    const rush = G.rush;
+    if (!rush.alive) {
+      rush.next -= dt;
+      if (rush.next <= 0) spawnRushBoss();
+    }
+  } else {
+    const wave = 1 + Math.floor(G.time / 40);
+    if (wave !== G.wave) {
+      G.wave = wave;
+      G.banner = 'WAVE ' + wave;
+      G.bannerSub = 'THE HORDE GROWS';
+      G.bannerT = 2.2;
+      sfx.wave();
+      if (wave % BOSS_EVERY === 0) spawnBoss();
+    }
   }
   G.bannerT = Math.max(0, G.bannerT - dt);
   G.invulnT = Math.max(0, G.invulnT - dt);
@@ -4505,7 +4563,11 @@ function drawHUD() {
   ctx.fillStyle = '#b9ac92';
   ctx.font = '600 11px Consolas, monospace';
   const limitText = G.limitSec > 0 ? '  ·  LEFT ' + fmtTime(Math.max(0, G.limitSec - G.time)) : '';
-  ctx.fillText('W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText, W / 2, 62);
+  const runText =
+    G.mode === 'bossrush'
+      ? 'BOSS ' + Math.min(G.rush.index + 1, G.rush.target) + ' / ' + G.rush.target + ' · L' + G.level + limitText
+      : 'W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText;
+  ctx.fillText(runText, W / 2, 62);
 
   const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
   ctx.fillStyle = '#1d2a28';
@@ -4894,12 +4956,35 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 366);
+  ctx.fillText('MODE', 92, 358);
+  MODES.forEach((mode, i) => {
+    const chosen = setup.mode === mode.id;
+    const x = 92 + i * 260;
+    const y = 364;
+    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 248, h: 26 });
+    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 26;
+    ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#63dcc0' : 'rgba(224,178,92,0.22)';
+    rr(x, y, 248, 26, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? '#63dcc0' : '#cfc6ad';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(mode.name, x + 10, y + 12);
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(mode.blurb, x + 10, y + 22);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 400);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
     const x = 92 + (i % 3) * 260;
-    const y = 372 + Math.floor(i / 3) * 30;
+    const y = 406 + Math.floor(i / 3) * 30;
     uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 248, h: 26 });
     const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 26;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
@@ -4920,13 +5005,14 @@ function drawSetupScreen() {
     'setup-start',
     'DEPLOY',
     W / 2,
-    442,
+    470,
     380,
-    48,
+    44,
     WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
-      findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name
+      findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
+      (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
   );
-  drawButton('back-setup', 'BACK', W / 2, 496, 180, 32);
+  drawButton('back-setup', 'BACK', W / 2, 524, 180, 32);
 }
 
 function drawArmoryScreen() {
@@ -5714,6 +5800,11 @@ function pressButton(id) {
     goMenu();
     return;
   }
+  if (id.indexOf('mode-') === 0) {
+    const mode = id.slice(5);
+    if (MODES.some((m) => m.id === mode)) setup.mode = mode;
+    return;
+  }
   if (id.indexOf('upgrade-') === 0) {
     const index = Number(id.slice(8));
     if (screen === 'levelup') chooseUpgrade(index);
@@ -6012,6 +6103,8 @@ window.Dustline = {
         offense: { used: slotsUsed('offense'), cap: slotCap('offense') },
         passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
       };
+      snap.mode = G.mode;
+      snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
       snap.relics = G.relics.slice();
       snap.relicOffers = G.relicOffers.slice();
       snap.salvage = G.salvage.length;
