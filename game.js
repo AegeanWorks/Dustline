@@ -77,6 +77,96 @@ function writeStore(key, value) {
   }
 }
 
+
+const HAZARDS = {
+  quicksand: { name: 'QUICKSAND', color: 'rgba(150,120,70,0.20)', playerSpeed: 0.62 },
+  ice: { name: 'BLACK ICE', color: 'rgba(190,225,255,0.20)', playerSpeed: 1.28, enemySpeed: 1.1 },
+  embers: { name: 'EMBER VENTS', color: 'rgba(255,110,60,0.20)', burn: 5 },
+  vines: { name: 'CHOKE VINES', color: 'rgba(80,140,70,0.22)', enemySpeed: 0.72 }
+};
+
+const MUTATORS = [
+  { id: 'glass', name: 'GLASS CANNON', blurb: '+40% damage dealt, +60% taken', shard: 1.2, color: '#ff8a8a' },
+  { id: 'swarm', name: 'SWARM', blurb: '+50% spawns, -15% mob health', shard: 1.25, color: '#c9a8ff' },
+  { id: 'elite', name: 'ELITE HUNT', blurb: 'Triple champion rate', shard: 1.3, color: '#ffd27a' },
+  { id: 'fog', name: 'FOG', blurb: 'Permanent reduced vision', shard: 1.25, color: '#9fd8ff' },
+  { id: 'vampiric', name: 'VAMPIRIC HORDE', blurb: 'Enemies heal when they hit', shard: 1.3, color: '#ff7f8f' },
+  { id: 'bounty', name: 'BOUNTY', blurb: 'Hunters every 45 seconds', shard: 1.35, color: '#e2563f' }
+];
+
+const MUTATOR_ORDER = ['glass', 'swarm', 'elite', 'fog', 'vampiric', 'bounty'];
+
+const ACHIEVEMENTS = [
+  { id: 'first_blood', name: 'FIRST BLOOD', desc: 'Kill 1 enemy', goal: (s) => s.totalKills, target: 1, reward: 10 },
+  { id: 'culler', name: 'CULLER', desc: 'Kill 250 enemies', goal: (s) => s.totalKills, target: 250, reward: 25 },
+  { id: 'exterminator', name: 'EXTERMINATOR', desc: 'Kill 2,500 enemies', goal: (s) => s.totalKills, target: 2500, reward: 80 },
+  { id: 'survivor', name: 'SURVIVOR', desc: 'Survive 5 minutes', goal: (s) => s.bestTime, target: 300, reward: 30 },
+  { id: 'marathon', name: 'MARATHON', desc: 'Survive 10 minutes', goal: (s) => s.bestTime, target: 600, reward: 70 },
+  { id: 'boss_slayer', name: 'BOSS SLAYER', desc: 'Kill 5 bosses', goal: (s) => s.bossKills, target: 5, reward: 40 },
+  { id: 'mega_slayer', name: 'MEGA SLAYER', desc: 'Kill a mega boss', goal: (s) => s.megaKills || 0, target: 1, reward: 60 },
+  { id: 'banker', name: 'BANKER', desc: 'Bank 500 shards', goal: (s) => s.bankedTotal || 0, target: 500, reward: 50 },
+  { id: 'jackpot', name: 'JACKPOT', desc: 'Hit 100 critical data rolls', goal: (s) => s.jackpots || 0, target: 100, reward: 30 },
+  { id: 'collector', name: 'COLLECTOR', desc: 'Open 25 supply caches', goal: (s) => s.chests || 0, target: 25, reward: 40 },
+  { id: 'hunter', name: 'HUNTER KILLER', desc: 'Kill 10 NetWatch hunters', goal: (s) => s.hunters || 0, target: 10, reward: 45 },
+  { id: 'contractor', name: 'CONTRACTOR', desc: 'Complete 20 contracts', goal: (s) => s.contracts || 0, target: 20, reward: 50 }
+];
+
+function achievementUnlocked() {
+  return ACHIEVEMENTS.filter((a) => save.achievements && save.achievements[a.id]).length;
+}
+
+function achievementStats() {
+  const live = G && screen === 'play';
+  return {
+    totalKills: save.totalKills + (live ? G.kills : 0),
+    bestTime: Math.max(save.bestTime, live ? G.time : 0),
+    bossKills: save.bossKills + (live ? G.bossKills || 0 : 0),
+    megaKills: (save.megaKills || 0) + (live ? G.megaKills || 0 : 0),
+    bankedTotal: (save.bankedTotal || 0) + (live ? Math.floor(G.banked) : 0),
+    jackpots: (save.jackpots || 0) + (live ? G.stats.jackpots : 0),
+    chests: (save.chests || 0) + (live ? G.stats.chests || 0 : 0),
+    hunters: (save.hunters || 0) + (live ? G.stats.hunters : 0),
+    contracts: (save.contracts || 0) + (live ? G.stats.contracts : 0)
+  };
+}
+
+function checkAchievements() {
+  let earned = 0;
+  for (const a of ACHIEVEMENTS) {
+    if (save.achievements[a.id]) continue;
+    if (a.goal(achievementStats()) >= a.target) {
+      save.achievements[a.id] = true;
+      save.shards += a.reward;
+      earned++;
+      if (G && screen === 'play') {
+        G.banner = 'ACHIEVEMENT · ' + a.name;
+        G.bannerSub = '+' + a.reward + ' SHARDS';
+        G.bannerT = 2.4;
+        G.news = 'Achievement unlocked: ' + a.name + '.';
+        sfx.victory();
+      }
+    }
+  }
+  if (earned > 0) writeStore(SAVE_KEY, save);
+  return earned;
+}
+
+function mutatorDef(id) {
+  return MUTATORS.find((m) => m.id === id) || null;
+}
+
+function hasMutator(id) {
+  return !!(G && G.mutators && G.mutators.indexOf(id) >= 0);
+}
+
+function mutatorShardMult() {
+  if (!G || !G.mutators) return 1;
+  return G.mutators.reduce((mult, id) => {
+    const def = mutatorDef(id);
+    return mult * (def ? def.shard : 1);
+  }, 1);
+}
+
 const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck'];
 const META = {
   power: { name: 'BALLISTICS', desc: '+6% damage per rank', max: 5, cost: (n) => 60 + 45 * n },
@@ -106,6 +196,8 @@ function defaultSave() {
     lostTotal: 0,
     champions: 0,
     chests: 0,
+    megaKills: 0,
+    achievements: {},
     lastSeed: 20261029,
     killsByType: {},
     meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0 },
@@ -131,8 +223,9 @@ function loadSave() {
     merged.meta[key] = clamp(Math.round(Number(merged.meta[key]) || 0), 0, META[key].max);
   }
   merged.killsByType = Object.assign({}, raw.killsByType || {});
+  merged.achievements = Object.assign({}, raw.achievements || {});
   merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert'] }, raw.unlocked || {});
-  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests']) {
+  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
   for (const key of ['bestTime', 'bestKills']) merged[key] = Math.max(0, Number(merged[key]) || 0);
@@ -167,6 +260,7 @@ const mouse = { x: W / 2, y: H / 2 };
 
 let G = null;
 let shake = 0;
+checkAchievements();
 
 let ac = null;
 let noiseBuf = null;
@@ -338,7 +432,7 @@ const sfx = {
 };
 
 const SKILL_ORDER = [
-  'rifle', 'smg', 'shotgun', 'dmr', 'blades', 'grenade',
+  'rifle', 'smg', 'shotgun', 'dmr', 'blades', 'grenade', 'turret', 'aura',
   'squad', 'speed', 'vitality', 'magnet', 'damage',
   'bulletSpeed', 'lifesteal', 'dashPower', 'crit'
 ];
@@ -391,6 +485,22 @@ const SKILLS = {
     kind: 'active',
     desc: 'Lobs explosives into the horde.',
     color: '#ff8a5c'
+  },
+  turret: {
+    name: 'Sentry Turret',
+    short: 'TR',
+    max: 5,
+    kind: 'active',
+    desc: 'Deploys a gun that fires on its own.',
+    color: '#b8c6d0'
+  },
+  aura: {
+    name: 'Ember Aura',
+    short: 'AU',
+    max: 5,
+    kind: 'active',
+    desc: 'Burns every enemy close to you.',
+    color: '#ff9f6a'
   },
   squad: {
     name: 'Recruit Soldier',
@@ -526,6 +636,7 @@ const MAPS = {
     blurb: 'Open sand and stone',
     sky: ['#b19b74', '#ab9570', '#a6916c'],
     accent: '#d8b877',
+    hazard: 'quicksand',
     props: { building: '#8a7250', rock: '#8d8375', tree: '#6d7a45' }
   },
   frost: {
@@ -533,6 +644,7 @@ const MAPS = {
     blurb: 'Frozen huts, pines',
     sky: ['#c3ced9', '#bcc8d4', '#b4c1ce'],
     accent: '#9fd8ff',
+    hazard: 'ice',
     props: { building: '#7a8492', rock: '#9aa6b2', tree: '#3f5a4a' }
   },
   ash: {
@@ -540,6 +652,7 @@ const MAPS = {
     blurb: 'Burnt ruins, basalt',
     sky: ['#5a4a44', '#54453f', '#4e403a'],
     accent: '#ff8a5c',
+    hazard: 'embers',
     props: { building: '#3d302c', rock: '#46403c', tree: '#2f2a26' }
   },
   jungle: {
@@ -547,6 +660,7 @@ const MAPS = {
     blurb: 'Temples and palms',
     sky: ['#7f8f5e', '#798a59', '#728354'],
     accent: '#9be59b',
+    hazard: 'vines',
     props: { building: '#7d7a5c', rock: '#6d6b5a', tree: '#3f6b3a' }
   }
 };
@@ -693,7 +807,8 @@ function playerSpeed() {
 
 function damageMult() {
   const od = odActive() ? 1.4 : 1;
-  return (1 + 0.12 * G.skills.damage) * (1 + 0.06 * metaRank('power')) * od;
+  const glass = hasMutator('glass') ? 1.4 : 1;
+  return (1 + 0.12 * G.skills.damage) * (1 + 0.06 * metaRank('power')) * od * glass;
 }
 
 function magnetRadius() {
@@ -728,7 +843,7 @@ function odActive() {
 
 function addUnbanked(value) {
   if (!(value > 0)) return;
-  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1);
+  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1) * mutatorShardMult();
 }
 
 function bankUnbanked() {
@@ -870,7 +985,7 @@ function addSoldier() {
   });
 }
 
-let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal' };
+let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [] };
 
 function freshSkills() {
   const skills = {};
@@ -941,7 +1056,7 @@ function startRun(options) {
     floaters: [],
     bombs: [],
     skills: freshSkills(),
-    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2 },
+    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
     dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false },
     bomb: { cd: 0, max: 6, held: false },
     streak: 0,
@@ -961,6 +1076,9 @@ function startRun(options) {
     lost: 0,
     beacon: null,
     contracts: [],
+    mutators: [],
+    turrets: [],
+    burnCd: 0,
     evolved: {},
     rerolls: 2 + metaRank('luck'),
     banishes: 1,
@@ -995,6 +1113,7 @@ function startRun(options) {
       lost: 0
     }
   };
+  G.mutators = Array.isArray(setup.mutators) ? setup.mutators.slice(0, 2) : [];
   G.contracts = pickContracts();
   screen = 'play';
   shake = 0;
@@ -1039,6 +1158,7 @@ function recordRun(outcome) {
   save.bankedTotal += Math.floor(G.banked);
   save.lostTotal += G.stats.lost;
   save.champions += G.stats.champions || 0;
+  save.megaKills += G.megaKills || 0;
   save.chests += G.stats.chests || 0;
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
@@ -1048,6 +1168,7 @@ function recordRun(outcome) {
     save.killsByType[type] = (save.killsByType[type] || 0) + G.killsByType[type];
   }
   best = { time: save.bestTime, kills: save.bestKills };
+  checkAchievements();
   writeStore(SAVE_KEY, save);
   return shards;
 }
@@ -1082,6 +1203,60 @@ const PROP_TILE = 300;
 
 function mapDef() {
   return MAPS[(G && G.map) || setup.map] || MAPS.desert;
+}
+
+const HAZARD_TILE = 280;
+
+function hazardAt(x, y) {
+  if (!G) return null;
+  const def = mapDef();
+  if (!def.hazard) return null;
+  const tx = Math.floor(x / HAZARD_TILE);
+  const ty = Math.floor(y / HAZARD_TILE);
+  for (let j = -1; j <= 1; j++) {
+    for (let i = -1; i <= 1; i++) {
+      const gx = tx + i;
+      const gy = ty + j;
+      const h = hash2(gx * 13 + 7, gy * 17 + 3);
+      if (h > 0.24) continue;
+      const cx = gx * HAZARD_TILE + HAZARD_TILE / 2 + (hash2(gx * 23, gy * 29) - 0.5) * 70;
+      const cy = gy * HAZARD_TILE + HAZARD_TILE / 2 + (hash2(gx * 31, gy * 37) - 0.5) * 70;
+      const r = 58 + hash2(gx * 41, gy * 43) * 40;
+      if (dist2(x, y, cx, cy) < r * r) return def.hazard;
+    }
+  }
+  return null;
+}
+
+function drawHazards(cam) {
+  if (!G) return;
+  const def = mapDef();
+  const hz = HAZARDS[def.hazard];
+  if (!hz) return;
+  const TS = HAZARD_TILE;
+  const x0 = Math.floor(cam.x / TS) - 1;
+  const y0 = Math.floor(cam.y / TS) - 1;
+  const x1 = Math.ceil((cam.x + W) / TS) + 1;
+  const y1 = Math.ceil((cam.y + H) / TS) + 1;
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      const h = hash2(tx * 13 + 7, ty * 17 + 3);
+      if (h > 0.24) continue;
+      const cx = tx * TS + TS / 2 + (hash2(tx * 23, ty * 29) - 0.5) * 70;
+      const cy = ty * TS + TS / 2 + (hash2(tx * 31, ty * 37) - 0.5) * 70;
+      const r = 58 + hash2(tx * 41, ty * 43) * 40;
+      ctx.fillStyle = hz.color;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r, r * 0.72, h * TAU, 0, TAU);
+      ctx.fill();
+      if (def.hazard === 'embers') {
+        ctx.fillStyle = 'rgba(255,140,80,' + (0.25 + 0.2 * Math.sin(uiT * 2 + tx)) + ')';
+        ctx.beginPath();
+        ctx.arc(cx + Math.sin(uiT + ty) * 12, cy + Math.cos(uiT * 1.3 + tx) * 8, 4, 0, TAU);
+        ctx.fill();
+      }
+    }
+  }
 }
 
 function propTile(tx, ty) {
@@ -1538,6 +1713,48 @@ function updateSkills(dt) {
       }
     }
   }
+
+  if (G.skills.turret > 0) {
+    const lvl = G.skills.turret;
+    G.cds.turret -= dt;
+    if (G.cds.turret <= 0) {
+      G.cds.turret = Math.max(5, 11 - 1.1 * lvl);
+      if (G.turrets.length >= 2) G.turrets.shift();
+      G.turrets.push({ x: G.player.x, y: G.player.y, angle: G.player.angle, fireCd: 0.2, life: 10 + 1.5 * lvl, max: 10 + 1.5 * lvl, lvl });
+      G.stats.turrets = (G.stats.turrets || 0) + 1;
+      spawnFloater(G.player.x, G.player.y - 26, 'TURRET DEPLOYED', '#b8c6d0', 11);
+      sfx.swap();
+    }
+  }
+  for (const turret of G.turrets) {
+    turret.life -= dt;
+    turret.fireCd -= dt;
+    const near = nearestEnemy(turret.x, turret.y, 430);
+    if (near) turret.angle = Math.atan2(near.y - turret.y, near.x - turret.x);
+    if (near && turret.fireCd <= 0) {
+      turret.fireCd = Math.max(0.18, 0.5 - 0.04 * turret.lvl);
+      spawnBullet(turret.x + Math.cos(turret.angle) * 14, turret.y + Math.sin(turret.angle) * 14, turret.angle + rnd(-0.05, 0.05), 900, (9 + 4 * turret.lvl) * damageMult(), 't', '#b8c6d0');
+      G.stats.shots.turret = (G.stats.shots.turret || 0) + 1;
+      sfx.soldier();
+    }
+  }
+  G.turrets = G.turrets.filter((x) => x.life > 0);
+
+  if (G.skills.aura > 0) {
+    G.cds.aura -= dt;
+    if (G.cds.aura <= 0) {
+      G.cds.aura = 0.5;
+      const radius = 72 + 9 * G.skills.aura;
+      const dmg = (4 + 3 * G.skills.aura) * damageMult();
+      for (const e of G.enemies) {
+        if (e.dead) continue;
+        if (dist2(G.player.x, G.player.y, e.x, e.y) < (radius + e.r) * (radius + e.r)) {
+          damageEnemy(e, dmg, e.x, e.y, false);
+          G.stats.auraHits = (G.stats.auraHits || 0) + 1;
+        }
+      }
+    }
+  }
 }
 
 function updateSoldiers(dt) {
@@ -1600,7 +1817,7 @@ function spawnEnemyAt(type, x, y) {
   const boss = isBossType(type);
   const base = boss ? BOSS_TYPES[type] : (ENEMY_TYPES[type] || ENEMY_TYPES.grunt);
   const diffHp = G.diff ? G.diff.hp : 1;
-  const hpScale = (1 + G.time / 120 + (boss ? G.time / 300 : 0)) * diffHp;
+  const hpScale = (1 + G.time / 120 + (boss ? G.time / 300 : 0)) * diffHp * (hasMutator('swarm') ? 0.85 : 1);
   const e = {
     type,
     x,
@@ -1640,7 +1857,7 @@ function spawnEnemyAt(type, x, y) {
     nearMiss: false,
     dead: false
   };
-  if (!boss && !base.elite && srnd() < 0.03) {
+  if (!boss && !base.elite && srnd() < (hasMutator('elite') ? 0.09 : 0.03)) {
     const affix = CHAMPION_AFFIXES[Math.floor(srnd() * CHAMPION_AFFIXES.length)];
     e.champion = true;
     e.affix = affix.id;
@@ -1690,7 +1907,7 @@ function spawnBoss() {
 function updateSpawner(dt) {
   G.cds.spawn -= dt;
   if (G.cds.spawn > 0) return;
-  const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1);
+  const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1) / (hasMutator('swarm') ? 1.5 : 1);
   G.cds.spawn = ready;
   const cap = 150;
   if (G.enemies.length >= cap) return;
@@ -1739,6 +1956,8 @@ function updateEnemies(dt) {
     let vx = ux;
     let vy = uy;
     let speed = e.speed * (e.rageT > 0 ? 1.3 : 1);
+    const eHz = HAZARDS[hazardAt(e.x, e.y)];
+    if (eHz && eHz.enemySpeed) speed *= eHz.enemySpeed;
     if (G.event && G.event.id === 'sandstorm') speed *= 1.2;
 
     if (e.type === 'tunneler') {
@@ -1974,6 +2193,7 @@ function updateEnemies(dt) {
         G.unbanked = Math.max(0, G.unbanked - stolen);
         spawnFloater(e.x, e.y - e.r - 10, 'DRAIN', '#ff7a6a', 11);
       }
+      if (hasMutator('vampiric')) e.hp = Math.min(e.maxHp, e.hp + 5);
       if (screen !== 'play') break;
     }
   }
@@ -2173,7 +2393,8 @@ function killEnemy(e) {
     });
     G.news = 'Hardware chip recovered from ' + (ENEMY_TYPES[e.type] ? ENEMY_TYPES[e.type].name : 'hostile');
   }
-  addUnbanked(0.5 + e.xp * 0.35 * streakMult());
+  addUnbanked(0.3 + e.xp * 0.24 * streakMult());
+  checkAchievements();
 
   if (G.streak % 10 === 0) {
     sfx.combo(G.streak);
@@ -2240,7 +2461,7 @@ function killEnemy(e) {
 function damagePlayer(dmg) {
   if (!G || G.invulnerable || screen !== 'play') return;
   if (G.invulnT > 0) return;
-  const taken = dmg * (G.diff ? G.diff.dmg : 1) * (odActive() ? 1.5 : 1);
+  const taken = dmg * (G.diff ? G.diff.dmg : 1) * (odActive() ? 1.5 : 1) * (hasMutator('glass') ? 1.6 : 1);
   G.hp -= taken;
   if (G.streak > 0) {
     G.streak = 0;
@@ -2508,8 +2729,8 @@ function updateRun(dt) {
   G.frenzyT = Math.max(0, G.frenzyT - dt);
   G.alert = Math.max(0, G.alert - 0.35 * dt);
   G.hunterCd -= dt;
-  if (G.alert >= 60 && G.hunterCd <= 0) {
-    G.hunterCd = 28;
+  if ((G.alert >= 60 || hasMutator('bounty')) && G.hunterCd <= 0) {
+    G.hunterCd = hasMutator('bounty') ? 45 : 28;
     spawnHunter();
   }
   G.eventCd -= dt;
@@ -2594,12 +2815,24 @@ function updateRun(dt) {
     const boost = playerSpeed() * 3.4;
     moveWithSolids(G.player, G.dash.dx * boost * dt, G.dash.dy * boost * dt, 15);
   } else if (len > 0) {
-    moveWithSolids(G.player, mx * playerSpeed() * dt, my * playerSpeed() * dt, 15);
+    const hz = HAZARDS[hazardAt(G.player.x, G.player.y)];
+    const hzSpeed = hz && hz.playerSpeed ? hz.playerSpeed : 1;
+    moveWithSolids(G.player, mx * playerSpeed() * hzSpeed * dt, my * playerSpeed() * hzSpeed * dt, 15);
   }
   const fixed = resolveSolid(G.player.x, G.player.y, 15);
   G.player.x = fixed.x;
   G.player.y = fixed.y;
 
+  if (hazardAt(G.player.x, G.player.y) === 'embers') {
+    G.burnCd = (G.burnCd || 0) - dt;
+    if (G.burnCd <= 0) {
+      G.burnCd = 0.6;
+      G.hp = Math.max(0, G.hp - 5);
+      G.hurtT = 0.2;
+      spawnFloater(G.player.x, G.player.y - 20, 'BURN', '#ff8a5c', 11);
+      if (G.hp <= 0) { gameOver(); return; }
+    }
+  }
   G.bomb.cd = Math.max(0, G.bomb.cd - dt);
   const bombHeld = !!keys['e'];
   if (bombHeld && !G.bomb.held) throwBomb();
@@ -3336,6 +3569,52 @@ function drawEnemies() {
   }
 }
 
+function drawAura() {
+  if (!G.skills.aura) return;
+  const radius = 72 + 9 * G.skills.aura;
+  const pulse = 0.5 + 0.5 * Math.sin(uiT * 4);
+  ctx.strokeStyle = 'rgba(255,150,90,' + (0.18 + 0.12 * pulse) + ')';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(G.player.x, G.player.y, radius, 0, TAU);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,120,60,' + (0.05 + 0.03 * pulse) + ')';
+  ctx.beginPath();
+  ctx.arc(G.player.x, G.player.y, radius, 0, TAU);
+  ctx.fill();
+}
+
+function drawTurrets() {
+  for (const t of G.turrets) {
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(2, 3, 13, 11, 0, 0, TAU);
+    ctx.fill();
+    ctx.rotate(t.angle);
+    ctx.fillStyle = '#2a3238';
+    ctx.fillRect(4, -3, 18, 6);
+    ctx.fillStyle = '#b8c6d0';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#59656d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#7fe0a0';
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    const pct = clamp(t.life / t.max, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(t.x - 11, t.y - 17, 22, 3);
+    ctx.fillStyle = '#b8c6d0';
+    ctx.fillRect(t.x - 11, t.y - 17, 22 * pct, 3);
+  }
+}
+
 function drawBlades() {
   const count = bladesCount();
   if (!count) return;
@@ -3649,6 +3928,12 @@ function drawHUD() {
   ctx.font = '600 9px Consolas, monospace';
   const news = G.news.length > 44 ? G.news.slice(0, 42) + '...' : G.news;
   ctx.fillText(news, 26, 86);
+  if (G.mutators && G.mutators.length) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#e8a87c';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText('MUTATORS · ' + G.mutators.map((id) => (mutatorDef(id) || {}).name || id).join(' + '), 26, 100);
+  }
 
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(6,10,13,0.62)';
@@ -3820,7 +4105,19 @@ function drawHUD() {
 }
 
 function drawWeather() {
-  if (!G || !G.event) return;
+  if (!G) return;
+  if (!G.event && hasMutator('fog')) {
+    const px = G.player.x - G.cam.x;
+    const py = G.player.y - G.cam.y;
+    const g = ctx.createRadialGradient(px, py, 90, px, py, 300);
+    g.addColorStop(0, 'rgba(210,220,230,0)');
+    g.addColorStop(0.5, 'rgba(170,185,200,0.20)');
+    g.addColorStop(1, 'rgba(130,145,160,0.55)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    return;
+  }
+  if (!G.event) return;
   if (G.event.id === 'sandstorm') {
     ctx.fillStyle = 'rgba(190,160,110,0.14)';
     ctx.fillRect(0, 0, W, H);
@@ -3891,7 +4188,7 @@ function drawMenuScreen() {
   ctx.fillText('BEST SURVIVAL ' + fmtTime(best.time) + '   ·   ' + best.kills + ' KILLS   ·   ' + save.runs + ' RUNS', W / 2, 512);
   ctx.fillStyle = 'rgba(200,190,165,0.45)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins, W / 2, 534);
+  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins + '   ·   ACHIEVEMENTS ' + achievementUnlocked() + '/' + ACHIEVEMENTS.length, W / 2, 534);
 }
 
 function drawSetupScreen() {
@@ -3908,17 +4205,17 @@ function drawSetupScreen() {
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('WEAPON', 92, 92);
+  ctx.fillText('WEAPON', 92, 84);
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
     const x = 92 + i * 196;
-    const y = 100;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 184, h: 62 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 62;
+    const y = 92;
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 184, h: 58 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 54;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 62, 7);
+    rr(x, y, 184, 54, 7);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
@@ -3932,25 +4229,25 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MAP', 92, 182);
+  ctx.fillText('MAP', 92, 166);
   MAP_ORDER.forEach((id, i) => {
     const m = MAPS[id];
     const chosen = setup.map === id;
     const x = 92 + i * 196;
-    const y = 190;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 184, h: 58 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 58;
+    const y = 174;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 184, h: 54 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 54;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, 184, 58, 7);
+    rr(x, y, 184, 54, 7);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.55 : 0.3;
     ctx.fillStyle = '#06080a';
-    rr(x, y, 184, 58, 7);
+    rr(x, y, 184, 54, 7);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, 184, 58, 7);
+    rr(x, y, 184, 54, 7);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
@@ -3958,7 +4255,7 @@ function drawSetupScreen() {
     ctx.fillText(m.name, x + 12, y + 23);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(m.blurb, x + 12, y + 42);
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 12, y + 42);
     ctx.fillStyle = m.props.building;
     ctx.fillRect(x + 138, y + 14, 9, 9);
     ctx.fillStyle = m.props.rock;
@@ -3974,60 +4271,84 @@ function drawSetupScreen() {
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('TIME LIMIT', 92, 266);
+  ctx.fillText('TIME LIMIT', 92, 246);
   TIME_LIMITS.forEach((lim, i) => {
     const chosen = setup.limit === lim.id;
     const x = 92 + i * 196;
-    const y = 274;
-    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 184, h: 30 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 30;
+    const y = 254;
+    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 184, h: 28 });
+    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 28;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 30, 6);
+    rr(x, y, 184, 28, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
     ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(lim.label, x + 92, y + 20);
+    ctx.fillText(lim.label, x + 92, y + 19);
     ctx.textAlign = 'left';
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('DIFFICULTY', 92, 330);
+  ctx.fillText('DIFFICULTY', 92, 300);
   DIFFICULTY_ORDER.forEach((id, i) => {
     const diff = findDifficulty(id);
     const chosen = setup.difficulty === id;
     const x = 92 + i * 260;
-    const y = 338;
-    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 248, h: 44 });
-    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 44;
+    const y = 308;
+    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 248, h: 40 });
+    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 40;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? diff.color : 'rgba(224,178,92,0.25)';
-    rr(x, y, 248, 44, 6);
+    rr(x, y, 248, 40, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? diff.color : '#d8d0bd';
     ctx.font = '700 13px Consolas, monospace';
-    ctx.fillText(diff.name, x + 12, y + 19);
+    ctx.fillText(diff.name, x + 12, y + 17);
     ctx.fillStyle = 'rgba(200,195,180,0.65)';
     ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 34);
+    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 31);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 366);
+  MUTATOR_ORDER.forEach((id, i) => {
+    const def = mutatorDef(id);
+    const chosen = setup.mutators.indexOf(id) >= 0;
+    const x = 92 + (i % 3) * 260;
+    const y = 372 + Math.floor(i / 3) * 30;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 248, h: 26 });
+    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 26;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
+    rr(x, y, 248, 26, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? def.color : '#cfc6ad';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(def.name, x + 10, y + 12);
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(def.blurb + '  ·  LOOT x' + def.shard, x + 10, y + 22);
   });
 
   drawButton(
     'setup-start',
     'DEPLOY',
     W / 2,
-    400,
-    360,
-    54,
+    442,
+    380,
+    48,
     WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
       findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name
   );
-  drawButton('back-setup', 'BACK', W / 2, 470, 180, 34);
+  drawButton('back-setup', 'BACK', W / 2, 496, 180, 32);
 }
 
 function drawArmoryScreen() {
@@ -4109,6 +4430,7 @@ function drawStatisticsScreen() {
     ['CONTRACTS DONE', String(save.contracts || 0)],
     ['CHAMPIONS SLAIN', String(save.champions || 0)],
     ['CACHES OPENED', String(save.chests || 0)],
+    ['ACHIEVEMENTS', achievementUnlocked() + ' / ' + ACHIEVEMENTS.length],
     ['ARMORY RANKS', String(META_ORDER.reduce((sum, id) => sum + metaRank(id), 0))]
   ];
   ctx.textAlign = 'left';
@@ -4220,12 +4542,14 @@ function drawHelpScreen() {
     ['BOSS', 'Bosses every 5th wave; every 4th boss is a MEGA boss.'],
     ['EVOLVE', 'Max a weapon and take its partner to level 3 to evolve it.'],
     ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
+    ['HAZARDS', 'Each map has a terrain hazard: quicksand, ice, embers or vines.'],
+    ['MUTATORS', 'Take up to two run modifiers for extra shard loot.'],
     ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
     ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
     ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
     ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
   ];
-  let y = 104;
+  let y = 100;
   for (const line of lines) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e0b25c';
@@ -4234,9 +4558,9 @@ function drawHelpScreen() {
     ctx.fillStyle = 'rgba(225,215,195,0.82)';
     ctx.font = '600 13px Consolas, monospace';
     ctx.fillText(line[1], 270, y);
-    y += 27;
+    y += 25;
   }
-  drawButton('back-help', 'BACK', W / 2, 514, 180, 36);
+  drawButton('back-help', 'BACK', W / 2, 530, 180, 32);
 }
 
 function drawUpgradesScreen() {
@@ -4644,6 +4968,15 @@ function pressButton(id) {
     if (DIFFICULTIES.some((d) => d.id === diff)) setup.difficulty = diff;
     return;
   }
+  if (id.indexOf('mutator-') === 0) {
+    const mut = id.slice(8);
+    if (!mutatorDef(mut)) return;
+    const idx = setup.mutators.indexOf(mut);
+    if (idx >= 0) setup.mutators.splice(idx, 1);
+    else if (setup.mutators.length < 2) setup.mutators.push(mut);
+    else sfx.denied();
+    return;
+  }
   if (id === 'reroll') {
     rerollOffers();
     return;
@@ -4757,12 +5090,15 @@ function render() {
     if (shake > 0.1 && settings.shake) ctx.translate(rnd(-shake, shake), rnd(-shake, shake));
     ctx.translate(-G.cam.x, -G.cam.y);
     drawGround(G.cam);
+    drawHazards(G.cam);
     drawProps(G.cam);
     drawPickups();
     drawGrenades();
+    drawAura();
     drawEnemies();
     drawBlades();
     drawSoldiers();
+    drawTurrets();
     drawPlayer();
     drawBullets();
     drawParticles();
@@ -4894,10 +5230,13 @@ window.Dustline = {
         lostTotal: save.lostTotal || 0,
         champions: save.champions || 0,
         chests: save.chests || 0,
+        megaKills: save.megaKills || 0,
+        achievements: Object.assign({}, save.achievements || {}),
+        achievementCount: achievementUnlocked(),
         killsByType: { ...save.killsByType },
         meta: { ...save.meta }
       },
-      setup: { ...setup },
+      setup: { ...setup, mutators: setup.mutators.slice() },
       buttons: uiButtons.map((b) => ({ id: b.id, label: b.label, x: b.x, y: b.y, w: b.w, h: b.h }))
     };
     if (G) {
@@ -4915,6 +5254,9 @@ window.Dustline = {
       snap.combos = activeCombos().map((c) => c.id);
       snap.weapon = G.weapon;
       snap.difficulty = G.difficulty;
+      snap.mutators = G.mutators.slice();
+      snap.mutatorLoot = mutatorShardMult();
+      snap.hazard = mapDef().hazard;
       snap.diffMods = { spawn: G.diff.spawn, hp: G.diff.hp, dmg: G.diff.dmg, shard: G.diff.shard };
       snap.evolved = { ...G.evolved };
       snap.rerolls = G.rerolls;
@@ -4978,6 +5320,8 @@ window.Dustline = {
       snap.enemyTypes = Array.from(new Set(G.enemies.map((e) => e.type)));
       snap.gems = G.gems.length;
       snap.chests = G.chests.length;
+      snap.turrets = G.turrets.length;
+      snap.auraRadius = G.skills.aura ? 72 + 9 * G.skills.aura : 0;
       snap.medkits = G.medkits.length;
       snap.floaters = G.floaters.length;
       snap.bombs = G.bombs.length;
@@ -5000,6 +5344,8 @@ window.Dustline = {
         hunters: G.stats.hunters,
         contracts: G.stats.contracts,
         champions: G.stats.champions || 0,
+        turrets: G.stats.turrets || 0,
+        auraHits: G.stats.auraHits || 0,
         chests: G.stats.chests || 0,
         banked: G.stats.banked,
         lost: G.stats.lost
@@ -5107,6 +5453,12 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.spawnChip = (kind, x, y) => {
     if (!G) return;
     G.chips.push({ kind: CHIPS[kind] ? kind : 'shards', x: G.player.x + (x || 0), y: G.player.y + (y || 0), spin: 0 });
+  };
+  window.Dustline.hazardAtPoint = (x, y) => hazardAt(Number(x) || 0, Number(y) || 0);
+  window.Dustline.setMutators = (ids) => {
+    if (!G || !Array.isArray(ids)) return false;
+    G.mutators = ids.filter((id) => !!mutatorDef(id)).slice(0, 2);
+    return true;
   };
   window.Dustline.spawnChest = (x, y) => {
     if (!G) return;

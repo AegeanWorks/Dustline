@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-7",
+    "task_id": "dustline-v0-8",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793347540.2053404,
+    "updated_at": 1793361144.7544322,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": [],
-    "completed_at": 1793347540.4570014
+    "completed_at": 1793361145.0096538
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-survivors-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-survivors-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793222493.5380316,
-      "timestamp_str": "2026-10-29 00:21:33",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-4",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Deepen the survivor loop: swept bullet collisions, a dashing escape move with i-frames, a fifth-wave Warlord boss with health bar and guaranteed loot, focus-loss auto-pause, and coverage for each",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793286262.4083226,
-      "timestamp_str": "2026-10-29 18:04:22",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Playtesting the v0.3.0 rewrite exposed bullets tunneling through thin runners, no answer to being surrounded, no wave climax, and death while the window was backgrounded",
-        "benefits": "Hit detection is continuous, players get a skill-based escape tool, every fifth wave has a goal and reward, and alt-tabbing no longer kills a run",
-        "risks": "contract: snapshot gains dash/boss fields and three test seams; dependency: none added; concurrency: none; state: none persisted beyond existing keys",
-        "mitigation": "Deterministic VM tests for dash distance/cooldown, boss spawn/death loot and blur pause; all four project gates re-run"
-      }
-    },
-    {
-      "task_id": "dustline-v0-4",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "21/21 node:test cases pass, 4/4 Phase 4 gates pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793286268.2143185,
-      "timestamp_str": "2026-10-29 18:04:28",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "dustline-v0-4",
       "phase": "phase 4",
@@ -253,6 +215,44 @@
       "status": "completed",
       "timestamp": 1793347540.4570034,
       "timestamp_str": "2026-10-30 11:05:40",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-8",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Add run variety and long-term goals: deterministic terrain hazards for all four maps, six opt-in run mutators with loot multipliers, two new active skills (Sentry Turret and Ember Aura), twelve lifetime achievements with shard payouts, and HUD/setup/codex/statistics surfaces for all of it",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793361079.6127884,
+      "timestamp_str": "2026-10-30 14:51:19",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked to continue improving mechanics and balance; every map played identically, runs had fixed rules, active skills ended at blades/grenades, and lifetime stats had no goals",
+        "benefits": "Maps demand different movement, players can self-handicap for better loot, late builds gain two new active tools, and long-term play has explicit rewards",
+        "risks": "contract: save gains megaKills and achievements, snapshot/setup/seams expand, kill shard income reduced 30%; dependency: none added; concurrency: none; state: setup.mutators persists and old saves default to no mutators/no achievements",
+        "mitigation": "62 deterministic tests, seeded 4-minute autoplays on mutator combinations, Chromium smoke with zero console errors, full secret scan, ADR-008"
+      }
+    },
+    {
+      "task_id": "dustline-v0-8",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "62/62 node:test cases (6 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean; Chromium smoke selected mutators, started a hazard run, deployed turrets/aura and reached statistics with zero console errors; seeded 4-minute autoplays on desert Glass+Swarm and frost Bounty reached level 51/43, 16/21 turrets, aura ticks, 4-5 achievements and every hazard type; kill shard income reduced ~30% after a 10.6k-unbanked perfect run; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793361144.7544322,
+      "timestamp_str": "2026-10-30 14:52:24",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-8",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-8' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793361145.0096564,
+      "timestamp_str": "2026-10-30 14:52:25",
       "agent": "kilo:main"
     }
   ]

@@ -65,7 +65,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
-  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal' }));
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [] }));
   g.api.clickButton('setup-start');
   g.steps(1);
   const s = g.api.snapshot();
@@ -635,7 +635,7 @@ test('debug helpers stay hidden outside the test harness', () => {
     'spawnBoss', 'setTime', 'killEnemies', 'startRun', 'throwBomb', 'spawnMedkit',
     'grantShards', 'buyMeta', 'props', 'setPlayer', 'setAlert', 'setUnbanked',
     'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
-    'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest',
+    'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest', 'hazardAtPoint', 'setMutators',
     'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed'
   ]) {
     assert.strictEqual(api[name], undefined, name + ' must be test-only');
@@ -1067,4 +1067,115 @@ test('champions and caches persist in the career record', () => {
   const reloaded = g2.api.snapshot().save;
   assert.strictEqual(reloaded.champions, saved.champions);
   assert.strictEqual(reloaded.chests, saved.chests);
+});
+
+
+test('mutators toggle up to two and apply their modifiers', () => {
+  const g = boot({ seed: 431 });
+  enterSetup(g);
+  g.api.clickButton('mutator-glass');
+  g.api.clickButton('mutator-swarm');
+  g.api.clickButton('mutator-fog');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(s.setup.mutators)), ['glass', 'swarm'], 'only two fit');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(s.mutators)), ['glass', 'swarm']);
+  assert.ok(s.mutatorLoot > 1.4, 'mutators multiply loot');
+  assert.ok(s.damageMult > 1.3, 'glass raises outgoing damage');
+  g.api.spawnEnemy('grunt', 300, 0);
+  s = g.api.snapshot();
+  assert.ok(s.enemies[0].maxHp < 26, 'swarm reduces mob health');
+  const before = s.hp;
+  g.api.hurt(20);
+  assert.ok(before - g.api.snapshot().hp > 20, 'glass raises damage taken');
+});
+
+test('each map has a terrain hazard and embers burn', () => {
+  const expectations = { desert: 'quicksand', frost: 'ice', ash: 'embers', jungle: 'vines' };
+  for (const map of Object.keys(expectations)) {
+    const g = boot({ seed: 433 });
+    enterSetup(g);
+    g.api.clickButton('map-' + map);
+    g.api.clickButton('setup-start');
+    g.steps(1);
+    let found = null;
+    for (let r = 60; r <= 1600 && !found; r += 40) {
+      for (let a = 0; a < 32; a++) {
+        const x = Math.cos((a / 32) * Math.PI * 2) * r;
+        const y = Math.sin((a / 32) * Math.PI * 2) * r;
+        const hz = g.api.hazardAtPoint(x, y);
+        if (hz) { found = { hz, x, y }; break; }
+      }
+    }
+    assert.ok(found, map + ' exposes a hazard');
+    assert.strictEqual(found.hz, expectations[map]);
+    if (map === 'ash') {
+      g.api.setPlayer(found.x, found.y);
+      const before = g.api.snapshot().hp;
+      g.steps(80);
+      assert.ok(g.api.snapshot().hp < before, 'embers burn the player');
+    }
+  }
+});
+
+test('sentry turrets deploy and fire on their own', () => {
+  const g = boot({ seed: 439 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.applyUpgrade('turret');
+  g.api.applyUpgrade('turret');
+  g.steps(240);
+  let s = g.api.snapshot();
+  assert.ok(s.turrets >= 1, 'a turret is deployed');
+  g.api.spawnEnemy('tank', 120, 0);
+  g.api.setEnemyHp(0, 100000);
+  g.steps(180);
+  s = g.api.snapshot();
+  assert.ok(s.stats.shots.turret > 0, 'the turret fires without the player aiming');
+  assert.ok(s.stats.turrets >= 1);
+});
+
+test('ember aura burns enemies close to the player', () => {
+  const g = boot({ seed: 443 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.applyUpgrade('aura');
+  g.api.applyUpgrade('aura');
+  g.api.spawnEnemy('tank', 40, 0);
+  g.api.setEnemyHp(0, 100000);
+  g.steps(120);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.auraRadius, 72 + 9 * g.api.snapshot().skills.aura);
+  assert.ok(s.stats.auraHits > 0, 'the aura applies damage ticks');
+  assert.ok(s.enemies[0].hp < 100000);
+});
+
+test('achievements unlock live, pay shards and persist', () => {
+  const store = makeStore();
+  const g = boot({ seed: 449, storage: store });
+  deploy(g);
+  g.api.spawnEnemy('grunt', 100, 0);
+  g.api.setEnemyHp(0, 1);
+  g.api.hitEnemy(0, 50);
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.save.achievements.first_blood, true, 'first kill unlocks immediately');
+  assert.ok(s.save.shards >= 10, 'the achievement paid out');
+  const g2 = boot({ seed: 451, storage: store });
+  assert.strictEqual(g2.api.snapshot().save.achievements.first_blood, true);
+});
+
+test('achievements evaluate against a pre-loaded career record', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({ v: 2, totalKills: 300, bossKills: 6, bestTime: 700 });
+  const g = boot({ seed: 457, storage: store });
+  const s = g.api.snapshot();
+  assert.strictEqual(s.save.achievements.first_blood, true);
+  assert.strictEqual(s.save.achievements.culler, true);
+  assert.strictEqual(s.save.achievements.boss_slayer, true);
+  assert.strictEqual(s.save.achievements.marathon, true);
+  assert.ok(s.save.achievementCount >= 4);
 });
