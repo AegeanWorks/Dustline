@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-10",
+    "task_id": "dustline-v0-11",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793382639.923973,
+    "updated_at": 1793383930.0773323,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793382640.1137283
+    "completed_at": 1793383930.2905324
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-6",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Port CyberPulse's behavioral design review into Dustline: variable-ratio kill rewards with jackpots and hardware chips, near-miss crit surge, extraction beacons with death loss, combo multiplier stake, Overdrive risk mode, sector alert with NetWatch hunters, seeded ambient events and news, run contracts, drifting market, plus Warden/Weaver/Splitter/Leech mobs and Colossus/Leviathan mega bosses after every three bosses",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793315512.4848323,
-      "timestamp_str": "2026-10-30 02:11:52",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The user asked to integrate CyberPulse's literature review (Self-Determination Theory, variable-ratio reinforcement, near-miss activation, loss aversion/prospect theory, flow channel) and to add more mechanics, enemies and big bosses",
-        "benefits": "Opt-in risk and reward, a reactive world, more enemy variety, a climax after the regular boss cycle, and persistent lifetime behavioural stats",
-        "risks": "contract: save schema gains counters and lastSeed, snapshot fields and test seams expand; dependency: none; concurrency: none; state: localStorage dustline.save and the seeded LCG draw",
-        "mitigation": "44 deterministic node:test cases, seeded autoplay through the wave-20 mega boss, Chromium smoke run with zero console errors, ADR-006"
-      }
-    },
-    {
-      "task_id": "dustline-v0-6",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "44/44 node:test cases pass, 5/5 Phase 4 gates pass; probes confirmed jackpot/chips, near-miss surge, warden plating, splitter swarms, beacon banking and 50% death loss, wave-20 Colossus and wave-40 Leviathan phases, hunter deployment, supply/sandstorm/bounty events, overdrive multipliers, contracts, chip buffs and victory bonus; save counters persist across sessions; Chromium smoke run had zero console errors; checklists: passed; open: commit + push pending authorization",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793315541.3154829,
-      "timestamp_str": "2026-10-30 02:12:21",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-6",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-6' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793315541.9230628,
-      "timestamp_str": "2026-10-30 02:12:21",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "dustline-v0-6",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793382640.1137295,
       "timestamp_str": "2026-10-30 20:50:40",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-11",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.11 Loadout update - offense/passive skill slot caps, armory Loadout Rig expansion, slot-aware level-up offers and HUD",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793382785.2648506,
+      "timestamp_str": "2026-10-30 20:53:05",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "Runs can currently take all 19 skills, so builds converge and level-up choices lose meaning; the user asked for limits on skill number",
+        "benefits": "Creates build identity and real level-up tradeoffs, ties into existing armory metaprogression, keeps the 'everything caps at 5' contract",
+        "risks": "contract: level-up offers and applyUpgrade gain slot rules, snapshot gains slot fields; dependency: none; concurrency: ledger shared; state: save.meta gains one additive key",
+        "mitigation": "Enforce in both offer generation and applyUpgrade, default missing meta keys to zero, full suite plus slot-specific tests and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-11",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: 6 offense + 6 defense skill slot caps enforced in offers, caches and applyUpgrade; Loadout Rig armory meta (+1/+1 per rank, 2 ranks); offer weighting toward owned skills; HUD, level-up card and setup slot displays; armory relaid out for 7 cards; 81/81 tests, 5/5 gates, 150s slot-discipline probe and save-compat probe OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793383930.0773323,
+      "timestamp_str": "2026-10-30 21:12:10",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-11",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-11' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793383930.2905357,
+      "timestamp_str": "2026-10-30 21:12:10",
       "agent": "kilo:continue"
     }
   ]

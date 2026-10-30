@@ -167,15 +167,18 @@ function mutatorShardMult() {
   }, 1);
 }
 
-const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck'];
+const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck', 'rig'];
 const META = {
   power: { name: 'BALLISTICS', desc: '+6% damage per rank', max: 5, cost: (n) => 60 + 45 * n },
   armor: { name: 'PLATE CARRIER', desc: '+10 max health per rank', max: 5, cost: (n) => 60 + 45 * n },
   speed: { name: 'RUNNING SHOES', desc: '+4% move speed per rank', max: 5, cost: (n) => 55 + 40 * n },
   greed: { name: 'SCAVENGER KIT', desc: '+10% XP per rank', max: 5, cost: (n) => 70 + 50 * n },
   magnet: { name: 'POWER MAGNET', desc: '+12 pickup radius per rank', max: 5, cost: (n) => 50 + 35 * n },
-  luck: { name: 'LOADED DICE', desc: '+1 reroll and better drops', max: 3, cost: (n) => 110 + 70 * n }
+  luck: { name: 'LOADED DICE', desc: '+1 reroll and better drops', max: 3, cost: (n) => 110 + 70 * n },
+  rig: { name: 'LOADOUT RIG', desc: '+1 offense and defense slot per rank', max: 2, cost: (n) => 150 + 100 * n }
 };
+
+const SLOT_BASE = 6;
 
 function defaultSave() {
   return {
@@ -200,7 +203,7 @@ function defaultSave() {
     achievements: {},
     lastSeed: 20261029,
     killsByType: {},
-    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0 },
+    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0 },
     unlocked: { weapons: ['ak'], maps: ['desert'] }
   };
 }
@@ -836,6 +839,30 @@ function metaRank(id) {
   return save.meta[id] || 0;
 }
 
+function skillGroup(id) {
+  return SKILLS[id].kind === 'passive' ? 'passive' : 'offense';
+}
+
+function slotCap(group) {
+  return SLOT_BASE + metaRank('rig');
+}
+
+function slotsUsed(group) {
+  return SKILL_ORDER.filter((id) => G.skills[id] > 0 && skillGroup(id) === group).length;
+}
+
+function canTakeSkill(id) {
+  if (G.skills[id] > 0) return true;
+  const group = skillGroup(id);
+  return slotsUsed(group) < slotCap(group);
+}
+
+function upgradablePool() {
+  return SKILL_ORDER.filter(
+    (id) => G.skills[id] < SKILLS[id].max && G.banned.indexOf(id) < 0 && canTakeSkill(id)
+  );
+}
+
 function hasCombo(id) {
   const combo = COMBOS.find((c) => c.id === id);
   if (!combo || !G) return false;
@@ -931,9 +958,7 @@ function openChest() {
   let granted = 0;
   const canUpgrade = (G.stats.chests || 0) < 10;
   for (let i = 0; i < 1 && canUpgrade; i++) {
-    const pool = SKILL_ORDER.filter(
-      (id) => G.skills[id] < SKILLS[id].max && G.banned.indexOf(id) < 0
-    );
+    const pool = upgradablePool();
     if (pool.length === 0) break;
     const id = pool[Math.floor(Math.random() * pool.length)];
     if (applyUpgrade(id)) granted++;
@@ -2867,13 +2892,21 @@ function updateParticles(dt) {
 }
 
 function levelOffers() {
-  const pool = SKILL_ORDER.filter(
-    (id) => G.skills[id] < SKILLS[id].max && G.banned.indexOf(id) < 0
-  );
+  const copy = upgradablePool();
   const picks = [];
-  const copy = pool.slice();
   while (picks.length < 3 && copy.length > 0) {
-    const idx = Math.floor(Math.random() * copy.length);
+    const weights = copy.map((id) => (G.skills[id] > 0 ? 2 : 1));
+    let total = 0;
+    for (const w of weights) total += w;
+    let roll = Math.random() * total;
+    let idx = copy.length - 1;
+    for (let i = 0; i < copy.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) {
+        idx = i;
+        break;
+      }
+    }
     picks.push(copy.splice(idx, 1)[0]);
   }
   return picks;
@@ -2955,6 +2988,11 @@ function addXp(value) {
 
 function applyUpgrade(id) {
   if (!SKILLS[id] || G.skills[id] >= SKILLS[id].max) return false;
+  if (G.skills[id] <= 0 && !canTakeSkill(id)) {
+    sfx.denied();
+    G.news = SKILLS[id].name + ' needs a free ' + skillGroup(id) + ' slot.';
+    return false;
+  }
   G.skills[id]++;
   if (id === 'squad') addSoldier();
   if (id === 'vitality') {
@@ -4364,14 +4402,21 @@ function drawHUD() {
 
   const owned = SKILL_ORDER.filter((id) => G.skills[id] > 0);
   const rowH = 19;
-  const sh = owned.length * rowH + 26;
+  const sh = owned.length * rowH + 42;
   panel(W - 214, 14, 200, sh);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
   ctx.font = '10px Consolas, monospace';
   ctx.fillText('LOADOUT', W - 200, 32);
+  ctx.fillStyle = '#8f9ba4';
+  ctx.font = '600 9px Consolas, monospace';
+  ctx.fillText(
+    'OFF ' + slotsUsed('offense') + '/' + slotCap('offense') + '  ·  DEF ' + slotsUsed('passive') + '/' + slotCap('passive'),
+    W - 200,
+    45
+  );
   owned.forEach((id, i) => {
-    const y = 46 + i * rowH;
+    const y = 62 + i * rowH;
     ctx.fillStyle = SKILLS[id].color;
     ctx.font = '700 10px Consolas, monospace';
     ctx.fillText(SKILLS[id].short, W - 200, y);
@@ -4614,7 +4659,7 @@ function drawSetupScreen() {
   ctx.fillText('LOADOUT', W / 2, 46);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('WEAPON · MAP · TIME LIMIT · DIFFICULTY', W / 2, 64);
+  ctx.fillText('WEAPON · MAP · TIME LIMIT · DIFFICULTY · ' + slotCap('offense') + ' OFF / ' + slotCap('passive') + ' DEF SLOTS', W / 2, 64);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
@@ -4784,36 +4829,36 @@ function drawArmoryScreen() {
     const rank = metaRank(id);
     const maxed = rank >= meta.max;
     const cost = meta.cost(rank);
-    const y = 150 + i * 62;
+    const y = 146 + i * 46;
     ctx.fillStyle = 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = 'rgba(224,178,92,0.28)';
-    rr(300, y, 420, 52, 7);
+    rr(300, y, 420, 40, 7);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f2e6c8';
-    ctx.font = '700 13px Consolas, monospace';
-    ctx.fillText(meta.name, 318, y + 21);
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(meta.name, 318, y + 17);
     ctx.fillStyle = 'rgba(200,195,180,0.7)';
-    ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(meta.desc, 318, y + 38);
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(meta.desc, 318, y + 31);
     for (let r = 0; r < meta.max; r++) {
       ctx.fillStyle = r < rank ? '#63dcc0' : 'rgba(255,255,255,0.12)';
-      ctx.fillRect(318 + r * 16, y + 43, 11, 4);
+      ctx.fillRect(318 + r * 14, y + 35, 10, 3);
     }
     const canBuy = !maxed && save.shards >= cost;
-    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 8, 76, 36);
+    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 4, 76, 32);
     if (!canBuy && !maxed) {
       ctx.fillStyle = 'rgba(255,90,70,0.75)';
       ctx.font = '700 9px Consolas, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('NEED ' + cost, 636, y + 52);
+      ctx.fillText('NEED ' + cost, 636, y + 46);
     }
     ctx.textAlign = 'left';
   });
 
   ctx.textAlign = 'center';
-  drawButton('back-armory', 'BACK', W / 2, 486, 180, 40);
+  drawButton('back-armory', 'BACK', W / 2, 496, 180, 34);
 }
 
 function drawStatisticsScreen() {
@@ -5113,7 +5158,13 @@ function drawLevelUpScreen() {
     ctx.fillText(skill.name, x + w / 2, y + 50);
     ctx.fillStyle = 'rgba(190,185,165,0.65)';
     ctx.font = '600 11px Consolas, monospace';
-    ctx.fillText(lvl === 0 ? 'NEW SKILL' : 'LEVEL ' + lvl + ' → ' + (lvl + 1), x + w / 2, y + 74);
+    const group = skillGroup(id);
+    const tag = group === 'passive' ? 'DEF' : 'OFF';
+    ctx.fillText(
+      lvl === 0 ? 'NEW · ' + tag + ' ' + slotsUsed(group) + '/' + slotCap(group) : 'LEVEL ' + lvl + ' → ' + (lvl + 1),
+      x + w / 2,
+      y + 74
+    );
     ctx.fillStyle = 'rgba(220,215,200,0.85)';
     ctx.font = '600 12px Consolas, monospace';
     const words = skill.desc.split(' ');
@@ -5775,6 +5826,10 @@ window.Dustline = {
       snap.shield = { charges: G.shield.charges, max: G.skills.aegis, t: G.shield.t };
       snap.slow = G.slowT;
       snap.pools = G.pools.length;
+      snap.slots = {
+        offense: { used: slotsUsed('offense'), cap: slotCap('offense') },
+        passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
+      };
       const boss = G.enemies.find((e) => e.boss && !e.dead);
       snap.boss = boss
         ? {

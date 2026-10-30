@@ -1490,3 +1490,73 @@ test('mortar, widower and husk join the spawn table', () => {
   assert.ok(seen.has('widower'), 'widowers spawn');
   assert.ok(seen.has('husk'), 'husks spawn');
 });
+
+test('skill slots cap new picks at six per group', () => {
+  const g = boot({ seed: 601 });
+  deploy(g);
+  for (const id of ['smg', 'shotgun', 'dmr', 'rail', 'blades']) assert.ok(g.api.applyUpgrade(id), id);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.slots.offense.used, 6);
+  assert.strictEqual(s.slots.offense.cap, 6);
+  assert.strictEqual(g.api.applyUpgrade('grenade'), false, 'a seventh offense skill is refused');
+  assert.strictEqual(g.api.applyUpgrade('blades'), true, 'owned skills still upgrade at the cap');
+  g.api.setInvulnerable(true);
+  const offenseIds = ['rifle', 'smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret', 'aura', 'squad'];
+  for (let i = 0; i < 10; i++) {
+    g.api.giveXp(900);
+    s = g.api.snapshot();
+    let guard = 0;
+    while (s.screen === 'levelup' && guard++ < 40) {
+      for (const id of s.offers) {
+        if (offenseIds.includes(id)) assert.ok(s.skills[id] > 0, 'offered an unowned offense skill: ' + id);
+      }
+      g.api.clickButton('upgrade-0');
+      s = g.api.snapshot();
+    }
+  }
+  s = g.api.snapshot();
+  assert.strictEqual(s.slots.offense.used, 6, 'level-ups cannot push past the cap');
+  for (const id of ['grenade', 'turret', 'aura', 'squad']) assert.strictEqual(s.skills[id], 0, id + ' was never offered');
+});
+
+test('passive slots cap separately from offense', () => {
+  const g = boot({ seed: 603 });
+  deploy(g);
+  const passives = ['speed', 'vitality', 'aegis', 'magnet', 'damage', 'bulletSpeed'];
+  for (const id of passives) assert.ok(g.api.applyUpgrade(id), id);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.slots.passive.used, 6);
+  assert.strictEqual(g.api.applyUpgrade('crit'), false, 'a seventh passive is refused');
+  assert.strictEqual(g.api.applyUpgrade('smg'), true, 'offense slots are independent');
+});
+
+test('the loadout rig armory meta widens both slot caps', () => {
+  const g = boot({ seed: 607 });
+  g.api.grantShards(5000);
+  assert.ok(g.api.buyMeta('rig'));
+  assert.ok(g.api.buyMeta('rig'));
+  deploy(g);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.slots.offense.cap, 8);
+  assert.strictEqual(s.slots.passive.cap, 8);
+  for (const id of ['smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret']) assert.ok(g.api.applyUpgrade(id), id);
+  assert.strictEqual(g.api.snapshot().slots.offense.used, 8);
+  assert.strictEqual(g.api.applyUpgrade('aura'), false);
+});
+
+test('supply caches never exceed the slot caps', () => {
+  const g = boot({ seed: 611 });
+  deploy(g);
+  for (const id of ['smg', 'shotgun', 'dmr', 'rail', 'blades']) g.api.applyUpgrade(id);
+  for (const id of ['speed', 'vitality', 'aegis', 'magnet', 'damage', 'bulletSpeed']) g.api.applyUpgrade(id);
+  const before = g.api.snapshot();
+  const ownedBefore = Object.values(before.skills).filter((v) => v > 0).length;
+  const sumBefore = Object.values(before.skills).reduce((a, b) => a + b, 0);
+  g.api.spawnChest(18, 0);
+  g.steps(6);
+  const after = g.api.snapshot();
+  assert.strictEqual(Object.values(after.skills).filter((v) => v > 0).length, ownedBefore, 'no new skill was granted');
+  assert.strictEqual(after.slots.offense.used, 6);
+  assert.strictEqual(after.slots.passive.used, 6);
+  assert.ok(Object.values(after.skills).reduce((a, b) => a + b, 0) > sumBefore, 'an owned skill was upgraded');
+});
