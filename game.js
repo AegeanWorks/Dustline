@@ -108,7 +108,13 @@ const ACHIEVEMENTS = [
   { id: 'jackpot', name: 'JACKPOT', desc: 'Hit 100 critical data rolls', goal: (s) => s.jackpots || 0, target: 100, reward: 30 },
   { id: 'collector', name: 'COLLECTOR', desc: 'Open 25 supply caches', goal: (s) => s.chests || 0, target: 25, reward: 40 },
   { id: 'hunter', name: 'HUNTER KILLER', desc: 'Kill 10 NetWatch hunters', goal: (s) => s.hunters || 0, target: 10, reward: 45 },
-  { id: 'contractor', name: 'CONTRACTOR', desc: 'Complete 20 contracts', goal: (s) => s.contracts || 0, target: 20, reward: 50 }
+  { id: 'contractor', name: 'CONTRACTOR', desc: 'Complete 20 contracts', goal: (s) => s.contracts || 0, target: 20, reward: 50 },
+  { id: 'rush_first', name: 'FIRST CLEAR', desc: 'Clear Boss Rush', goal: (s) => s.rushClears || 0, target: 1, reward: 60 },
+  { id: 'rush_speed', name: 'SPEEDRUNNER', desc: 'Clear Boss Rush under 90 seconds', goal: (s) => (s.rushBest > 0 && s.rushBest <= 90 ? 1 : 0), target: 1, reward: 90 },
+  { id: 'relic_hoarder', name: 'RELIC HOARDER', desc: 'Hold 5 salvage relics at once', goal: (s) => s.relics || 0, target: 5, reward: 50 },
+  { id: 'wyrm_slayer', name: 'WYRM SLAYER', desc: 'Kill a WYRM', goal: (s) => s.wyrmKills || 0, target: 1, reward: 70 },
+  { id: 'shield_wall', name: 'SHIELD WALL', desc: 'Absorb 10 hits with the Aegis', goal: (s) => s.shieldSaves || 0, target: 10, reward: 45 },
+  { id: 'full_loadout', name: 'FULL LOADOUT', desc: 'Fill every offense and defense slot', goal: (s) => s.slotsFull || 0, target: 1, reward: 55 }
 ];
 
 function achievementUnlocked() {
@@ -126,7 +132,15 @@ function achievementStats() {
     jackpots: (save.jackpots || 0) + (live ? G.stats.jackpots : 0),
     chests: (save.chests || 0) + (live ? G.stats.chests || 0 : 0),
     hunters: (save.hunters || 0) + (live ? G.stats.hunters : 0),
-    contracts: (save.contracts || 0) + (live ? G.stats.contracts : 0)
+    contracts: (save.contracts || 0) + (live ? G.stats.contracts : 0),
+    rushClears: (save.rushClears || 0) + (live && G.mode === 'bossrush' && G.rush && G.rush.index >= G.rush.target ? 1 : 0),
+    rushBest: save.rushBest || 0,
+    bestWave: Math.max(save.bestWave || 1, live ? G.wave : 0),
+    shieldSaves: (save.shieldSaves || 0) + (live ? G.stats.shieldSaves || 0 : 0),
+    wyrmKills: (save.killsByType.wyrm || 0) + (live ? G.killsByType.wyrm || 0 : 0),
+    relics: live ? G.relics.length : 0,
+    slotsFull:
+      live && slotsUsed('offense') >= slotCap('offense') && slotsUsed('passive') >= slotCap('passive') ? 1 : 0
   };
 }
 
@@ -200,6 +214,10 @@ function defaultSave() {
     champions: 0,
     chests: 0,
     megaKills: 0,
+    rushClears: 0,
+    rushBest: 0,
+    bestWave: 1,
+    shieldSaves: 0,
     achievements: {},
     lastSeed: 20261029,
     killsByType: {},
@@ -228,10 +246,11 @@ function loadSave() {
   merged.killsByType = Object.assign({}, raw.killsByType || {});
   merged.achievements = Object.assign({}, raw.achievements || {});
   merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert'] }, raw.unlocked || {});
-  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills']) {
+  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
-  for (const key of ['bestTime', 'bestKills']) merged[key] = Math.max(0, Number(merged[key]) || 0);
+  for (const key of ['bestTime', 'bestKills', 'rushBest']) merged[key] = Math.max(0, Number(merged[key]) || 0);
+  merged.bestWave = Math.max(1, Math.round(Number(merged.bestWave) || 1));
   merged.lastSeed = (Number(merged.lastSeed) >>> 0) || 20261029;
   return merged;
 }
@@ -1237,6 +1256,7 @@ function startRun(options) {
       contracts: 0,
       champions: 0,
       chests: 0,
+      shieldSaves: 0,
       banked: 0,
       lost: 0
     }
@@ -1288,6 +1308,15 @@ function recordRun(outcome) {
   save.champions += G.stats.champions || 0;
   save.megaKills += G.megaKills || 0;
   save.chests += G.stats.chests || 0;
+  save.shieldSaves += G.stats.shieldSaves || 0;
+  if (G.mode === 'bossrush') {
+    if (outcome === 'win') {
+      save.rushClears += 1;
+      if (!save.rushBest || G.time < save.rushBest) save.rushBest = G.time;
+    }
+  } else {
+    save.bestWave = Math.max(save.bestWave || 1, G.wave);
+  }
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
@@ -2850,6 +2879,8 @@ function damagePlayer(dmg) {
     G.shield.t = shieldRefill();
     G.invulnT = 0.4;
     G.hurtT = 0.2;
+    G.stats.shieldSaves = (G.stats.shieldSaves || 0) + 1;
+    checkAchievements();
     spawnFloater(G.player.x, G.player.y - 24, 'SHIELD', '#9fd8ff', 13);
     burst(G.player.x, G.player.y, 10, '#9fd8ff', 180, 2.6, 0.3);
     sfx.swap();
@@ -3114,6 +3145,7 @@ function chooseRelic(index) {
   G.news = relic.name + ' salvaged from the wreck.';
   screen = 'play';
   sfx.victory();
+  checkAchievements();
   return true;
 }
 
@@ -3147,6 +3179,7 @@ function applyUpgrade(id) {
   }
   announceCombos();
   checkEvolutions();
+  checkAchievements();
   return true;
 }
 
@@ -4583,7 +4616,7 @@ function drawHUD() {
 
   const owned = SKILL_ORDER.filter((id) => G.skills[id] > 0);
   const rowH = 19;
-  const sh = owned.length * rowH + 42;
+  const sh = owned.length * rowH + 54;
   panel(W - 214, 14, 200, sh);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
@@ -4596,8 +4629,10 @@ function drawHUD() {
     W - 200,
     45
   );
+  ctx.fillStyle = G.relics.length ? '#63dcc0' : '#8f9ba4';
+  ctx.fillText('RELICS ' + G.relics.length + ' / ' + RELICS.length, W - 200, 58);
   owned.forEach((id, i) => {
-    const y = 62 + i * rowH;
+    const y = 74 + i * rowH;
     ctx.fillStyle = SKILLS[id].color;
     ctx.font = '700 10px Consolas, monospace';
     ctx.fillText(SKILLS[id].short, W - 200, y);
@@ -5094,6 +5129,9 @@ function drawStatisticsScreen() {
     ['CONTRACTS DONE', String(save.contracts || 0)],
     ['CHAMPIONS SLAIN', String(save.champions || 0)],
     ['CACHES OPENED', String(save.chests || 0)],
+    ['RUSH CLEARS', String(save.rushClears || 0)],
+    ['BEST RUSH', save.rushBest > 0 ? fmtTime(save.rushBest) : '—'],
+    ['BEST WAVE', String(save.bestWave || 1)],
     ['ACHIEVEMENTS', achievementUnlocked() + ' / ' + ACHIEVEMENTS.length],
     ['ARMORY RANKS', String(META_ORDER.reduce((sum, id) => sum + metaRank(id), 0))]
   ];
@@ -5592,7 +5630,7 @@ function drawOverScreen() {
   if (G.victory) {
     ctx.fillStyle = '#ffd27a';
     ctx.font = '700 44px Consolas, monospace';
-    ctx.fillText('SURVIVED THE LIMIT', W / 2, 126);
+    ctx.fillText(G.mode === 'bossrush' ? 'BOSS RUSH CLEARED' : 'SURVIVED THE LIMIT', W / 2, 126);
     ctx.fillStyle = '#e7eef3';
     ctx.font = '700 26px Consolas, monospace';
     ctx.fillText(fmtTime(G.time) + ' ON ' + MAPS[G.map].name, W / 2, 166);
@@ -5614,11 +5652,23 @@ function drawOverScreen() {
   ctx.fillStyle = '#63dcc0';
   ctx.font = '700 16px Consolas, monospace';
   ctx.fillText('+' + (G.shardsEarned || 0) + ' SHARDS   ·   ' + save.shards + ' TOTAL', W / 2, 244);
+  ctx.fillStyle = 'rgba(190,185,165,0.65)';
+  ctx.font = '600 10px Consolas, monospace';
+  const modeLine =
+    G.mode === 'bossrush'
+      ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
+      : 'SURVIVORS · WAVE ' + G.wave;
+  ctx.fillText(modeLine + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 266);
+  if (G.relics.length) {
+    const names = G.relics.map((id) => RELICS.find((r) => r.id === id).name).join(' · ');
+    ctx.fillStyle = 'rgba(99,220,192,0.75)';
+    ctx.fillText(names, W / 2, 282);
+  }
   const combo = activeCombos();
   if (combo.length) {
     ctx.fillStyle = 'rgba(255,210,122,0.8)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, 264);
+    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, 298);
   }
   drawButton('retry', 'REDEPLOY', W / 2 - 130, 292, 240, 48);
   drawButton('menu-over', 'MAIN MENU', W / 2 + 130, 292, 240, 48);
@@ -5971,6 +6021,10 @@ window.Dustline = {
         champions: save.champions || 0,
         chests: save.chests || 0,
         megaKills: save.megaKills || 0,
+        rushClears: save.rushClears || 0,
+        rushBest: save.rushBest || 0,
+        bestWave: save.bestWave || 1,
+        shieldSaves: save.shieldSaves || 0,
         achievements: Object.assign({}, save.achievements || {}),
         achievementCount: achievementUnlocked(),
         killsByType: { ...save.killsByType },
@@ -6088,6 +6142,7 @@ window.Dustline = {
         turrets: G.stats.turrets || 0,
         auraHits: G.stats.auraHits || 0,
         chests: G.stats.chests || 0,
+        shieldSaves: G.stats.shieldSaves || 0,
         banked: G.stats.banked,
         lost: G.stats.lost
       };
@@ -6283,6 +6338,7 @@ if (window.__DUSTLINE_TEST__) {
       G.shield.charges = Math.min(shieldMax(), G.shield.charges + 1);
       G.shield.t = shieldRefill();
     }
+    checkAchievements();
     return true;
   };
   window.Dustline.spawnSalvage = (x, y) => {

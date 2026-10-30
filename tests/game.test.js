@@ -1719,3 +1719,107 @@ test('boss rush spawns bosses instead of waves and wins after eight', () => {
   assert.strictEqual(s.victory, true, 'clearing all eight bosses wins the run');
   assert.strictEqual(s.rush.index, 8);
 });
+
+test('shield absorbs are counted and unlock the shield wall achievement', () => {
+  const store = makeStore();
+  const g = boot({ seed: 901, storage: store });
+  deploy(g);
+  for (let i = 0; i < 2; i++) g.api.applyUpgrade('aegis');
+  for (let i = 0; i < 2; i++) {
+    g.api.setInvulnerable(false);
+    g.api.hurt(10);
+    g.steps(40);
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.stats.shieldSaves, 2);
+  assert.strictEqual(s.save.achievements.shield_wall, undefined, 'needs ten absorbs');
+});
+
+test('relic hoarder and full loadout unlock from live run state', () => {
+  const store = makeStore();
+  const g = boot({ seed: 903, storage: store });
+  deploy(g);
+  for (const id of ['chrono', 'voidlens', 'overclock', 'volatile', 'warhead']) assert.ok(g.api.grantRelic(id));
+  g.api.hitEnemy(0, 1);
+  for (const id of ['smg', 'shotgun', 'dmr', 'rail', 'blades']) g.api.applyUpgrade(id);
+  for (const id of ['speed', 'vitality', 'aegis', 'magnet', 'damage', 'bulletSpeed']) g.api.applyUpgrade(id);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.save.achievements.relic_hoarder, true, 'five relics unlock the hoarder');
+  assert.strictEqual(s.save.achievements.full_loadout, true, 'a filled loadout unlocks');
+});
+
+test('killing a wyrm unlocks wyrm slayer', () => {
+  const store = makeStore();
+  const g = boot({ seed: 905, storage: store });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('wyrm');
+  g.api.killEnemies();
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.save.achievements.wyrm_slayer, true);
+});
+
+test('boss rush records clears and best time, and unlocks first clear', () => {
+  const store = makeStore();
+  const g = boot({ seed: 907, storage: store });
+  enterSetup(g);
+  g.api.clickButton('mode-bossrush');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 8; i++) {
+    let s = g.api.snapshot();
+    let guard = 0;
+    while (!s.rush.alive && guard++ < 500) {
+      g.step();
+      s = g.api.snapshot();
+      if (s.screen === 'levelup') { g.api.clickButton('upgrade-0'); s = g.api.snapshot(); }
+    }
+    g.api.killEnemies();
+    let after = g.api.snapshot();
+    let spin = 0;
+    while (after.screen === 'relic' && spin++ < 4) { g.api.clickButton('relic-0'); after = g.api.snapshot(); }
+    if (i === 7) break;
+    for (let f = 0; f < 400 && !g.api.snapshot().rush.alive; f++) {
+      g.step();
+      const t = g.api.snapshot();
+      if (t.screen === 'levelup') g.api.clickButton('upgrade-0');
+      if (t.screen === 'relic') g.api.clickButton('relic-0');
+    }
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.victory, true);
+  assert.strictEqual(s.save.rushClears, 1);
+  assert.ok(s.save.rushBest > 0 && s.save.rushBest < 90, 'best rush time recorded: ' + s.save.rushBest);
+  assert.strictEqual(s.save.achievements.rush_first, true);
+  assert.strictEqual(s.save.achievements.rush_speed, true);
+});
+
+test('best wave persists for survivors runs and legacy saves default cleanly', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({ v: 2, totalKills: 5, shards: 10 });
+  const g = boot({ seed: 909, storage: store });
+  const loaded = g.api.snapshot().save;
+  assert.strictEqual(loaded.rushClears, 0);
+  assert.strictEqual(loaded.rushBest, 0);
+  assert.strictEqual(loaded.bestWave, 1);
+  assert.strictEqual(loaded.shieldSaves, 0);
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(200);
+  g.steps(4);
+  const wave = g.api.snapshot().wave;
+  assert.ok(wave >= 6, 'reached wave ' + wave);
+  let fin = g.api.snapshot();
+  let guard = 0;
+  while (fin.screen === 'levelup' && guard++ < 20) { g.api.clickButton('upgrade-0'); fin = g.api.snapshot(); }
+  g.api.setInvulnerable(false);
+  g.api.hurt(999);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.save.bestWave, wave);
+  assert.strictEqual(s.save.rushClears, 0, 'survivors runs do not count as rush clears');
+});

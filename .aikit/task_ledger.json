@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-13",
+    "task_id": "dustline-v0-14",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793386786.5954823,
+    "updated_at": 1793387856.9291794,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793386786.862746
+    "completed_at": 1793387857.1593843
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-7",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "56/56 node:test cases (9 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean; Chromium smoke verified difficulty cards, evolution, champions, caches, codex and statistics with zero console errors; seeded 4-minute autoplays on Normal and Nightmare reached all 15 regular mob types, 2-4 evolutions, champion affixes and screamer rage, at ~1.6ms simulated frame time; balance re-tuned after finding 12% champions + 2-upgrade caches maxed every skill in 4 minutes (now 3% champions, 1 upgrade, 10-cache cap, steeper 6+6 XP curve); checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793347540.2053404,
-      "timestamp_str": "2026-10-30 11:05:40",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-7",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-7' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793347540.4570034,
-      "timestamp_str": "2026-10-30 11:05:40",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-8",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Add run variety and long-term goals: deterministic terrain hazards for all four maps, six opt-in run mutators with loot multipliers, two new active skills (Sentry Turret and Ember Aura), twelve lifetime achievements with shard payouts, and HUD/setup/codex/statistics surfaces for all of it",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793361079.6127884,
-      "timestamp_str": "2026-10-30 14:51:19",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The user asked to continue improving mechanics and balance; every map played identically, runs had fixed rules, active skills ended at blades/grenades, and lifetime stats had no goals",
-        "benefits": "Maps demand different movement, players can self-handicap for better loot, late builds gain two new active tools, and long-term play has explicit rewards",
-        "risks": "contract: save gains megaKills and achievements, snapshot/setup/seams expand, kill shard income reduced 30%; dependency: none added; concurrency: none; state: setup.mutators persists and old saves default to no mutators/no achievements",
-        "mitigation": "62 deterministic tests, seeded 4-minute autoplays on mutator combinations, Chromium smoke with zero console errors, full secret scan, ADR-008"
-      }
-    },
     {
       "task_id": "dustline-v0-8",
       "phase": "phase 4",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793386786.862748,
       "timestamp_str": "2026-10-30 21:59:46",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-14",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.14 Records and mastery - rush clears/best time, best wave, shield saves in save+stats, six achievements for relics/rush/wyrm/shield/slots, HUD relic readout, richer run summary",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793387138.8538013,
+      "timestamp_str": "2026-10-30 22:05:38",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "New systems (relics, boss rush, aegis, slot caps, WYRM) have no achievements, records or on-screen presence outside their own screens, and the save's best-run fields only cover survivors",
+        "benefits": "Gives the shard economy new goals, makes mastery visible (rush times, best wave), surfaces relics during play and closes the loop on every v0.10-v0.13 feature",
+        "risks": "contract: save gains four additive fields and snapshot.save grows; dependency: none; concurrency: ledger shared; state: additive save fields default to zero and are clamped on load",
+        "mitigation": "Additive schema with clamping and zero defaults, merge live stats the same way chests/hunters already do, add tests for legacy saves, full suite and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-14",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: rushClears/rushBest/bestWave/shieldSaves save fields with clamping, six new achievements (rush clear, sub-90s rush, 5 relics, WYRM, 10 shield saves, full loadout), live achievement checks from upgrades/relics, HUD relic readout, statistics record rows, mode-aware run summary; 93/93 tests, 5/5 gates, persistence probe (38.1s rush clear recorded and reloaded) OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793387856.9291794,
+      "timestamp_str": "2026-10-30 22:17:36",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-14",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-14' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793387857.159388,
+      "timestamp_str": "2026-10-30 22:17:37",
       "agent": "kilo:continue"
     }
   ]
