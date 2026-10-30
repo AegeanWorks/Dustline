@@ -1,55 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-14",
+    "task_id": "dustline-v0-15",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793387856.9291794,
+    "updated_at": 1793389685.9996352,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793387857.1593843
+    "completed_at": 1793389686.7811887
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-8",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "62/62 node:test cases (6 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean; Chromium smoke selected mutators, started a hazard run, deployed turrets/aura and reached statistics with zero console errors; seeded 4-minute autoplays on desert Glass+Swarm and frost Bounty reached level 51/43, 16/21 turrets, aura ticks, 4-5 achievements and every hazard type; kill shard income reduced ~30% after a 10.6k-unbanked perfect run; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793361144.7544322,
-      "timestamp_str": "2026-10-30 14:52:24",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-8",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-8' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793361145.0096564,
-      "timestamp_str": "2026-10-30 14:52:25",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-9",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: finish v0.9 railgun weapon, HIVE/SENTINEL bosses and boss affixes left uncommitted",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793374574.75769,
-      "timestamp_str": "2026-10-30 18:36:14",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Prior session was interrupted mid-increment; uncommitted game.js adds a fifth weapon, two bosses and affixes with an overflowing loadout row, dead pasted code in drawEnemies and no distinct boss art",
-        "benefits": "Completes the interrupted feature set, fixes two real defects, restores distinct boss visuals and ships test coverage for every new mechanic",
-        "risks": "contract: snapshot and test seam grow new fields; dependency: none (stdlib+node only); concurrency: ledger shared with prior tasks; state: save schema unchanged",
-        "mitigation": "Keep snapshot additions additive, reuse existing seam patterns, run full suite and AIKit gates before commit, stage files explicitly"
-      }
-    },
     {
       "task_id": "dustline-v0-9",
       "phase": "in_progress",
@@ -259,6 +221,44 @@
       "status": "completed",
       "timestamp": 1793387857.159388,
       "timestamp_str": "2026-10-30 22:17:37",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-15",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/5] Plan: v0.15 Operators - five playable operators with distinct perks chosen at setup, perk hooks in HP/defense/velocity/crit/turret/aura/shard/relic-count, HUD and run summary display",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793388768.3590813,
+      "timestamp_str": "2026-10-30 22:32:48",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "Every run starts from an identical baseline, so the newest systems (slots, relics, rush) vary but the character never does; no starting choice defines a run's identity",
+        "benefits": "Adds a run-defining choice at deploy, gives the three specialists reasons to replay, and reuses existing stat hooks so no new content pipeline is needed",
+        "risks": "contract: setup and snapshot gain an operator field, relic offer count varies; dependency: none; concurrency: ledger shared; state: no save change, operator is per-run and defaults to the baseline ranger",
+        "mitigation": "Baseline operator applies no modifiers so all existing balance tests are unchanged, gate perks behind one G.operator lookup, add per-operator tests plus a legacy regression run, full suite and gates before commit"
+      }
+    },
+    {
+      "task_id": "dustline-v0-15",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/5] Implementation and verification complete: five operators (ranger baseline, vanguard, marksman, engineer, scavenger) with perks on HP/damage-taken/velocity/crit/aura/turret-life/shards/relic-count, setup OPERATOR row with compacted bottom layout, HUD and summary display; 98/98 tests, 5/5 gates, setup overlap scan (31 buttons), all-operator 15s live runs and 4-vs-3 relic pick proof OK; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793389685.9996352,
+      "timestamp_str": "2026-10-30 22:48:05",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-15",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-15' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793389686.7811904,
+      "timestamp_str": "2026-10-30 22:48:06",
       "agent": "kilo:continue"
     }
   ]

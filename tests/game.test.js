@@ -65,7 +65,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
-  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [], mode: 'survivors' }));
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger' }));
   g.api.clickButton('setup-start');
   g.steps(1);
   const s = g.api.snapshot();
@@ -1822,4 +1822,106 @@ test('best wave persists for survivors runs and legacy saves default cleanly', (
   assert.strictEqual(s.screen, 'over');
   assert.strictEqual(s.save.bestWave, wave);
   assert.strictEqual(s.save.rushClears, 0, 'survivors runs do not count as rush clears');
+});
+
+test('the setup screen offers five operators and applies the chosen one', () => {
+  const g = boot({ seed: 1001 });
+  enterSetup(g);
+  const ids = g.api.snapshot().buttons.map((b) => b.id);
+  for (const op of ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger']) assert.ok(ids.includes('operator-' + op), op);
+  assert.strictEqual(g.api.snapshot().setup.operator, 'ranger');
+  g.api.clickButton('operator-vanguard');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.operator, 'vanguard');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.operator, 'vanguard');
+  assert.strictEqual(s.maxHp, 130, 'vanguard starts with +30 health');
+  assert.strictEqual(s.hp, 130);
+});
+
+test('vanguard takes ten percent less damage', () => {
+  const g = boot({ seed: 1003 });
+  enterSetup(g);
+  g.api.clickButton('operator-vanguard');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  g.api.setInvulnerable(false);
+  g.api.hurt(100);
+  assert.strictEqual(g.api.snapshot().hp, 40, '130 - 90');
+  const h = boot({ seed: 1003 });
+  deploy(h);
+  h.api.hurt(100);
+  assert.strictEqual(h.api.snapshot().hp, 0, 'ranger takes the full hit');
+});
+
+test('marksman boosts velocity and crit', () => {
+  const g = boot({ seed: 1005 });
+  enterSetup(g);
+  g.api.clickButton('operator-marksman');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const m = g.api.snapshot().mods;
+  const h = boot({ seed: 1005 });
+  deploy(h);
+  const r = h.api.snapshot().mods;
+  assert.ok(Math.abs(m.bulletSpeed - (r.bulletSpeed + 0.15)) < 1e-6);
+  assert.ok(Math.abs(m.crit - (r.crit + 0.08)) < 1e-6);
+  assert.strictEqual(g.api.snapshot().maxHp, 100, 'marksman keeps base health');
+});
+
+test('engineer widens the aura and scavenger boosts shards and relic picks', () => {
+  const g = boot({ seed: 1007 });
+  enterSetup(g);
+  g.api.clickButton('operator-engineer');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  g.api.applyUpgrade('aura');
+  g.api.applyUpgrade('aura');
+  g.api.applyUpgrade('aura');
+  const engAura = g.api.snapshot().auraRadius;
+  const h = boot({ seed: 1007 });
+  deploy(h);
+  h.api.applyUpgrade('aura');
+  h.api.applyUpgrade('aura');
+  h.api.applyUpgrade('aura');
+  assert.ok(engAura > h.api.snapshot().auraRadius * 1.14, 'engineer aura is wider');
+
+  const k = boot({ seed: 1011 });
+  enterSetup(k);
+  k.api.clickButton('operator-scavenger');
+  k.steps(1);
+  k.api.clickButton('setup-start');
+  k.steps(1);
+  k.api.spawnSalvage(16, 0);
+  k.steps(2);
+  let s = k.api.snapshot();
+  assert.strictEqual(s.screen, 'relic');
+  assert.strictEqual(s.relicOffers.length, 4, 'scavengers see four relic picks');
+  k.api.clickButton('relic-0');
+  s = k.api.snapshot();
+  assert.strictEqual(s.relics.length, 1);
+});
+
+test('scavenger earns twenty percent more unbanked shards', () => {
+  function unbankedFor(operator) {
+    const g = boot({ seed: 1013 });
+    enterSetup(g);
+    g.api.clickButton('operator-' + operator);
+    g.steps(1);
+    g.api.clickButton('setup-start');
+    g.steps(1);
+    g.api.spawnEnemy('tank', 40, 0);
+    g.api.setEnemyHp(0, 1);
+    g.api.hitEnemy(0, 50);
+    return g.api.snapshot().unbanked;
+  }
+  const ranger = unbankedFor('ranger');
+  const scav = unbankedFor('scavenger');
+  assert.ok(ranger > 0);
+  assert.ok(Math.abs(scav / ranger - 1.2) < 0.02, 'ratio was ' + (scav / ranger).toFixed(3));
 });

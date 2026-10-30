@@ -816,6 +816,16 @@ const MODES = [
   { id: 'survivors', name: 'SURVIVORS', blurb: 'Endless horde waves' },
   { id: 'bossrush', name: 'BOSS RUSH', blurb: 'Eight bosses, no waves' }
 ];
+
+const OPERATORS = [
+  { id: 'ranger', name: 'RANGER', blurb: 'Balanced baseline', color: '#9be59b' },
+  { id: 'vanguard', name: 'VANGUARD', blurb: '+30 HP · -10% damage taken', color: '#7fe0a0' },
+  { id: 'marksman', name: 'MARKSMAN', blurb: '+15% velocity · +8% crit', color: '#ffe08a' },
+  { id: 'engineer', name: 'ENGINEER', blurb: 'Turrets +60% life · aura +15%', color: '#b8c6d0' },
+  { id: 'scavenger', name: 'SCAVENGER', blurb: '+20% shards · 4 relic picks', color: '#63dcc0' }
+];
+
+const OPERATOR_ORDER = ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger'];
 const BOSS_EVERY = 5;
 const MEGA_EVERY_BOSSES = 4;
 
@@ -877,6 +887,24 @@ function metaRank(id) {
   return save.meta[id] || 0;
 }
 
+function operatorDef() {
+  const id = (G && G.operator) || (setup && setup.operator) || 'ranger';
+  return OPERATORS.find((o) => o.id === id) || OPERATORS[0];
+}
+
+function operatorDefName() {
+  const op = OPERATORS.find((o) => o.id === setup.operator);
+  return op ? op.name : OPERATORS[0].name;
+}
+
+function isOperator(id) {
+  return !!(G && G.operator === id);
+}
+
+function baseMaxHp() {
+  return 100 + 10 * metaRank('armor') + (isOperator('vanguard') ? 30 : 0);
+}
+
 function skillGroup(id) {
   return SKILLS[id].kind === 'passive' ? 'passive' : 'offense';
 }
@@ -916,7 +944,9 @@ function playerSpeed() {
 }
 
 function auraRadius() {
-  return G.skills.aura > 0 ? (72 + 9 * G.skills.aura) * (hasEvolution('aura') ? 1.35 : 1) : 0;
+  return G.skills.aura > 0
+    ? (72 + 9 * G.skills.aura) * (hasEvolution('aura') ? 1.35 : 1) * (isOperator('engineer') ? 1.15 : 1)
+    : 0;
 }
 
 function shieldRefill() {
@@ -954,11 +984,17 @@ function magnetRadius() {
 }
 
 function bulletSpeedMult() {
-  return 1 + 0.10 * G.skills.bulletSpeed + (hasRelic('overclock') ? 0.25 : 0);
+  return 1 + 0.10 * G.skills.bulletSpeed + (hasRelic('overclock') ? 0.25 : 0) + (isOperator('marksman') ? 0.15 : 0);
 }
 
 function critChance() {
-  return 0.07 * G.skills.crit + (hasEvolution('smg') ? 0.1 : 0) + (G.surgeT > 0 ? 0.15 : 0) + (hasRelic('voidlens') ? 0.1 : 0);
+  return (
+    0.07 * G.skills.crit +
+    (hasEvolution('smg') ? 0.1 : 0) +
+    (G.surgeT > 0 ? 0.15 : 0) +
+    (hasRelic('voidlens') ? 0.1 : 0) +
+    (isOperator('marksman') ? 0.08 : 0)
+  );
 }
 
 function lifestealHeal(dmg) {
@@ -983,7 +1019,13 @@ function odActive() {
 
 function addUnbanked(value) {
   if (!(value > 0)) return;
-  G.unbanked += value * G.market * (G.diff ? G.diff.shard : 1) * mutatorShardMult() * (hasRelic('greedengine') ? 1.2 : 1);
+  G.unbanked +=
+    value *
+    G.market *
+    (G.diff ? G.diff.shard : 1) *
+    mutatorShardMult() *
+    (hasRelic('greedengine') ? 1.2 : 1) *
+    (isOperator('scavenger') ? 1.2 : 1);
 }
 
 function bankUnbanked() {
@@ -1123,7 +1165,7 @@ function addSoldier() {
   });
 }
 
-let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors' };
+let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger' };
 
 function freshSkills() {
   const skills = {};
@@ -1154,13 +1196,14 @@ function startRun(options) {
   if (opts.mode && MODES.some((m) => m.id === opts.mode)) setup.mode = opts.mode;
   const limit = findLimit(setup.limit);
   const diff = findDifficulty(setup.difficulty);
-  const maxHp = 100 + 10 * metaRank('armor');
+  const maxHp = 100 + 10 * metaRank('armor') + (setup.operator === 'vanguard' ? 30 : 0);
   const seed = (save.lastSeed >>> 0) || 20261029;
   save.lastSeed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
   writeStore(SAVE_KEY, save);
   G = {
     weapon: setup.weapon,
     mode: setup.mode,
+    operator: OPERATOR_ORDER.indexOf(setup.operator) >= 0 ? setup.operator : 'ranger',
     rush: setup.mode === 'bossrush' ? { index: 0, target: RUSH_TARGET, next: 2, alive: false } : null,
     map: setup.map,
     difficulty: diff.id,
@@ -1905,7 +1948,7 @@ function updateSkills(dt) {
     if (G.cds.turret <= 0) {
       G.cds.turret = Math.max(5, 11 - 1.1 * lvl);
       if (G.turrets.length >= (hasEvolution('turret') ? 3 : 2)) G.turrets.shift();
-      const life = (10 + 1.5 * lvl) * (hasEvolution('turret') ? 1.3 : 1);
+      const life = (10 + 1.5 * lvl) * (hasEvolution('turret') ? 1.3 : 1) * (isOperator('engineer') ? 1.6 : 1);
       G.turrets.push({ x: G.player.x, y: G.player.y, angle: G.player.angle, fireCd: 0.2, life, max: life, lvl });
       G.stats.turrets = (G.stats.turrets || 0) + 1;
       spawnFloater(G.player.x, G.player.y - 26, 'TURRET DEPLOYED', '#b8c6d0', 11);
@@ -2886,7 +2929,12 @@ function damagePlayer(dmg) {
     sfx.swap();
     return;
   }
-  const taken = dmg * (G.diff ? G.diff.dmg : 1) * (odActive() ? 1.5 : 1) * (hasMutator('glass') ? 1.6 : 1);
+  const taken =
+    dmg *
+    (G.diff ? G.diff.dmg : 1) *
+    (odActive() ? 1.5 : 1) *
+    (hasMutator('glass') ? 1.6 : 1) *
+    (isOperator('vanguard') ? 0.9 : 1);
   G.hp -= taken;
   if (G.streak > 0) {
     G.streak = 0;
@@ -3118,7 +3166,8 @@ function openSalvage() {
   }
   const copy = pool.slice();
   const offers = [];
-  while (offers.length < 3 && copy.length > 0) {
+  const offerCount = isOperator('scavenger') ? 4 : 3;
+  while (offers.length < offerCount && copy.length > 0) {
     offers.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0].id);
   }
   G.relicOffers = offers;
@@ -3170,7 +3219,7 @@ function applyUpgrade(id) {
   G.skills[id]++;
   if (id === 'squad') addSoldier();
   if (id === 'vitality') {
-    G.maxHp = 100 + 10 * metaRank('armor') + 25 * G.skills.vitality;
+    G.maxHp = baseMaxHp() + 25 * G.skills.vitality;
     G.hp = Math.min(G.maxHp, G.hp + 25);
   }
   if (id === 'aegis') {
@@ -4621,7 +4670,7 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
   ctx.font = '10px Consolas, monospace';
-  ctx.fillText('LOADOUT', W - 200, 32);
+  ctx.fillText('LOADOUT · ' + operatorDef().name, W - 200, 32);
   ctx.fillStyle = '#8f9ba4';
   ctx.font = '600 9px Consolas, monospace';
   ctx.fillText(
@@ -5014,40 +5063,64 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 400);
+  ctx.fillText('OPERATOR', 92, 404);
+  OPERATOR_ORDER.forEach((id, i) => {
+    const op = OPERATORS.find((o) => o.id === id);
+    const chosen = setup.operator === id;
+    const x = 92 + i * 166;
+    const y = 410;
+    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 158, h: 26 });
+    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 26;
+    ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? op.color : 'rgba(224,178,92,0.22)';
+    rr(x, y, 158, 26, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? op.color : '#cfc6ad';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(op.name, x + 9, y + 12);
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(op.blurb, x + 9, y + 22);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 450);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
     const x = 92 + (i % 3) * 260;
-    const y = 406 + Math.floor(i / 3) * 30;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 248, h: 26 });
-    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 26;
+    const y = 456 + Math.floor(i / 3) * 26;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 248, h: 24 });
+    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 24;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 248, 26, 5);
+    rr(x, y, 248, 24, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
     ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(def.name, x + 10, y + 12);
+    ctx.fillText(def.name, x + 10, y + 11);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(def.blurb + '  ·  LOOT x' + def.shard, x + 10, y + 22);
+    ctx.fillText(def.blurb + '  ·  LOOT x' + def.shard, x + 10, y + 21);
   });
 
   drawButton(
     'setup-start',
     'DEPLOY',
     W / 2,
-    470,
+    512,
     380,
-    44,
+    40,
     WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
       findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
-      (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
+      operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
   );
-  drawButton('back-setup', 'BACK', W / 2, 524, 180, 32);
+  drawButton('back-setup', 'BACK', W / 2, 558, 180, 28);
 }
 
 function drawArmoryScreen() {
@@ -5658,7 +5731,7 @@ function drawOverScreen() {
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
       : 'SURVIVORS · WAVE ' + G.wave;
-  ctx.fillText(modeLine + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 266);
+  ctx.fillText(operatorDef().name + ' · ' + modeLine + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 266);
   if (G.relics.length) {
     const names = G.relics.map((id) => RELICS.find((r) => r.id === id).name).join(' · ');
     ctx.fillStyle = 'rgba(99,220,192,0.75)';
@@ -5848,6 +5921,11 @@ function pressButton(id) {
   }
   if (id === 'menu-over') {
     goMenu();
+    return;
+  }
+  if (id.indexOf('operator-') === 0) {
+    const op = id.slice(9);
+    if (OPERATOR_ORDER.indexOf(op) >= 0) setup.operator = op;
     return;
   }
   if (id.indexOf('mode-') === 0) {
@@ -6159,6 +6237,7 @@ window.Dustline = {
         passive: { used: slotsUsed('passive'), cap: slotCap('passive') }
       };
       snap.mode = G.mode;
+      snap.operator = G.operator;
       snap.rush = G.rush ? { index: G.rush.index, target: G.rush.target, alive: G.rush.alive, next: G.rush.next } : null;
       snap.relics = G.relics.slice();
       snap.relicOffers = G.relicOffers.slice();
