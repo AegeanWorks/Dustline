@@ -2193,3 +2193,85 @@ test('a full 150-mob frame stays inside the draw budget', () => {
   assert.ok(total < 7000, '150 mobs used ' + total + ' canvas ops');
   assert.ok((g.ops.ellipse || 0) < 400, 'ground ellipses stay cached, saw ' + (g.ops.ellipse || 0));
 });
+
+test('cached ground tiles share one base colour so seams do not show', () => {
+  const g = boot({ seed: 1801, record: true });
+  deploy(g, { map: 'desert' });
+  const bases = g.rects.filter((r) => r.w === 140 && r.h === 140);
+  assert.ok(bases.length >= 8, 'eight cached tile variants are painted, saw ' + bases.length);
+  const colors = new Set(bases.map((r) => r.fillStyle));
+  assert.strictEqual(colors.size, 1, 'tile base colours: ' + [...colors].join(', '));
+});
+
+test('terrain hazards blit a soft cached sprite instead of a hard ellipse', () => {
+  const g = boot({ seed: 1802, record: true });
+  deploy(g, { map: 'desert' });
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  let spot = null;
+  for (let y = -1500; y <= 1500 && !spot; y += 70) {
+    for (let x = -1500; x <= 1500 && !spot; x += 70) {
+      if (g.api.hazardAtPoint(x, y)) spot = { x, y };
+    }
+  }
+  assert.ok(spot, 'the seeded desert has a hazard to inspect');
+  g.api.setPlayer(spot.x, spot.y);
+  g.step();
+  const hard = g.fills.filter((f) => f.fillStyle === 'rgba(150,120,70,0.20)');
+  assert.strictEqual(hard.length, 0, 'hazard pools are not hard flat fills');
+  const soft = g.images.filter((i) => i.w >= 100 && i.w <= 220 && i.h <= i.w * 0.8);
+  assert.ok(soft.length >= 1, 'hazard pools are blitted from a soft sprite');
+});
+
+test('statistics keeps the kills-by-type block below the stat rows', () => {
+  const g = boot({ seed: 1803, record: true });
+  assert.ok(g.api.clickButton('statistics'));
+  g.steps(1);
+  const best = g.texts.find((t) => t.text === 'BEST WAVE');
+  const kills = g.texts.find((t) => t.text === 'KILLS BY TYPE');
+  assert.ok(best && kills, 'both statistics headings render');
+  assert.ok(kills.y > best.y + 16, 'kills-by-type baseline ' + kills.y + ' clears BEST WAVE at ' + best.y);
+});
+
+test('armory keeps insufficient-shard feedback inside its own row', () => {
+  const g = boot({ seed: 1804, record: true });
+  assert.ok(g.api.clickButton('armory'));
+  g.steps(1);
+  const need = g.texts.find((t) => /^NEED \d+$/.test(t.text));
+  const next = g.texts.find((t) => t.text === 'PLATE CARRIER');
+  assert.ok(need && next, 'a locked row and the next row both render');
+  assert.ok(need.y + 6 <= next.y - 17, 'NEED text at ' + need.y + ' must clear the next row label at ' + next.y);
+});
+
+test('the selected map card stays brighter than the unselected cards', () => {
+  const g = boot({ seed: 1805, record: true });
+  enterSetup(g);
+  const overlays = g.fills.filter((f) => f.fillStyle === '#06080a' && f.alpha < 1);
+  assert.ok(overlays.length >= 4, 'four map cards are painted, saw ' + overlays.length);
+  assert.ok(overlays[0].alpha < overlays[1].alpha, 'selected overlay ' + overlays[0].alpha + ' is lighter than ' + overlays[1].alpha);
+});
+
+test('the alert readout sits clear of the run line', () => {
+  const g = boot({ seed: 1806, record: true });
+  deploy(g);
+  const alert = g.texts.find((t) => /^ALERT \d+%/.test(t.text));
+  const run = g.texts.find((t) => /^W\d+ · L\d+ · /.test(t.text));
+  assert.ok(alert && run, 'alert and run line both render');
+  assert.ok(alert.y > run.y + 10, 'alert baseline ' + alert.y + ' must clear the run line at ' + run.y);
+});
+
+test('pause hides the combat bars and the achievement banner', () => {
+  const g = boot({ seed: 1807, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  g.steps(1);
+  g.key('escape');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'paused');
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('PAUSED'));
+  assert.ok(!labels.some((t) => /^ALERT /.test(t)), 'alert bar stays hidden while paused');
+  assert.ok(!labels.some((t) => t.includes('WARLORD')), 'boss bar stays hidden while paused');
+});
+

@@ -24,9 +24,11 @@ const TRACKED_OPS = new Set([
   'setLineDash', 'quadraticCurveTo', 'bezierCurveTo', 'clip'
 ]);
 
-function createCanvasStub(width, height, counter) {
+function createCanvasStub(width, height, counter, record) {
   const handlers = Object.create(null);
   const gradient = { addColorStop() {} };
+  const state = Object.create(null);
+  const log = record || null;
   const canvas = {
     width,
     height,
@@ -37,18 +39,57 @@ function createCanvasStub(width, height, counter) {
       handlers[type] = fn;
     }
   };
+  const count = (prop) => {
+    if (counter && TRACKED_OPS.has(String(prop))) counter[prop] = (counter[prop] || 0) + 1;
+  };
+  const alpha = () => (state.globalAlpha === undefined ? 1 : state.globalAlpha);
   const ctx = new Proxy(
     {},
     {
       get(_t, prop) {
         if (prop === 'canvas') return canvas;
         if (prop === 'measureText') return () => ({ width: 0 });
+        if (prop === 'fillText') {
+          return (text, x, y) => {
+            if (log) {
+              log.texts.push({
+                text: String(text),
+                x,
+                y,
+                font: state.font || '',
+                align: state.textAlign || 'left',
+                fillStyle: state.fillStyle
+              });
+            }
+            count(prop);
+          };
+        }
+        if (prop === 'fill') {
+          return () => {
+            if (log) log.fills.push({ fillStyle: state.fillStyle, alpha: alpha() });
+            count(prop);
+          };
+        }
+        if (prop === 'fillRect') {
+          return (x, y, w, h) => {
+            if (log) log.rects.push({ x, y, w, h, fillStyle: state.fillStyle, alpha: alpha() });
+            count(prop);
+          };
+        }
+        if (prop === 'drawImage') {
+          return (image, x, y, w, h) => {
+            if (log) log.images.push({ x, y, w, h });
+            count(prop);
+          };
+        }
+        if (Object.prototype.hasOwnProperty.call(state, prop)) return state[prop];
         return () => {
-          if (counter && TRACKED_OPS.has(String(prop))) counter[prop] = (counter[prop] || 0) + 1;
+          count(prop);
           return gradient;
         };
       },
-      set() {
+      set(_t, prop, value) {
+        state[prop] = value;
         return true;
       }
     }
@@ -61,7 +102,8 @@ function createGame(options) {
   const width = 960;
   const height = 600;
   const ops = Object.create(null);
-  const { canvas, handlers } = createCanvasStub(width, height, ops);
+  const record = opts.record ? { texts: [], fills: [], rects: [], images: [] } : null;
+  const { canvas, handlers } = createCanvasStub(width, height, ops, record);
   const winHandlers = Object.create(null);
   const clock = { now: 0, raf: null };
   const math = Object.create(Math);
@@ -78,7 +120,7 @@ function createGame(options) {
   const sandbox = {
     document: {
       getElementById: () => canvas,
-      createElement: (tag) => (tag === 'canvas' ? createCanvasStub(1, 1, null).canvas : { style: {} })
+      createElement: (tag) => (tag === 'canvas' ? createCanvasStub(1, 1, null, record).canvas : { style: {} })
     },
     window: win,
     performance: { now: () => clock.now },
@@ -111,6 +153,7 @@ function createGame(options) {
     if (!fn) throw new Error('game stopped scheduling frames');
     clock.raf = null;
     for (const key of Object.keys(ops)) delete ops[key];
+    if (record) for (const key of Object.keys(record)) record[key].length = 0;
     fn(clock.now);
   }
 
@@ -120,6 +163,10 @@ function createGame(options) {
     handlers,
     winHandlers,
     ops,
+    texts: record ? record.texts : [],
+    fills: record ? record.fills : [],
+    rects: record ? record.rects : [],
+    images: record ? record.images : [],
     step,
     steps(n, ms) {
       for (let i = 0; i < Math.max(0, n | 0); i++) step(ms);

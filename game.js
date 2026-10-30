@@ -1558,6 +1558,7 @@ function drawHazards(cam) {
   const def = mapDef();
   const hz = HAZARDS[def.hazard];
   if (!hz) return;
+  const sprite = hazardSprite();
   const TS = HAZARD_TILE;
   const x0 = Math.floor(cam.x / TS) - 1;
   const y0 = Math.floor(cam.y / TS) - 1;
@@ -1570,10 +1571,19 @@ function drawHazards(cam) {
       const cx = tx * TS + TS / 2 + (hash2(tx * 23, ty * 29) - 0.5) * 70;
       const cy = ty * TS + TS / 2 + (hash2(tx * 31, ty * 37) - 0.5) * 70;
       const r = 58 + hash2(tx * 41, ty * 43) * 40;
-      ctx.fillStyle = hz.color;
+      if (sprite) {
+        ctx.drawImage(sprite, cx - r, cy - r * 0.72, r * 2, r * 1.44);
+      } else {
+        ctx.fillStyle = hz.color;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r, r * 0.72, h * TAU, 0, TAU);
+        ctx.fill();
+      }
+      ctx.strokeStyle = withAlpha(hz.color, 0.5);
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(cx, cy, r, r * 0.72, h * TAU, 0, TAU);
-      ctx.fill();
+      ctx.stroke();
       if (def.hazard === 'embers') {
         ctx.fillStyle = 'rgba(255,140,80,' + (0.25 + 0.2 * Math.sin(uiT * 2 + tx)) + ')';
         ctx.beginPath();
@@ -3609,12 +3619,9 @@ function drawMenuBackdrop() {
   }
 }
 
-function groundColors(tx, ty) {
+function groundPalette() {
   const sky = mapDef().sky;
-  const h = hash2(tx, ty);
-  if (h < 0.33) return [sky[0], sky[1]];
-  if (h < 0.66) return [sky[1], sky[2]];
-  return [sky[2], sky[0]];
+  return { base: sky[1], warm: sky[0], cool: sky[2] };
 }
 
 const GROUND_TS = 140;
@@ -3622,6 +3629,41 @@ const GROUND_VARIANTS = 8;
 const groundCache = [];
 let groundCacheMap = null;
 let vignetteCanvas = null;
+const hazardCache = Object.create(null);
+let hazardCacheMap = null;
+
+function withAlpha(color, alpha) {
+  const match = /^rgba?\(([^)]+)\)$/.exec(String(color));
+  if (!match) return color;
+  const parts = match[1].split(',').map((part) => part.trim());
+  if (parts.length < 3) return color;
+  return 'rgba(' + parts[0] + ',' + parts[1] + ',' + parts[2] + ',' + alpha + ')';
+}
+
+function hazardSprite() {
+  const mapId = (G && G.map) || setup.map;
+  if (hazardCacheMap !== mapId) {
+    for (const key of Object.keys(hazardCache)) delete hazardCache[key];
+    hazardCacheMap = mapId;
+  }
+  const hz = HAZARDS[mapDef().hazard];
+  if (!hz) return null;
+  if (hazardCache[hz.name]) return hazardCache[hz.name];
+  if (!canOffscreen()) return null;
+  const size = 256;
+  const sprite = makeOffscreen(size, size);
+  const g = sprite.getContext && sprite.getContext('2d');
+  if (!g) return null;
+  const grad = g.createRadialGradient(size / 2, size / 2, 8, size / 2, size / 2, size / 2 - 4);
+  grad.addColorStop(0, withAlpha(hz.color, 0.65));
+  grad.addColorStop(0.5, withAlpha(hz.color, 0.45));
+  grad.addColorStop(0.82, withAlpha(hz.color, 0.22));
+  grad.addColorStop(1, withAlpha(hz.color, 0));
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+  hazardCache[hz.name] = sprite;
+  return sprite;
+}
 
 function groundTilesReady() {
   const mapId = (G && G.map) || setup.map;
@@ -3648,16 +3690,16 @@ function paintGroundTile(draw, tx, ty, absolute) {
   const TS = GROUND_TS;
   const ox = absolute ? tx * TS : 0;
   const oy = absolute ? ty * TS : 0;
-  const colors = groundColors(tx, ty);
+  const palette = groundPalette();
   const h = hash2(tx * 3, ty * 5);
-  draw.fillStyle = colors[0];
+  draw.fillStyle = palette.base;
   draw.fillRect(ox, oy, TS, TS);
-  draw.fillStyle = colors[1];
-  const px = ox + h * 74;
-  const py = oy + hash2(tx, ty * 7) * 74;
-  draw.globalAlpha = 0.55;
+  const px = ox + 42 + h * 56;
+  const py = oy + 38 + hash2(tx * 5, ty * 7) * 56;
+  draw.fillStyle = h < 0.5 ? palette.warm : palette.cool;
+  draw.globalAlpha = 0.10 + h * 0.07;
   draw.beginPath();
-  draw.ellipse(px, py, 44 + h * 30, 28 + h * 18, h * TAU, 0, TAU);
+  draw.ellipse(px, py, 24 + h * 14, 16 + h * 10, h * TAU, 0, TAU);
   draw.fill();
   draw.globalAlpha = 1;
   const detail = 1 + Math.floor(hash2(tx * 11, ty * 13) * 3);
@@ -3692,6 +3734,13 @@ function paintGroundTile(draw, tx, ty, absolute) {
       draw.lineTo(rx + 9, ry + 3);
       draw.stroke();
     }
+  }
+  const specks = 2 + Math.floor(hash2(tx * 43, ty * 47) * 4);
+  for (let i = 0; i < specks; i++) {
+    const sx = ox + 8 + hash2(tx * 53 + i, ty * 59 + i) * (TS - 16);
+    const sy = oy + 8 + hash2(tx * 61 + i, ty * 67 + i) * (TS - 16);
+    draw.fillStyle = hash2(tx * 71 + i, ty * 73 + i) < 0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+    draw.fillRect(sx, sy, 2, 2);
   }
 }
 
@@ -5035,7 +5084,7 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(6,10,13,0.62)';
-  ctx.fillRect(W / 2 - 104, 14, 208, 58);
+  ctx.fillRect(W / 2 - 104, 14, 208, 76);
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 30px Consolas, monospace';
   ctx.fillText(fmtTime(G.time), W / 2, 42);
@@ -5048,17 +5097,19 @@ function drawHUD() {
       : 'W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText;
   ctx.fillText((G.daily != null ? 'DAILY · ' : '') + runText, W / 2, 62);
 
-  const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
-  ctx.fillStyle = '#1d2a28';
-  ctx.fillRect(W / 2 - 104, 76, 208, 6);
-  ctx.fillStyle = alertColor;
-  ctx.fillRect(W / 2 - 104, 76, 208 * clamp(G.alert / 100, 0, 1), 6);
-  ctx.fillStyle = alertColor;
-  ctx.font = '600 9px Consolas, monospace';
-  const eventText = G.event ? '  ·  ' + G.event.name + ' ' + Math.ceil(G.eventT) + 's' : '';
-  ctx.textAlign = 'left';
-  ctx.fillText('ALERT ' + Math.round(G.alert) + '%' + eventText, W / 2 - 104, 72);
-  ctx.textAlign = 'center';
+  if (screen === 'play') {
+    const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
+    ctx.fillStyle = '#1d2a28';
+    ctx.fillRect(W / 2 - 104, 84, 208, 6);
+    ctx.fillStyle = alertColor;
+    ctx.fillRect(W / 2 - 104, 84, 208 * clamp(G.alert / 100, 0, 1), 6);
+    ctx.fillStyle = alertColor;
+    ctx.font = '600 9px Consolas, monospace';
+    const eventText = G.event ? '  ·  ' + G.event.name + ' ' + Math.ceil(G.eventT) + 's' : '';
+    ctx.textAlign = 'left';
+    ctx.fillText('ALERT ' + Math.round(G.alert) + '%' + eventText, W / 2 - 104, 80);
+    ctx.textAlign = 'center';
+  }
 
   const owned = SKILL_ORDER.filter((id) => G.skills[id] > 0);
   const rowH = 19;
@@ -5100,10 +5151,10 @@ function drawHUD() {
   }
 
   const boss = G.enemies.find((e) => e.boss && !e.dead);
-  if (boss) {
+  if (boss && screen === 'play') {
     const bw = 400;
     const bx = W / 2 - bw / 2;
-    const by = 86;
+    const by = 96;
     ctx.fillStyle = 'rgba(6,10,13,0.72)';
     ctx.fillRect(bx - 6, by, bw + 12, 32);
     ctx.fillStyle = '#2a1113';
@@ -5209,17 +5260,21 @@ function drawHUD() {
   ctx.fillStyle = '#d9fff4';
   ctx.fillText('XP ' + Math.floor(G.xp) + ' / ' + G.xpNext, W - 9, H - 4);
 
-  if (G.bannerT > 0) {
+  if (G.bannerT > 0 && screen === 'play') {
     const a = clamp(G.bannerT / 0.6, 0, 1);
+    ctx.save();
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
     ctx.fillStyle = '#ffd27a';
     ctx.font = '700 40px Consolas, monospace';
     ctx.fillText(G.banner, W / 2, 176);
-    ctx.fillStyle = 'rgba(230,220,200,0.78)';
+    ctx.fillStyle = 'rgba(230,220,200,0.9)';
     ctx.font = '600 13px Consolas, monospace';
     ctx.fillText(G.bannerSub || 'THE HORDE GROWS', W / 2, 200);
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   ctx.textAlign = 'left';
@@ -5380,7 +5435,7 @@ function drawSetupScreen() {
     ctx.fillStyle = m.sky[0];
     rr(x, y, 184, 54, 7);
     ctx.fill();
-    ctx.globalAlpha = chosen ? 0.55 : 0.3;
+    ctx.globalAlpha = chosen ? 0.3 : 0.55;
     ctx.fillStyle = '#06080a';
     rr(x, y, 184, 54, 7);
     ctx.fill();
@@ -5573,15 +5628,15 @@ function drawArmoryScreen() {
     ctx.fillText(meta.desc, 318, y + 31);
     for (let r = 0; r < meta.max; r++) {
       ctx.fillStyle = r < rank ? '#63dcc0' : 'rgba(255,255,255,0.12)';
-      ctx.fillRect(318 + r * 14, y + 35, 10, 3);
+      ctx.fillRect(548 + r * 14, y + 14, 10, 4);
     }
     const canBuy = !maxed && save.shards >= cost;
     drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 4, 76, 32);
     if (!canBuy && !maxed) {
       ctx.fillStyle = 'rgba(255,90,70,0.75)';
       ctx.font = '700 9px Consolas, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('NEED ' + cost, 636, y + 46);
+      ctx.textAlign = 'left';
+      ctx.fillText('NEED ' + cost, 548, y + 31);
     }
     ctx.textAlign = 'left';
   });
@@ -5644,16 +5699,16 @@ function drawStatisticsScreen() {
   const types = Object.keys(save.killsByType);
   ctx.fillStyle = 'rgba(180,175,155,0.7)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('KILLS BY TYPE', 142, 356);
+  ctx.fillText('KILLS BY TYPE', 142, 394);
   if (!types.length) {
     ctx.fillStyle = 'rgba(160,155,145,0.6)';
-    ctx.fillText('NO KILLS RECORDED YET', 142, 368);
+    ctx.fillText('NO KILLS RECORDED YET', 142, 408);
   } else {
     types.sort((a, b) => save.killsByType[b] - save.killsByType[a]);
     types.slice(0, 12).forEach((type, i) => {
       const def = ENEMY_TYPES[type] || BOSS_TYPES[type];
       const x = 142 + (i % 4) * 180;
-      const y = 370 + Math.floor(i / 4) * 28;
+      const y = 412 + Math.floor(i / 4) * 26;
       ctx.fillStyle = def ? def.color : '#888';
       ctx.beginPath();
       ctx.arc(x + 5, y + 3, 4.5, 0, TAU);
@@ -6060,7 +6115,7 @@ function drawPauseScreen() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 38px Consolas, monospace';
-  ctx.fillText('PAUSED', W / 2, 118);
+  ctx.fillText('PAUSED', W / 2, 128);
   drawButton('resume', 'RESUME', W / 2, 154, 260, 46);
   drawButton('mapview-pause', 'MAP', W / 2, 210, 260, 40);
   drawButton('upgrades-pause', 'UPGRADES', W / 2, 258, 260, 40);

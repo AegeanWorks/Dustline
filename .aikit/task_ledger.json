@@ -1,76 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-18",
-    "last_phase": "in_progress",
+    "task_id": "dustline-v0-19",
+    "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793396569.5667245,
-    "owner": "kilo:continue",
-    "started_by": "kilo:continue",
+    "updated_at": 1793399458.3972247,
+    "owner": "opencode:visual-audit",
+    "started_by": "opencode:visual-audit",
     "continuations": [],
-    "completed_at": 1793396569.705592
+    "completed_at": 1793399464.2850873
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-12",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: boss salvage crates with 3-card relic picker, 10 unique per-run relics wired to stat hooks, relic screen + world crate art, snapshot relics/salvage/mods, grantRelic and spawnSalvage seams; 86/86 tests, 5/5 gates, live crate-pick probe and 84s endurance probe with all 10 relics OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793385168.7520614,
-      "timestamp_str": "2026-10-30 21:32:48",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-12",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-12' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793385168.9115834,
-      "timestamp_str": "2026-10-30 21:32:48",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-13",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.13 Boss Rush mode - mode selector at setup, boss-only progression with intermissions, 8-boss victory, mode-aware HUD and snapshot",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793385388.7230587,
-      "timestamp_str": "2026-10-30 21:36:28",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Every run is the same wave-survival loop; the eight boss fights are the highlight but arrive once every five waves, and there is no short-session or mastery mode",
-        "benefits": "Adds a focused replayable mode that showcases the boss roster, gives short sessions a clear win condition and reuses existing boss, affix and relic systems",
-        "risks": "contract: setup and snapshot gain a mode field, run loop branches; dependency: none; concurrency: ledger shared; state: no save-schema change, mode not persisted",
-        "mitigation": "Default mode stays survivors so all existing flows and tests are unchanged, gate boss spawn/kill paths behind G.mode, full suite and mode-specific tests before commit"
-      }
-    },
-    {
-      "task_id": "dustline-v0-13",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: Boss Rush mode with setup selector, boss-only progression in fixed order with 14%/slot HP ramp and 40% affix chance, 4s intermissions with 30% heal, 8-boss victory, mode-aware HUD/snapshot; 88/88 tests, 5/5 gates, full rush-clear probe (42s, victory), rush relic pick probe and survivors regression probe OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793386786.5954823,
-      "timestamp_str": "2026-10-30 21:59:46",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-13",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-13' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793386786.862748,
-      "timestamp_str": "2026-10-30 21:59:46",
-      "agent": "kilo:continue"
-    },
     {
       "task_id": "dustline-v0-14",
       "phase": "in_progress",
@@ -260,6 +201,66 @@
       "timestamp": 1793396569.7055933,
       "timestamp_str": "2026-10-31 00:42:49",
       "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-19",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Plan: v0.19 screenshot-driven visual QA - soften seamless ground and hazards, fix statistics, armory, setup map and HUD/pause layout collisions, add text-layout regression capture, verify with fresh shots and the project gate",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793397622.2899988,
+      "timestamp_str": "2026-10-31 01:00:22",
+      "agent": "opencode:visual-audit",
+      "impact_assessment": {
+        "why": "Fresh canvas screenshots of the menu, setup, armory, statistics, manual, HUD, pause, level-up, relic and boss states show ground-tile seams and hard-edged hazard blobs, a statistics section drawn over the last stat row, armory NEED text and rank pips colliding with rows, a selected map card rendered dimmer than unselected cards, an alert label straddling the timer panel, and a PAUSED title over the boss bar",
+        "benefits": "Cleaner terrain and hazard readability on every map, no overlapping layout text on three screens, a clear selected-map state, a calm pause overlay, and harness-level text-position tests that pin these visual regressions",
+        "risks": "contract: rendering helpers and HUD text positions change, but snapshot, save schema and mechanics stay unchanged; dependency: none; concurrency: ledger shared; state: none",
+        "mitigation": "Keep draw order and existing draw-op budgets, cache hazard sprites instead of adding per-frame gradients, add a harness fillText recorder with focused layout assertions, rerun all 110 tests plus new tests, capture before/after screenshots, then run python aikit.py check dustline"
+      }
+    },
+    {
+      "task_id": "dustline-v0-19",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/4] Rendering polish: ground variants now share one base colour with low-alpha patches, cracks and specks so cached 140px tiles no longer seam; hazards render from a per-map cached 256px radial sprite with a faint rim and a fallback ellipse, replacing flat hard-edged pools; verified by a new drawImage/fill layout recorder in the harness",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793399400.4670472,
+      "timestamp_str": "2026-10-31 01:30:00",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-19",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] Layout and regression tests complete: statistics kills-by-type block moved below the stat grid, armory rank pips and NEED text moved inside each row, selected setup map now uses the lighter overlay, timer panel contains the alert label/bar, boss bar moved below it, pause hides combat readouts and live banners with the title at y=128; added opt-in fillText/fill/rect/drawImage recorder and 7 tests (ground base, soft hazards, statistics, armory, setup map, alert, pause); 117/117 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793399429.7698007,
+      "timestamp_str": "2026-10-31 01:30:29",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-19",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Verification complete: 117/117 tests pass, python aikit.py check dustline reports 5/5 gates, and fresh canvas captures of menu, setup, statistics, armory, all four maps, a hazard centre and the pause overlay confirm seamless ground, visible soft hazards with rims, fixed statistics/armory/HUD layout, a clear selected map and a collision-free pause; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793399458.3972247,
+      "timestamp_str": "2026-10-31 01:30:58",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-19",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-19' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793399464.2850885,
+      "timestamp_str": "2026-10-31 01:31:04",
+      "agent": "opencode:visual-audit"
     }
   ]
 }
