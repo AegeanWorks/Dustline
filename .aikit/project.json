@@ -21,6 +21,12 @@
   "ui_evidence": [
     "index.html"
   ],
-  "ui_checked_at": "2026-10-28",
-  "ui_source": "manual"
+  "ui_checked_at": "2026-10-29",
+  "ui_source": "manual",
+  "mechanics": {
+    "core": [
+      "game.js"
+    ],
+    "test": "node --test tests"
+  }
 }

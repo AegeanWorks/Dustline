@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dustline — 2D CS Arena</title>
+<title>Dustline: Survivors</title>
 <style>
   html, body { margin: 0; height: 100%; background: #07090b; }
   body {
@@ -15,12 +15,12 @@
   canvas {
     width: 100%; height: auto; display: block; border-radius: 8px;
     box-shadow: 0 0 0 1px #2a333a, 0 24px 70px rgba(0, 0, 0, 0.7);
-    cursor: none; background: #151d21;
+    cursor: pointer; background: #151d21;
   }
   #hint {
     position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
     color: #5c6b74; font-size: 11px; white-space: nowrap;
-    letter-spacing: 0.1em; user-select: none;
+    letter-spacing: 0.08em; user-select: none;
   }
 </style>
 </head>
@@ -28,7 +28,7 @@
   <div id="wrap">
     <canvas id="game" width="960" height="600"></canvas>
   </div>
-  <div id="hint">WASD MOVE &middot; MOUSE AIM &middot; CLICK FIRE &middot; 1/2 SWAP &middot; R RELOAD &middot; SHIFT SPRINT &middot; ESC PAUSE</div>
+  <div id="hint">WASD MOVE &middot; SHIFT DASH &middot; E BOMB &middot; R OVERDRIVE &middot; M MAP &middot; ESC PAUSE</div>
   <script src="game.js"></script>
 </body>
 </html>

@@ -4,63 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { createGame } = require('./harness');
 
-test('boots into wave 1 with a full magazine and no enemies yet', () => {
-  const g = createGame();
-  g.steps(1);
-  const s = g.api.snapshot();
-  assert.strictEqual(s.state, 'play');
-  assert.strictEqual(s.wave, 1);
-  assert.strictEqual(s.hp, 100);
-  assert.strictEqual(s.ammo, 30);
-  assert.ok(s.walls.length > 0);
-});
-
-test('spawns hostiles that close in on the player', () => {
-  const g = createGame({ seed: 7 });
-  g.steps(60);
-  const early = g.api.snapshot();
-  assert.ok(early.enemies.length > 0, 'expected hostiles on the field');
-  for (const e of early.enemies) {
-    assert.ok(e.x > 0 && e.x < 960 && e.y > 0 && e.y < 600);
-    assert.ok(Math.hypot(e.x - early.player.x, e.y - early.player.y) >= 330, 'spawn keeps distance');
-  }
-  const near = (s) => Math.min(...s.enemies.map((e) => Math.hypot(e.x - s.player.x, e.y - s.player.y)));
-  g.steps(240);
-  const late = g.api.snapshot();
-  assert.ok(near(late) < near(early), 'hostiles should approach the player');
-  assert.ok(near(late) < 320, 'hostiles should reach engagement range');
-});
-
-test('switches weapons and the USP fires once per press', () => {
-  const g = createGame({ seed: 5 });
-  g.steps(1);
-  g.key('2');
-  let s = g.api.snapshot();
-  assert.strictEqual(s.weapon, 'pistol');
-  assert.strictEqual(s.ammo, 12);
-  g.move(700, 200);
-  g.down(700, 200);
-  g.steps(40);
-  s = g.api.snapshot();
-  assert.strictEqual(s.ammo, 11, 'holding the trigger must not autofire the USP');
-  g.up();
-  g.down(700, 200);
-  g.steps(20);
-  s = g.api.snapshot();
-  assert.strictEqual(s.ammo, 10, 'a fresh press fires again');
-  g.up();
-  g.key('1');
-  s = g.api.snapshot();
-  assert.strictEqual(s.weapon, 'ak');
-  assert.strictEqual(s.ammo, 30, 'each slot keeps its own magazine');
-  assert.strictEqual(s.slots.pistol.ammo, 10);
-  g.key('q');
-  assert.strictEqual(g.api.snapshot().weapon, 'pistol');
-});
-
-test('best score is recorded and restored from storage', () => {
-  const store = {
-    data: Object.create(null),
+function makeStore(initial) {
+  return {
+    data: Object.assign(Object.create(null), initial || {}),
     getItem(key) {
       return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null;
     },
@@ -68,135 +14,887 @@ test('best score is recorded and restored from storage', () => {
       this.data[key] = String(value);
     }
   };
-  const g = createGame({ seed: 9, storage: store });
-  g.steps(60);
-  g.api.wipeEnemies();
+}
+
+function boot(options) {
+  const g = createGame(options);
+  g.steps(2);
+  return g;
+}
+
+function enterSetup(g) {
+  assert.ok(g.api.clickButton('play'), 'play button exists');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'setup');
+}
+
+function deploy(g, opts) {
+  if (g.api.snapshot().screen === 'menu') enterSetup(g);
+  if (opts && opts.weapon) g.api.clickButton('weapon-' + opts.weapon);
+  if (opts && opts.map) g.api.clickButton('map-' + opts.map);
+  if (opts && opts.limit) g.api.clickButton('limit-' + opts.limit);
+  if (opts) g.steps(1);
+  assert.ok(g.api.clickButton('setup-start'), 'deploy button exists');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'play');
+}
+
+test('boots to the main menu with the full navigation', () => {
+  const g = boot();
   const s = g.api.snapshot();
-  assert.ok(s.kills > 0, 'the wipe should bank kills');
-  assert.strictEqual(s.best, s.score);
-  assert.strictEqual(store.data['dustline.best'], String(s.score));
-  g.api.reset();
-  assert.strictEqual(g.api.snapshot().best, s.score, 'reset keeps the record');
-  const g2 = createGame({ seed: 9, storage: store });
-  g2.steps(1);
-  assert.strictEqual(g2.api.snapshot().best, s.score);
+  assert.strictEqual(s.screen, 'menu');
+  assert.strictEqual(
+    JSON.stringify(s.buttons.map((b) => b.id)),
+    JSON.stringify(['play', 'armory', 'statistics', 'upgrades', 'settings', 'help'])
+  );
+  assert.strictEqual(s.settings.volume, 70);
+  assert.strictEqual(s.save.shards, 0);
+  assert.strictEqual(s.save.runs, 0);
 });
 
-test('clicks while paused neither fire nor queue a shot', () => {
-  const g = createGame({ seed: 4 });
+test('the setup screen offers weapons, maps and time limits that apply to the run', () => {
+  const g = boot({ seed: 3 });
+  enterSetup(g);
+  const ids = g.api.snapshot().buttons.map((b) => b.id);
+  for (const weapon of ['ak', 'smg', 'spas', 'dmr']) assert.ok(ids.includes('weapon-' + weapon), weapon);
+  for (const map of ['desert', 'frost', 'ash', 'jungle']) assert.ok(ids.includes('map-' + map), map);
+  for (const limit of ['endless', '5', '10', '15']) assert.ok(ids.includes('limit-' + limit), limit);
+
+  g.api.clickButton('weapon-dmr');
+  g.api.clickButton('map-jungle');
+  g.api.clickButton('limit-10');
   g.steps(1);
-  g.key('escape');
-  assert.strictEqual(g.api.snapshot().paused, true);
-  g.down(700, 200);
-  g.steps(30);
-  assert.strictEqual(g.api.snapshot().ammo, 30);
-  g.key('escape');
-  g.steps(30);
-  assert.strictEqual(g.api.snapshot().ammo, 30, 'resume must not replay a paused click');
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10' }));
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.strictEqual(s.weapon, 'dmr');
+  assert.strictEqual(s.map, 'jungle');
+  assert.strictEqual(s.limitSec, 600);
+  assert.strictEqual(s.skills.dmr, 1);
+  assert.strictEqual(s.skills.rifle, 0);
 });
 
-test('entities never settle inside solid cover', () => {
-  const g = createGame({ seed: 11 });
+test('deploy starts a run alone with the chosen weapon', () => {
+  const g = boot({ seed: 5 });
+  deploy(g);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.hp, 100);
+  assert.strictEqual(s.maxHp, 100);
+  assert.strictEqual(s.squad, 0, 'you start alone');
+  assert.strictEqual(s.soldiers.length, 0);
+  assert.strictEqual(s.skills.rifle, 1);
+  assert.strictEqual(s.skills.squad, 0);
+  assert.ok(s.time < 0.05);
+  assert.strictEqual(s.enemyTypes.length, 0);
+  assert.ok(s.explored > 0, 'the start area is explored');
+});
+
+test('the squad and weapon auto-fire at hostiles', () => {
+  const g = boot({ seed: 7 });
+  deploy(g);
+  g.api.applyUpgrade('squad');
+  g.api.spawnEnemy('grunt', 150, 0);
+  g.steps(240);
+  const s = g.api.snapshot();
+  assert.ok(s.shots.rifle > 0);
+  assert.ok(s.shots.soldier > 0);
+  assert.ok(s.kills >= 1);
+  assert.strictEqual(s.hp, 100);
+});
+
+test('squad upgrades add soldiers that keep formation', () => {
+  const g = boot({ seed: 11 });
+  deploy(g);
+  assert.ok(g.api.applyUpgrade('squad'));
+  assert.ok(g.api.applyUpgrade('squad'));
+  g.steps(60);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.squad, 2);
+  for (const soldier of s.soldiers) {
+    assert.ok(Math.hypot(soldier.x - s.player.x, soldier.y - s.player.y) < 120);
+  }
+  g.api.spawnEnemy('tank', 150, 0);
+  g.steps(60);
+  assert.ok(g.api.snapshot().shots.soldier >= 2);
+});
+
+test('every mob type exists with distinct stats', () => {
+  const g = boot({ seed: 13 });
+  deploy(g);
+  const types = ['grunt', 'runner', 'tank', 'marksman', 'spitter', 'bomber', 'swarm', 'warden', 'weaver', 'splitter', 'leech'];
+  types.forEach((type, i) => g.api.spawnEnemy(type, 240 + i * 10, -140 + i * 30));
   g.steps(1);
-  g.key('d');
-  for (let i = 0; i < 900; i++) {
-    if (i % 120 === 0) g.move(120 + ((i * 7) % 700), 120 + ((i * 11) % 360));
-    if (i % 240 === 0) g.down(700, 200);
+  const s = g.api.snapshot();
+  for (const type of types) assert.ok(s.enemyTypes.includes(type), type + ' should be on the field');
+  const byType = {};
+  for (const enemy of s.enemies) byType[enemy.type] = enemy;
+  assert.ok(byType.tank.r > byType.swarm.r, 'tanks are bigger than swarmlings');
+  assert.ok(byType.tank.maxHp > byType.grunt.maxHp, 'tanks are tougher than crawlers');
+  assert.ok(byType.runner.maxHp < byType.grunt.maxHp, 'stalkers are fragile');
+});
+
+test('enemy projectiles are red', () => {
+  const g = boot({ seed: 17 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('marksman', 260, 0);
+  let colors = [];
+  for (let i = 0; i < 240; i++) {
     g.step();
     const s = g.api.snapshot();
-    const bodies = [{ x: s.player.x, y: s.player.y, r: s.player.r }].concat(s.enemies);
-    for (const body of bodies) {
-      for (const w of s.walls) {
-        const nx = Math.max(w.x, Math.min(body.x, w.x + w.w));
-        const ny = Math.max(w.y, Math.min(body.y, w.y + w.h));
-        const gap = Math.hypot(body.x - nx, body.y - ny);
-        assert.ok(gap >= body.r - 0.5, 'body intersects cover at frame ' + i);
-      }
-      assert.ok(body.x >= 0 && body.x <= 960 && body.y >= 0 && body.y <= 600);
-    }
+    if (s.bullets.includes('e')) colors = colors.concat(s.bulletColors);
   }
+  assert.ok(colors.length > 0, 'the hexer must fire');
+  assert.ok(colors.includes('#ff3b30'), 'enemy bullets are red: ' + colors.join(','));
 });
 
-test('combat helpers stay hidden outside the test harness', () => {
-  const g = createGame({ testSeam: false });
+test('leveling offers three distinct upgrades and enforces the cap', () => {
+  const g = boot({ seed: 19 });
+  deploy(g);
+  g.api.giveXp(10);
   g.steps(1);
-  assert.strictEqual(typeof g.api.snapshot, 'function');
-  assert.strictEqual(g.api.damage, undefined);
-  assert.strictEqual(g.api.wipeEnemies, undefined);
-});
-
-test('walls block movement', () => {
-  const g = createGame();
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'levelup');
+  assert.strictEqual(s.level, 2);
+  assert.strictEqual(s.offers.length, 3);
+  assert.strictEqual(new Set(s.offers).size, 3);
+  const chosen = s.offers[0];
+  const before = s.skills[chosen];
+  assert.ok(g.api.clickButton('upgrade-0'));
   g.steps(1);
-  const start = g.api.snapshot().player;
-  g.key('s');
-  g.steps(120);
-  g.key('s', false);
-  const end = g.api.snapshot().player;
-  assert.ok(end.y > start.y + 20, 'player should move down');
-  const crate = g.api.snapshot().walls.find((w) => Math.abs(w.x - 430) < 1 && Math.abs(w.y - 250) < 1);
-  assert.ok(crate, 'central crate exists');
-  assert.ok(end.y <= crate.y - end.r + 0.5, 'player must stop at the crate face');
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.strictEqual(s.skills[chosen], before + 1);
+
+  for (let i = 0; i < 8; i++) g.api.applyUpgrade('rifle');
+  assert.strictEqual(g.api.snapshot().skills.rifle, 5, 'skills cap at level 5');
+  assert.strictEqual(g.api.applyUpgrade('rifle'), false);
 });
 
-test('kill, score and wave advance', () => {
-  const g = createGame();
-  g.steps(60);
-  assert.ok(g.api.snapshot().enemies.length > 0);
-  g.api.wipeEnemies();
-  assert.strictEqual(g.api.snapshot().score, g.api.snapshot().kills * 100);
-  let wave = 1;
-  for (let i = 0; i < 900 && wave < 2; i++) {
-    if (i % 8 === 0) g.api.wipeEnemies();
-    g.step();
-    wave = g.api.snapshot().wave;
-  }
+test('blades, grenades and dash damage the horde', () => {
+  const g = boot({ seed: 23 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.applyUpgrade('blades'));
+  assert.ok(g.api.applyUpgrade('grenade'));
+  g.api.spawnEnemy('tank', 55, 0);
+  g.api.spawnEnemy('tank', -55, 0);
+  g.steps(320);
+  let s = g.api.snapshot();
+  assert.ok(s.stats.bladeHits > 0, 'orbiting blades must connect');
+  assert.ok(s.stats.grenadeHits > 0, 'grenades must connect');
+
+  const d = boot({ seed: 24 });
+  deploy(d);
+  d.api.setInvulnerable(true);
+  assert.ok(d.api.applyUpgrade('dashPower'));
+  d.api.spawnEnemy('tank', 46, 0);
+  d.steps(1);
+  const before = d.api.snapshot().enemies
+    .filter((e) => e.type === 'tank')
+    .reduce((sum, e) => sum + e.hp, 0);
+  assert.ok(before > 0, 'the tank is alive');
+  d.key('d');
+  d.key('shift');
+  d.steps(6);
+  d.key('shift', false);
+  d.key('d', false);
+  const after = d.api.snapshot().enemies
+    .filter((e) => e.type === 'tank')
+    .reduce((sum, e) => sum + e.hp, 0);
+  assert.ok(after < before, 'dash with Shock Boots damages enemies');
+});
+
+test('throwing a bomb hits the thickest part of the horde', () => {
+  const g = boot({ seed: 29 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 70, 0);
+  g.api.spawnEnemy('grunt', 60, 20);
+  g.api.spawnEnemy('grunt', 80, -10);
+  assert.ok(g.api.throwBomb(), 'bomb thrown');
+  assert.strictEqual(g.api.snapshot().bomb.ready, false);
+  g.steps(70);
   const s = g.api.snapshot();
-  assert.strictEqual(s.wave, 2);
-  assert.strictEqual(s.hp, 100, 'wave 2 restores health');
-  assert.ok(s.score >= 400, 'each hostile is worth 100');
+  assert.strictEqual(s.stats.bombs, 1);
+  assert.ok(s.kills >= 2, 'the bomb clears the cluster');
+
+  const g2 = boot({ seed: 31 });
+  deploy(g2);
+  g2.api.spawnEnemy('grunt', 90, 0);
+  g2.key('e');
+  g2.steps(1);
+  assert.ok(g2.api.snapshot().bombs > 0, 'E also throws a bomb');
 });
 
-test('firing consumes ammo and reload refills from reserve', () => {
-  const g = createGame();
-  g.steps(1);
-  g.move(700, 200);
-  g.down(700, 200);
-  g.steps(30);
-  g.up();
-  const fired = g.api.snapshot();
-  assert.ok(fired.ammo < 30, 'firing must consume ammo');
-  g.key('r');
-  g.steps(140);
-  const reloaded = g.api.snapshot();
-  assert.strictEqual(reloaded.reloading, false);
-  assert.ok(reloaded.ammo > fired.ammo, 'reload refills the magazine');
-  assert.ok(reloaded.reserve < 150, 'reload draws from reserve');
+test('lifesteal heals on damage dealt', () => {
+  const g = boot({ seed: 37 });
+  deploy(g);
+  g.api.hurt(45);
+  const low = g.api.snapshot().hp;
+  assert.ok(low < 100);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.applyUpgrade('lifesteal'));
+  assert.ok(g.api.applyUpgrade('lifesteal'));
+  g.api.applyUpgrade('damage');
+  g.api.applyUpgrade('damage');
+  g.api.spawnEnemy('tank', 90, 0);
+  g.steps(600);
+  const s = g.api.snapshot();
+  assert.ok(s.kills >= 1, 'the tank dies');
+  assert.ok(s.stats.healing > 0, 'healing was recorded');
+  assert.ok(s.hp > low, 'lifesteal restores health');
 });
 
-test('death ends the run and Enter redeploys', () => {
-  const g = createGame();
+test('skill pairs unlock combos once both reach level 2', () => {
+  const g = boot({ seed: 41 });
+  deploy(g);
+  g.api.applyUpgrade('bulletSpeed');
+  g.api.applyUpgrade('bulletSpeed');
+  assert.ok(!g.api.snapshot().combos.includes('overclocked'), 'rifle is still level 1');
+  g.api.applyUpgrade('rifle');
+  assert.ok(g.api.snapshot().combos.includes('overclocked'));
+  g.api.applyUpgrade('blades');
+  g.api.applyUpgrade('blades');
+  g.api.applyUpgrade('dashPower');
+  g.api.applyUpgrade('dashPower');
+  const combos = g.api.snapshot().combos;
+  assert.ok(combos.includes('riposte'));
+  assert.ok(combos.includes('overclocked'));
+});
+
+test('every fifth wave brings a different boss, and bosses attack', () => {
+  const g = boot({ seed: 43 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(160);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.wave, 5);
+  assert.ok(s.boss);
+  assert.strictEqual(s.boss.type, 'warlord');
+  assert.ok(s.boss.maxHp > 1500, 'bosses are much tougher than mobs');
+
+  g.api.killEnemies();
   g.steps(1);
-  g.api.damage(999);
+  g.api.setTime(360);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.wave, 10);
+  assert.strictEqual(s.boss.type, 'overseer');
+
+  g.api.killEnemies();
+  g.steps(1);
+  g.api.setTime(560);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.wave, 15);
+  assert.strictEqual(s.boss.type, 'bombardier');
+
+  const h = boot({ seed: 47 });
+  deploy(h);
+  h.api.setInvulnerable(true);
+  h.api.spawnBoss('overseer');
+  let sawBullet = false;
+  let sawBomb = false;
+  h.api.spawnBoss('bombardier');
+  for (let i = 0; i < 420; i++) {
+    h.step();
+    const snap = h.api.snapshot();
+    if (snap.bullets.includes('e')) sawBullet = true;
+    if (snap.bombs > 0) sawBomb = true;
+  }
+  assert.ok(sawBullet, 'the overseer shoots');
+  assert.ok(sawBomb, 'the bombardier throws bombs');
+});
+
+test('bosses drop loot and are recorded', () => {
+  const g = boot({ seed: 53 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  g.steps(1);
+  const gems = g.api.snapshot().gems;
+  g.api.killEnemies();
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.boss, null);
+  assert.strictEqual(s.bossKills, 1);
+  assert.ok(s.medkits >= 1, 'boss drops a medkit');
+  assert.ok(s.gems > gems, 'boss showers gems');
+});
+
+test('the magnet also pulls medkits', () => {
+  const g = boot({ seed: 59 });
+  deploy(g);
+  g.api.hurt(40);
+  const low = g.api.snapshot().hp;
+  g.api.applyUpgrade('magnet');
+  g.api.applyUpgrade('magnet');
+  g.api.spawnMedkit(150, 0);
   g.steps(40);
-  assert.strictEqual(g.api.snapshot().state, 'over');
-  g.key('enter');
   const s = g.api.snapshot();
-  assert.strictEqual(s.state, 'play');
-  assert.strictEqual(s.hp, 100);
-  assert.strictEqual(s.score, 0);
-  assert.strictEqual(s.wave, 1);
+  assert.strictEqual(s.medkits, 0, 'the medkit was pulled in and collected');
+  assert.ok(s.hp > low, 'the medkit healed');
 });
 
-test('pause freezes simulation updates', () => {
-  const g = createGame();
+test('buildings, rocks and trees populate the map and block bodies', () => {
+  const g = boot({ seed: 61 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  let building = null;
+  for (let radius = 400; radius <= 3000 && !building; radius += 300) {
+    building = g.api.props(0, 0, radius).find((p) => p.kind === 'building');
+  }
+  assert.ok(building, 'the map has at least one building');
+  const all = g.api.props(0, 0, 2400);
+  assert.ok(all.some((p) => p.kind === 'rock'), 'rocks exist');
+  assert.ok(all.some((p) => p.kind === 'tree'), 'trees exist');
+  assert.ok(all.every((p) => Math.hypot(p.x, p.y) >= 300), 'props avoid the spawn area');
+
+  g.api.setPlayer(building.x, building.y);
   g.steps(1);
+  const s = g.api.snapshot();
+  const dx = Math.max(0, Math.abs(s.player.x - building.x) - building.w / 2);
+  const dy = Math.max(0, Math.abs(s.player.y - building.y) - building.h / 2);
+  assert.ok(Math.hypot(dx, dy) >= 14, 'the player is pushed out of the building');
+});
+
+test('the map viewer opens from play and pause', () => {
+  const g = boot({ seed: 67 });
+  deploy(g);
+  g.steps(30);
+  g.key('m');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'mapview');
+  assert.ok(g.api.snapshot().buttons.some((b) => b.id === 'map-close'));
+  assert.ok(g.api.clickButton('map-close'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'play');
+
   g.key('escape');
-  const before = g.api.snapshot();
+  g.steps(1);
+  assert.ok(g.api.clickButton('mapview-pause'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'mapview');
+  assert.ok(g.api.clickButton('map-close'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'paused');
+});
+
+test('the armory spends shards on permanent upgrades', () => {
+  const g = boot({ seed: 71, storage: makeStore() });
+  g.api.grantShards(500);
+  assert.ok(g.api.clickButton('armory'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'armory');
+  const before = g.api.snapshot().save.shards;
+  assert.ok(g.api.buyMeta('armor'));
+  assert.ok(g.api.buyMeta('power'));
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.save.meta.armor, 1);
+  assert.strictEqual(s.save.meta.power, 1);
+  assert.ok(s.save.shards < before);
+  assert.ok(g.api.clickButton('back-armory'));
+  g.steps(1);
+  deploy(g);
+  const run = g.api.snapshot();
+  assert.strictEqual(run.maxHp, 110, 'armor raises max health');
+  assert.strictEqual(run.hp, 110);
+});
+
+test('statistics are reachable from the menu and the run-over screen', () => {
+  const g = boot({ seed: 73 });
+  assert.ok(g.api.clickButton('statistics'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'statistics');
+  assert.ok(g.api.clickButton('back-stats'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu');
+
+  deploy(g);
+  g.api.hurt(999);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().screen, 'over');
+  assert.ok(g.api.clickButton('stats-over'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'statistics');
+  assert.ok(g.api.clickButton('back-stats'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'over');
+});
+
+test('settings persist and apply from both menu and pause', () => {
+  const store = makeStore();
+  const g = boot({ seed: 79, storage: store });
+  assert.ok(g.api.clickButton('settings'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('volume-up'));
+  assert.ok(g.api.clickButton('volume-up'));
+  assert.ok(g.api.clickButton('shake'));
+  assert.ok(g.api.clickButton('damage-numbers'));
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.settings.volume, 90);
+  assert.strictEqual(s.settings.shake, false);
+  assert.strictEqual(s.settings.damageNumbers, false);
+  assert.ok(g.api.clickButton('back-settings'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu');
+
+  const g2 = boot({ seed: 79, storage: store });
+  assert.strictEqual(JSON.stringify(g2.api.snapshot().settings), JSON.stringify(s.settings));
+
+  deploy(g2);
+  g2.key('escape');
+  g2.steps(1);
+  assert.ok(g2.api.clickButton('settings-pause'));
+  g2.steps(1);
+  assert.strictEqual(g2.api.snapshot().screen, 'settings');
+  assert.ok(g2.api.clickButton('back-settings'));
+  g2.steps(1);
+  assert.strictEqual(g2.api.snapshot().screen, 'paused');
+});
+
+test('pause freezes the run and restart resets it', () => {
+  const g = boot({ seed: 83 });
+  deploy(g, { weapon: 'spas', map: 'frost', limit: '5' });
   g.steps(60);
-  const after = g.api.snapshot();
-  assert.strictEqual(after.paused, true);
-  assert.deepStrictEqual(after.enemies, before.enemies);
+  const before = g.api.snapshot();
   g.key('escape');
-  assert.strictEqual(g.api.snapshot().paused, false);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'paused');
+  g.steps(60);
+  assert.strictEqual(g.api.snapshot().time, before.time);
+  assert.ok(g.api.clickButton('resume'));
+  g.steps(10);
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('restart'));
+  g.steps(1);
+  const fresh = g.api.snapshot();
+  assert.strictEqual(fresh.screen, 'play');
+  assert.ok(fresh.time < 0.1);
+  assert.strictEqual(fresh.kills, 0);
+  assert.strictEqual(fresh.weapon, 'spas', 'restart keeps the loadout');
+  assert.strictEqual(fresh.map, 'frost');
+});
+
+test('death records progress and retry starts over', () => {
+  const store = makeStore();
+  const g = boot({ seed: 89, storage: store });
+  deploy(g);
+  g.steps(30);
+  g.api.spawnEnemy('grunt', 120, 0);
+  g.steps(90);
+  const survived = g.api.snapshot().time;
+  g.api.hurt(999);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.hp, 0);
+  assert.ok(s.save.bestTime >= survived);
+  assert.ok(s.save.runs >= 1);
+  assert.ok(s.save.shards > 0);
+  assert.ok(store.data['dustline.save'], 'progress is stored');
+  assert.ok(g.api.clickButton('retry'));
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.ok(s.time < 0.1);
+  assert.strictEqual(s.level, 1);
+  assert.ok(s.save.bestTime >= survived);
+});
+
+test('hitting the time limit wins the run', () => {
+  const g = boot({ seed: 97 });
+  deploy(g, { limit: '5' });
+  g.api.setInvulnerable(true);
+  g.api.setTime(299.5);
+  g.steps(60);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.victory, true);
+  assert.strictEqual(s.save.wins, 1);
+  assert.ok(s.shardsEarned > 0);
+});
+
+test('progress persists across sessions', () => {
+  const store = makeStore();
+  const g = boot({ seed: 101, storage: store });
+  deploy(g, { limit: '5' });
+  g.api.setInvulnerable(true);
+  g.api.setTime(299.5);
+  g.steps(60);
+  const earned = g.api.snapshot().save;
+
+  const g2 = boot({ seed: 103, storage: store });
+  const loaded = g2.api.snapshot().save;
+  assert.strictEqual(loaded.runs, earned.runs);
+  assert.strictEqual(loaded.shards, earned.shards);
+  assert.strictEqual(loaded.wins, earned.wins);
+  assert.strictEqual(loaded.bestTime, earned.bestTime);
+});
+
+test('the map is infinite, explored territory grows and the camera follows', () => {
+  const g = boot({ seed: 107 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const startExplored = g.api.snapshot().explored;
+  g.key('d');
+  g.steps(420);
+  g.key('d', false);
+  const s = g.api.snapshot();
+  assert.ok(s.player.x > 1200, 'the player can leave the original screen');
+  assert.ok(Math.abs(s.cam.x - (s.player.x - 480)) < 60, 'camera tracks the player');
+  assert.ok(s.explored > startExplored, 'the map viewer remembers where you have been');
+  g.key('w');
+  g.steps(120);
+  g.key('w', false);
+  assert.ok(g.api.snapshot().player.y < 0, 'the map has no upper edge');
+});
+
+test('waves escalate and late mob types appear', () => {
+  const g = boot({ seed: 109 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(60);
+  const seen = new Set();
+  for (let i = 0; i < 800; i++) {
+    if (g.api.snapshot().screen === 'levelup') g.api.clickButton('upgrade-0');
+    g.step();
+    for (const type of g.api.snapshot().enemyTypes) seen.add(type);
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.ok(s.wave >= 2);
+  assert.ok(seen.has('runner'), 'stalkers join after 15 seconds');
+  assert.ok(seen.has('spitter'), 'spitters join after 45 seconds');
+  assert.ok(seen.has('marksman'), 'hexers join after 50 seconds');
+  assert.ok(s.kills >= 5);
+});
+
+test('the character evolves through visual tiers as it levels', () => {
+  const g = boot({ seed: 131 });
+  deploy(g);
+  assert.strictEqual(g.api.snapshot().tier, 0);
+  g.api.giveXp(700);
+  for (let i = 0; i < 80 && g.api.snapshot().screen === 'levelup'; i++) {
+    g.api.clickButton('upgrade-0');
+  }
+  const s = g.api.snapshot();
+  assert.ok(s.level >= 10, 'the run leveled enough to evolve');
+  assert.strictEqual(s.tier, evolutionTierFor(s.level));
+});
+
+function evolutionTierFor(level) {
+  if (level >= 18) return 3;
+  if (level >= 10) return 2;
+  if (level >= 5) return 1;
+  return 0;
+}
+
+test('upgrades and help screens are reachable from the menu', () => {
+  const g = boot({ seed: 113 });
+  assert.ok(g.api.clickButton('upgrades'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'upgrades');
+  assert.ok(g.api.clickButton('back-upgrades'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu');
+  assert.ok(g.api.clickButton('help'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'help');
+  assert.ok(g.api.clickButton('back-help'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu');
+});
+
+test('losing window focus pauses the run', () => {
+  const g = boot({ seed: 127 });
+  deploy(g);
+  g.steps(30);
+  g.winHandlers.blur();
+  g.steps(1);
+  const paused = g.api.snapshot();
+  assert.strictEqual(paused.screen, 'paused');
+  g.steps(60);
+  assert.strictEqual(g.api.snapshot().time, paused.time);
+});
+
+test('debug helpers stay hidden outside the test harness', () => {
+  const g = boot({ testSeam: false });
+  const api = g.api;
+  assert.strictEqual(typeof api.snapshot, 'function');
+  for (const name of [
+    'clickButton', 'giveXp', 'spawnEnemy', 'hurt', 'applyUpgrade', 'setInvulnerable',
+    'spawnBoss', 'setTime', 'killEnemies', 'startRun', 'throwBomb', 'spawnMedkit',
+    'grantShards', 'buyMeta', 'props', 'setPlayer', 'setAlert', 'setUnbanked',
+    'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
+    'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'enemyLimit'
+  ]) {
+    assert.strictEqual(api[name], undefined, name + ' must be test-only');
+  }
+});
+
+
+test('variable-ratio rewards produce standard, jackpot and chip drops', () => {
+  const g = boot({ seed: 211 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setRng(12345);
+  for (let i = 0; i < 220; i++) g.api.spawnEnemy('grunt', 900 + i * 4, 900);
+  g.api.killEnemies();
+  const s = g.api.snapshot();
+  assert.ok(s.stats.jackpots > 20, 'roughly a fifth of kills are jackpots');
+  assert.ok(s.chips.length > 8, 'roughly a tenth drop hardware chips');
+  assert.ok(s.unbanked > 0, 'kills earn risky shards');
+  assert.ok(s.alert > 50, 'mass killing raises the sector alert');
+});
+
+test('a near miss grants a one-shot crit surge', () => {
+  const g = boot({ seed: 213 });
+  deploy(g);
+  g.api.spawnEnemy('tank', 120, 0);
+  g.api.setEnemyHp(0, 5);
+  g.api.hitEnemy(0, 1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.stats.nearMisses, 1);
+  assert.ok(s.surge > 0, 'surge window opened');
+  assert.ok(s.damageMult >= 1);
+});
+
+test('wardens absorb damage while other mobs take it whole', () => {
+  const g = boot({ seed: 217 });
+  deploy(g);
+  g.api.spawnEnemy('warden', 120, 0);
+  g.api.spawnEnemy('tank', 200, 0);
+  g.api.setEnemyHp(0, 5000);
+  g.api.setEnemyHp(1, 5000);
+  g.api.hitEnemy(0, 100);
+  g.api.hitEnemy(1, 100);
+  const s = g.api.snapshot();
+  const warden = s.enemies.find((e) => e.type === 'warden');
+  const tank = s.enemies.find((e) => e.type === 'tank');
+  assert.ok(5000 - warden.hp < 60, 'warden plating absorbs most of the hit');
+  assert.strictEqual(5000 - tank.hp, 100, 'the tank takes full damage');
+});
+
+test('splitters break into swarmlings when killed', () => {
+  const g = boot({ seed: 219 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('splitter', 140, 0);
+  g.api.killEnemies();
+  g.steps(1);
+  const swarms = g.api.snapshot().enemies.filter((e) => e.type === 'swarm');
+  assert.strictEqual(swarms.length, 2);
+});
+
+test('beacons bank risky shards and death halves what is left', () => {
+  const g = boot({ seed: 223 });
+  deploy(g);
+  g.api.spawnBoss('warlord');
+  g.api.killEnemies();
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.ok(s.beacon, 'the boss arms an extraction beacon');
+  assert.ok(s.unbanked > 0);
+  g.api.setPlayer(s.beacon.x, s.beacon.y);
+  g.steps(1);
+  for (let i = 0; i < 20 && g.api.snapshot().screen === 'levelup'; i++) g.api.clickButton('upgrade-0');
+  s = g.api.snapshot();
+  assert.strictEqual(s.beacon, null);
+  const secured = s.banked;
+  assert.ok(secured > 0, 'touching the beacon secures shards');
+  g.api.setUnbanked(100);
+  g.api.hurt(999);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.lost, 50, 'death burns half of the unbanked shards');
+  assert.ok(s.banked >= secured + 50, 'the other half is banked');
+});
+
+test('mega bosses arrive after three regular bosses and use phases', () => {
+  const g = boot({ seed: 227 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(760);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.wave, 20);
+  assert.strictEqual(s.boss.type, 'colossus');
+  assert.strictEqual(s.boss.mega, true);
+  const idx = s.enemies.findIndex((e) => e.boss);
+  g.api.setEnemyHp(idx, Math.round(s.boss.maxHp * 0.6));
+  g.api.hitEnemy(idx, 1);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.ok(s.boss && s.boss.phase >= 1, 'the mega boss enters phase two');
+  g.api.killEnemies();
+  g.steps(1);
+  g.api.setTime(1560);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.wave, 40);
+  assert.strictEqual(s.boss.type, 'leviathan');
+  assert.strictEqual(s.boss.mega, true);
+});
+
+test('high alert deploys NetWatch hunters', () => {
+  const g = boot({ seed: 229 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setAlert(70);
+  g.api.setHunterCd(0);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.ok(s.enemyTypes.includes('hunter'), 'a hunter joins the sector');
+  assert.ok(s.alert > 70);
+});
+
+test('sector events change the run', () => {
+  const g = boot({ seed: 233 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.triggerEvent('supply'));
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.ok(s.medkits >= 3, 'supply drop scatters medkits');
+  assert.ok(s.chips.length >= 2, 'and tech chips');
+  assert.ok(g.api.triggerEvent('sandstorm'));
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.strictEqual(s.event.id, 'sandstorm');
+  assert.ok(g.api.triggerEvent('bounty'));
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.ok(s.enemyTypes.includes('hunter'), 'bounty deploys a hunter');
+});
+
+test('overdrive trades safety for damage', () => {
+  const g = boot({ seed: 239 });
+  deploy(g);
+  g.api.setOverdrive(true);
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.overdrive.active, true);
+  assert.ok(s.damageMult > 1.3, 'overdrive raises outgoing damage');
+  g.api.setOverdrive(false);
+  s = g.api.snapshot();
+  assert.strictEqual(s.overdrive.active, false);
+  assert.ok(s.damageMult < 1.3);
+});
+
+test('contracts complete and pay out', () => {
+  const g = boot({ seed: 241 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.forceContracts(['cull', 'survive']));
+  const before = g.api.snapshot().unbanked;
+  for (let i = 0; i < 50; i++) g.api.spawnEnemy('grunt', 900 + i * 4, 900);
+  g.api.killEnemies();
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.contracts[0].done, true);
+  assert.strictEqual(s.stats.contracts >= 1, true);
+  assert.ok(s.unbanked > before, 'the contract paid risky shards');
+});
+
+test('hardware chips apply their effects', () => {
+  const g = boot({ seed: 251 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const before = g.api.snapshot().unbanked;
+  g.api.spawnChip('shards', 10, 0);
+  g.steps(2);
+  assert.ok(g.api.snapshot().unbanked > before, 'data chip adds unbanked shards');
+  g.api.spawnChip('frenzy', 10, 0);
+  g.steps(2);
+  assert.ok(g.api.snapshot().frenzy > 0, 'frenzy chip arms rapid fire');
+  g.api.setOverdrive(false);
+  g.api.spawnChip('aegis', 10, 0);
+  g.steps(1);
+  assert.ok(g.api.snapshot().stats.chips >= 3);
+});
+
+test('victory pays a survival bonus', () => {
+  const g = boot({ seed: 257 });
+  deploy(g, { limit: '5' });
+  g.api.setInvulnerable(true);
+  g.api.setTime(299.7);
+  g.steps(30);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.strictEqual(s.victory, true);
+  assert.ok(s.rushBonus > 0, 'a healthy victory converts into bonus shards');
+  assert.ok(s.shardsEarned > 0);
+});
+
+test('restarting or quitting ends the run and advances the seed', () => {
+  const store = makeStore();
+  const g = boot({ seed: 263, storage: store });
+  deploy(g);
+  g.steps(20);
+  g.api.setUnbanked(40);
+  const seed = g.api.snapshot().seed;
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('menu-pause'));
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'menu');
+  assert.strictEqual(s.save.runs, 1);
+  assert.ok(s.save.lostTotal > 0, 'quitting burns half the unbanked shards');
+
+  enterSetup(g);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.notStrictEqual(s.seed, seed, 'the deterministic run seed advances');
+});
+
+test('an empty extraction beacon is not consumed', () => {
+  const g = boot({ seed: 269 });
+  deploy(g);
+  g.api.spawnBoss('warlord');
+  g.api.killEnemies();
+  g.steps(1);
+  const beacon = g.api.snapshot().beacon;
+  assert.ok(beacon);
+  g.api.setUnbanked(0);
+  g.api.setPlayer(beacon.x, beacon.y);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.ok(s.beacon, 'the beacon stays while there is nothing to bank');
+  assert.strictEqual(Math.floor(s.unbanked), 0);
+});
+
+test('mega bosses barrage and summon on phase change', () => {
+  const g = boot({ seed: 271 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('colossus', 340, 0);
+  g.steps(1);
+  let maxBullets = 0;
+  let maxEnemies = g.api.snapshot().enemies.length;
+  for (let i = 0; i < 360; i++) {
+    g.step();
+    const snap = g.api.snapshot();
+    maxBullets = Math.max(maxBullets, snap.bullets.filter((o) => o === 'e').length);
+    maxEnemies = Math.max(maxEnemies, snap.enemies.length);
+  }
+  assert.ok(maxBullets >= 10, 'the mega boss fires radial barrages');
+  const s = g.api.snapshot();
+  const idx = s.enemies.findIndex((e) => e.type === 'colossus');
+  g.api.setEnemyHp(idx, Math.round(s.boss.maxHp * 0.6));
+  g.api.hitEnemy(idx, 1);
+  g.steps(2);
+  const after = g.api.snapshot();
+  assert.ok(after.boss.phase >= 1, 'the mega boss enters a new phase');
+  assert.ok(after.enemies.length > maxEnemies - 1, 'the phase change adds minions');
 });

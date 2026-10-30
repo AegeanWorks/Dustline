@@ -2,7 +2,7 @@
 
 [![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
 
-Dustline is a fast top-down 2D Counter-Strike style arena shooter demo: wave-based bot combat, recoil-driven gunplay and a Dust-inspired map in plain HTML5 canvas.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, four maps, eleven mob types plus NetWatch hunters, three rotating bosses plus two mega bosses, skill combos, risky extraction banking, sector events and a permanent out-of-run armory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -19,20 +19,62 @@ Dustline is a fast top-down 2D Counter-Strike style arena shooter demo: wave-bas
 
 ## 🎮 How to Play
 
-Eliminate every hostile in the wave; the next wave brings more of them. Survive as long as you can.
+You only move; your weapon, your blades, your bombs and any recruited squadmates do the fighting. You start alone. Choose a loadout before deploying, survive the horde, collect gems and build a combo.
 
 | Input | Action |
 |---|---|
 | `WASD` / arrows | Move |
-| Mouse | Aim |
-| Left click or `Space` | Fire |
-| `1` / `2` / `Q` | AK-47 / USP-S / swap |
-| `R` | Reload |
-| `Shift` | Sprint |
-| `Esc` | Pause |
-| `Enter` / click | Redeploy after death |
+| `Shift` / `Space` | Dash (brief invulnerability, 1.5s cooldown) |
+| `E` | Throw a bomb at the thickest part of the horde |
+| `R` | Overdrive: burn heat for +40% damage but +50% damage taken |
+| `M` | Open/close the map viewer |
+| Mouse | Menus and upgrade cards |
+| `1` / `2` / `3` | Pick an upgrade card |
+| `Esc` | Pause menu (also pauses when the window loses focus) |
+| `Enter` | Deploy from menus / retry after a run |
 
-The AK-47 is automatic with a 30-round magazine; the USP-S is a 12-round semi-auto that hits harder per shot, so tapping is rewarded. Each slot keeps its own ammo, and switching cancels a reload. Wave clears restore health and reserve ammo. Each kill is 100 points and the best score is saved in the browser's local storage. Close-in bots push you, so keep crates between you and them; bullets stop on cover and line of sight drives their fire.
+### Run setup
+
+Before every run you pick:
+
+- **Weapon**: AK-47 (balanced), SMG-45 (fast spray), SPAS-12 (pellet spread) or DMR-308 (slow, piercing).
+- **Map**: Dust Basin, Whiteout Ridge, Ashfall or Greenfall. Each has its own palette and cover.
+- **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
+
+### Modes and screens
+
+- **Main menu**: Deploy, Armory, Stats, Upgrades codex, Settings, How to play, plus lifetime progress.
+- **Armory**: spend shards earned in runs on permanent Ballistics, Plate Carrier, Running Shoes, Scavenger Kit and Power Magnet ranks.
+- **Statistics**: runs, total kills, bosses slain, victories, best survival, most kills in a run, damage dealt and kills by mob type.
+- **Upgrades codex**: all 15 skills plus the six skill combos and what activates them.
+- **Settings**: master volume (0-100%), screen shake and damage numbers, saved immediately.
+- **Pause menu**: Resume, Map, Upgrades, Settings, Restart run, Main menu. Restarting or quitting ends the run like death: half of the unbanked shards are burned.
+- **Map viewer**: explored territory, buildings, rocks, trees, hostiles and your facing.
+- **Level up**: three distinct cards from skills below their level cap.
+
+### The run
+
+- **Infinite world**: deterministic tiles with buildings, rocks and trees; solid cover blocks bodies and bullets, and the camera follows with no bounds.
+- **Enemies**: Crawler (chase), Stalker (fast weave), Bulwark (armored), Hexer (ranged), Spitter (acid), Bomber (suicide blast) and Swarmling (fast swarm). Health, touch damage and spawn rates scale with time.
+- **Waves**: every 40 seconds the horde grows and new mob types unlock.
+- **Bosses**: every fifth wave rotates between the Warlord (charge + fan fire), the Overseer (bullet spray, enraged below half health) and the Bombardier (lobs bombs). All have health bars and guaranteed loot.
+- **Mega bosses**: every fourth boss slot (waves 20, 40, ...) summons the Colossus or the Leviathan: a three-phase fight with radial barrages, minion calls and a charge. They drop a beacon, three medkits, twenty-two gems and chips.
+- **Extraction banking**: bosses arm an extraction beacon. Touch it to secure your unbanked shards; dying before that burns half of them and extracting early is the push-your-luck decision.
+- **Variable rewards**: each kill rolls standard data (70%), a 2.5x critical data jackpot (20%) or a hardware chip (10%) that grants shards, an Aegis shield, Frenzy, ordnance or repairs.
+- **Near-miss surge**: an enemy left alive under 6% health triggers a near-miss and, once per window, a crit surge.
+- **Sector alert and hunters**: kills raise alert; at 60% NetWatch hunters deploy and chase you across the map. Alert decays over time.
+- **Sector events**: horde surges, supply drops, sandstorms, blackouts and bounty hunters fire on a seeded schedule and change visibility, speed and loot. A seeded market multiplier scales loot, and a news line reports the sector.
+- **Contracts**: three rotating run objectives (cull, survive, salvage, demolition, evasion, chain kills) pay risky shards when completed.
+- **Combo stake**: your kill streak multiplies XP and shard gain up to +50%, but taking a hit breaks it.
+- **Weapons and skills**: four auto-firing weapons plus orbiting blades, frag grenades, squad recruiting, and passives for speed, health, magnets, damage, bullet speed, lifesteal, dash damage and crits. Everything caps at level 5.
+- **Combos**: raise both halves of a pair to level 2 to unlock Overclocked, Riposte, Vampire, Shrapnel, Demolition or Scavenger.
+- **Bombs**: `E` lobs a bomb at the densest cluster, with its own cooldown meter.
+- **Pickups**: XP gems and medkits are both pulled in by the magnet radius.
+- **Character growth**: your sprite gains veteran shoulder plates, an elite glow and a legend aura as you level, and its colors and gun follow your build.
+
+### Progression saving
+
+Progress is stored in `localStorage` under `dustline.save` with an explicit schema version. The loader refuses unknown versions without touching the file, migrates version 1, and clamps every field. Shards, lifetime kills, boss kills, best run, kills by mob type, armory ranks and the deterministic run seed persist across sessions.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -46,13 +88,13 @@ The AK-47 is automatic with a 30-round magazine; the USP-S is a 12-round semi-au
 
 ```text
 dustline/
-├── index.html                <- canvas shell, HUD hint and page styling
-├── game.js                   <- the whole game: loop, bots, bullets, HUD, audio
+├── index.html                <- canvas shell, page styling and control hint
+├── game.js                   <- world, combat, skills, bosses, HUD, screens, audio
 ├── scripts/
 │   └── serve.js              <- zero-dependency static server for `npm start`
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
-│   ├── game.test.js          <- node:test suite for combat, waves and controls
+│   ├── game.test.js          <- node:test suite for runs, combat, meta and screens
 │   └── server.test.js        <- node:test suite for the static server's safety rules
 ├── package.json              <- scripts and Node engine floor
 ├── .gitignore                <- transient AIKit state excluded
@@ -67,10 +109,17 @@ dustline/
 
 ## 🧪 Tests
 
-`tests/harness.js` stubs the canvas context, window events and `requestAnimationFrame`, seeds `Math.random` for reproducible bot behaviour, then boots the real `game.js` inside `node:vm` and drives frames deterministically. The suite covers boot state, hostile spawning and approach, wall collision, kills and score, wave advance and healing, ammo consumption and reload, weapon switching and semi-auto fire, best-score persistence, death and redeploy, pause behaviour, a 900-frame no-overlap invariant for cover, and the static server (MIME types, hidden-path and method rejection).
+`tests/harness.js` stubs the canvas context, window events and `requestAnimationFrame`, seeds `Math.random` for reproducible runs, then boots the real `game.js` inside `node:vm` and drives frames deterministically. The suite covers menu and setup navigation, weapon/map/limit selection, deployment, auto-fire, squad recruitment and formation, all eleven regular mob types, red enemy projectiles, upgrade cards and caps, blades/grenades/dash damage, bomb throwing and cluster targeting, lifesteal, combos, boss rotation and boss attacks, mega bosses and phases, boss loot, extraction banking and death loss, variable-ratio rewards and chips, near-miss surge, warden armor, splitter swarms, alert and hunters, sector events, overdrive, contracts, survival bonus, medkit magnetism, procedural cover, map viewer, armory purchases, statistics, settings persistence, pause/restart, death and saving, time-limit victory, cross-session persistence, the endless map and camera, wave escalation, focus-loss auto-pause and the static server.
 
-`game.js` publishes a read-only `window.Dustline.snapshot()` plus `reset()`. The state-changing helpers used by tests (`damage`, `wipeEnemies`) exist only when the harness sets `window.__DUSTLINE_TEST__`.
+`game.js` publishes read-only `window.Dustline.snapshot()` in every build. State-changing helpers (`giveXp`, `spawnEnemy`, `spawnBoss`, `setTime`, `killEnemies`, `hurt`, `applyUpgrade`, `setInvulnerable`, `clickButton`, `startRun`, `throwBomb`, `spawnMedkit`, `grantShards`, `buyMeta`, `props`, `setPlayer`, `setAlert`, `setUnbanked`, `bankNow`, `triggerEvent`, `setEventCd`, `setRng`, `setEnemyHp`, `setOverdrive`, `spawnChip`, `hitEnemy`, `setHunterCd`, `forceContracts`) exist only when the harness sets `window.__DUSTLINE_TEST__`.
 
+### UI contract note
+
+This is a single-canvas game: the entire user-visible surface is one `<canvas>`, driven by the same `game.js` that the mechanics tests boot headlessly. The project therefore opts out of the separate DOM UI-contract task workflow (`ui_required: false`, `ui_source: manual`); the canvas is exercised by the seeded VM suite instead. See `.aikit/decisions.md` ADR-002.
+
+## 🧠 Behavioral Design Notes
+
+These systems are ported from CyberPulse's behavioral-psychology design review (ADR-002 there) and grounded in the same literature: variable-ratio reinforcement (Skinner), near-miss reward-pathway activation (Clark et al.), loss aversion and push-your-luck (Kahneman & Tversky), flow-channel risk (Csikszentmihalyi) and autonomy/competence (Ryan & Deci). They are implemented without paywalls or dark patterns; all rewards are earned in-run and all risk is opt-in.
 
 ## 📜 License
 

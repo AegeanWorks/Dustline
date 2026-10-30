@@ -1,8 +1,8 @@
 {
   "name": "dustline",
-  "version": "0.2.0",
+  "version": "0.6.0",
   "private": true,
-  "description": "Dustline: a fast top-down 2D Counter-Strike style arena shooter demo on plain HTML5 canvas.",
+  "description": "Dustline: Survivors — an endless horde survival shooter with variable-ratio rewards, extraction banking, overdrive, contracts, eleven mobs, two mega bosses and a permanent armory.",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "node scripts/serve.js",

@@ -1,121 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-2",
+    "task_id": "dustline-v0-6-verify",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793217829.335335,
+    "updated_at": 1793320244.226756,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": [],
-    "completed_at": 1793217857.3717709
+    "completed_at": 1793320247.3133912
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-demo-v1",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Ship the 2D CS-style arena shooter as an AIKit game project with headless test harness and local launcher",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793214863.648865,
-      "timestamp_str": "2026-10-28 22:14:23",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "User asked for the demo to live under projects/ and be AIKit-integrated rather than loose at the repository root",
-        "benefits": "Project memory, license, README and Phase 4 gates apply; gameplay is regression-tested without a browser",
-        "risks": "contract: none; dependency: Node >= 20 for tests and launcher only; concurrency: none; state: files currently uncommitted",
-        "mitigation": "Zero browser deps, VM-based harness, static server tested for MIME and traversal"
-      }
-    },
-    {
-      "task_id": "dustline-demo-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "Verification complete: 7/7 node:test cases pass, 4/4 Phase 4 gates pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793214867.9091067,
-      "timestamp_str": "2026-10-28 22:14:27",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-demo-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-demo-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793214871.3233154,
-      "timestamp_str": "2026-10-28 22:14:31",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-review-fixes",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Fix review findings: harden the dev server, correct the renamed title, prove bot approach, add avoidance and point-blank accuracy, gate test helpers",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793216358.6031659,
-      "timestamp_str": "2026-10-28 22:39:18",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Independent review of the uncommitted demo found a dot-directory leak in the dev server, a stale page title, an overclaiming test, and weaker bot pathing",
-        "benefits": "Loopback server no longer exposes .git/.aikit state, tests assert real behaviour, bots navigate cover instead of stalling, cheat helpers are absent in normal play",
-        "risks": "contract: none; dependency: none added; concurrency: none; state: uncommitted project files",
-        "mitigation": "Seeded RNG makes approach deterministic; server rules covered by node:test; all gates re-run"
-      }
-    },
-    {
-      "task_id": "dustline-review-fixes",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "10/10 node:test cases pass, 4/4 Phase 4 gates pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793216358.8693156,
-      "timestamp_str": "2026-10-28 22:39:18",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-review-fixes",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-review-fixes' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793216364.153693,
-      "timestamp_str": "2026-10-28 22:39:24",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "dustline-v0-2",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/1] Harden and extend the demo: secondary USP with semi-auto switching, persistent best score, pause/click guard, separation push-out, and broader tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793217829.063097,
-      "timestamp_str": "2026-10-28 23:03:49",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "A review pass found stale state after resets, one-weapon depth, click-queueing across pause, and bots able to be shoved into cover",
-        "benefits": "More CS-like loadout, a lasting score goal, deterministic state transitions, and an invariant proving bodies never rest inside walls",
-        "risks": "contract: snapshot gains weapon/best/slots fields; dependency: none; concurrency: none; state: localStorage writes are best-effort",
-        "mitigation": "14 node:test cases including a 900-frame overlap invariant; all four project gates pass"
-      }
-    },
-    {
-      "task_id": "dustline-v0-2",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "14/14 node:test cases pass, 4/4 Phase 4 gates pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793217829.335335,
-      "timestamp_str": "2026-10-28 23:03:49",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "dustline-v0-2",
       "phase": "completed",
@@ -124,6 +20,239 @@
       "status": "completed",
       "timestamp": 1793217857.3717725,
       "timestamp_str": "2026-10-28 23:04:17",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-survivors-v1",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Rebuild Dustline as a Vampire Survivors style horde game with infinite map, four enemy types, four active and four passive skills, squad AI, and menu/settings/upgrades",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793222482.5562854,
+      "timestamp_str": "2026-10-29 00:21:22",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked to turn the arena shooter into a wave-survivor game with an endless map, enemy and skill variety, full menus, settings, upgrades and an AI squad",
+        "benefits": "Endless replayable loop, automatic squad fire, meaningful build choices, persistent settings and best run, and every screen reachable in-game",
+        "risks": "contract: snapshot and test seam rewritten; dependency: none added; concurrency: none; state: settings and best now persist in localStorage under new keys",
+        "mitigation": "Seeded VM harness, 18 node:test cases covering every screen and mechanic, plus 60s and 150s autoplay runs and all four project gates"
+      }
+    },
+    {
+      "task_id": "dustline-survivors-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "18/18 node:test cases pass, 4/4 Phase 4 gates pass, 150s autoplay reaches wave 4 with all enemy types; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793222482.8368566,
+      "timestamp_str": "2026-10-29 00:21:22",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-survivors-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-survivors-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793222493.5380316,
+      "timestamp_str": "2026-10-29 00:21:33",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-4",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Deepen the survivor loop: swept bullet collisions, a dashing escape move with i-frames, a fifth-wave Warlord boss with health bar and guaranteed loot, focus-loss auto-pause, and coverage for each",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793286262.4083226,
+      "timestamp_str": "2026-10-29 18:04:22",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Playtesting the v0.3.0 rewrite exposed bullets tunneling through thin runners, no answer to being surrounded, no wave climax, and death while the window was backgrounded",
+        "benefits": "Hit detection is continuous, players get a skill-based escape tool, every fifth wave has a goal and reward, and alt-tabbing no longer kills a run",
+        "risks": "contract: snapshot gains dash/boss fields and three test seams; dependency: none added; concurrency: none; state: none persisted beyond existing keys",
+        "mitigation": "Deterministic VM tests for dash distance/cooldown, boss spawn/death loot and blur pause; all four project gates re-run"
+      }
+    },
+    {
+      "task_id": "dustline-v0-4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "21/21 node:test cases pass, 4/4 Phase 4 gates pass; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793286268.2143185,
+      "timestamp_str": "2026-10-29 18:04:28",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "21/21 node:test cases pass, 5/5 Phase 4 gates pass (mechanics contract added); 184s autoplay reached wave 5, spawned and damaged the Warlord (312/900 hp); checklists: passed; open: human UI review needed to close the UI contract",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793287224.2034535,
+      "timestamp_str": "2026-10-29 18:20:24",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-4",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-4' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793297001.1540828,
+      "timestamp_str": "2026-10-29 21:03:21",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-5",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Ship the survivor feature set: weapon/map/time-limit setup, versioned progress saving, armory meta upgrades, stats screen, 15 skills with 6 combos, bullet speed/lifesteal/dash damage, 4 maps with buildings/rocks/trees and map viewer, 7 mobs, 3 attacking bosses, red enemy bullets, manual cluster bomb, medkit magnetism, evolved character art, reworked HUD and layered audio",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793297073.4203434,
+      "timestamp_str": "2026-10-29 21:04:33",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked for a much deeper survivor game: build variety, meta progression, more maps/mobs/bosses, clearer enemy fire and a readable HUD",
+        "benefits": "Meaningful pre-run choices, persistent goals, six combo payoffs, tactical cover, varied boss fights and clearer combat feedback",
+        "risks": "contract: save schema v2, snapshot fields, test seams, HUD layout, controls (E/M); dependency: none added; concurrency: none; state: localStorage dustline.save and new snapshot/save contracts",
+        "mitigation": "31 deterministic node:test cases covering every system, seeded autoplay to wave 10, ADR-001..005, 5/5 AIKit gates"
+      }
+    },
+    {
+      "task_id": "dustline-v0-5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "31/31 node:test cases pass, 5/5 Phase 4 gates pass; seed 2026 autoplay reached wave 10 (Warlord + Overseer) at level 47 with all six combos and 151 live mobs; save v1 migration, unknown-version refusal and corrupt-save default probed; checklists: passed; open: commit + push pending user authorization",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793297631.6390321,
+      "timestamp_str": "2026-10-29 21:13:51",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "32/32 node:test cases pass, 5/5 Phase 4 gates pass; Playwright run in Chromium drove menu, setup, armory, stats, codex, settings, help, map viewer, pause and live combat with zero console errors; seed 2026 autoplay reached wave 10 with all 6 combos; save migration/refusal probes pass; checklists: passed; open: commit + push pending authorization",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793302114.3722227,
+      "timestamp_str": "2026-10-29 22:28:34",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-5",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-5' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793302114.6481097,
+      "timestamp_str": "2026-10-29 22:28:34",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Port CyberPulse's behavioral design review into Dustline: variable-ratio kill rewards with jackpots and hardware chips, near-miss crit surge, extraction beacons with death loss, combo multiplier stake, Overdrive risk mode, sector alert with NetWatch hunters, seeded ambient events and news, run contracts, drifting market, plus Warden/Weaver/Splitter/Leech mobs and Colossus/Leviathan mega bosses after every three bosses",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793315512.4848323,
+      "timestamp_str": "2026-10-30 02:11:52",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked to integrate CyberPulse's literature review (Self-Determination Theory, variable-ratio reinforcement, near-miss activation, loss aversion/prospect theory, flow channel) and to add more mechanics, enemies and big bosses",
+        "benefits": "Opt-in risk and reward, a reactive world, more enemy variety, a climax after the regular boss cycle, and persistent lifetime behavioural stats",
+        "risks": "contract: save schema gains counters and lastSeed, snapshot fields and test seams expand; dependency: none; concurrency: none; state: localStorage dustline.save and the seeded LCG draw",
+        "mitigation": "44 deterministic node:test cases, seeded autoplay through the wave-20 mega boss, Chromium smoke run with zero console errors, ADR-006"
+      }
+    },
+    {
+      "task_id": "dustline-v0-6",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "44/44 node:test cases pass, 5/5 Phase 4 gates pass; probes confirmed jackpot/chips, near-miss surge, warden plating, splitter swarms, beacon banking and 50% death loss, wave-20 Colossus and wave-40 Leviathan phases, hunter deployment, supply/sandstorm/bounty events, overdrive multipliers, contracts, chip buffs and victory bonus; save counters persist across sessions; Chromium smoke run had zero console errors; checklists: passed; open: commit + push pending authorization",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793315541.3154829,
+      "timestamp_str": "2026-10-30 02:12:21",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-6' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793315541.9230628,
+      "timestamp_str": "2026-10-30 02:12:21",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Correction: mega phase transition was asserted on the wave-20 Colossus; the wave-40 Leviathan spawn and mega flag were verified separately, not its phase transition. Everything else in the prior phase-4 note stands (44/44 tests, 5/5 gates, save persistence, zero console errors); checklists: passed; open: commit + push pending authorization",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793315566.3367643,
+      "timestamp_str": "2026-10-30 02:12:46",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-6' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793315584.9950604,
+      "timestamp_str": "2026-10-30 02:13:04",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6-verify",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] Verification and hardening pass over the uncommitted v0.5/v0.6 work: fix the statistics grid overflow, HUD panel/boss-bar overlap, wasted extraction beacon, buffered dash/bomb/overdrive keys on level-up, abandoned-run banking and seed persistence, mid-death enemy updates, and the high-entropy secret-scan false positive",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793318393.6222603,
+      "timestamp_str": "2026-10-30 02:59:53",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The user asked to verify and analyze the changes, fix bugs and gaps, then push",
+        "benefits": "Correct statistics and HUD layout, no lost banking on quit/restart, no buffered actions after level-up, deterministic per-run seeds, and a clean full-history secret scan",
+        "risks": "contract: abandon now records a loss and burns unbanked shards; dependency: none added; concurrency: none; state: save.lastSeed is written at run start",
+        "mitigation": "47 deterministic tests, two new regressions, Chromium smoke across stats/armory/weather/mega, full-repo secret scan, 5/5 gates"
+      }
+    },
+    {
+      "task_id": "dustline-v0-6-verify",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "47/47 node:test cases (14 new) and 5/5 Phase 4 gates pass; full-repo secret scan clean after removing a false positive; Chromium smoke drove statistics, armory purchase, weather events, hunters, mega boss and map viewer with zero console errors; fixed statistics overflow, HUD/boss-bar overlap, wasted empty beacon, buffered inputs on level-up, abandoned-run banking/seed persistence, post-death updates and the secret-scan false positive; clarification: quitting/restarting intentionally records a loss and burns half the unbanked shards, it does not preserve them; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793320244.226756,
+      "timestamp_str": "2026-10-30 03:30:44",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dustline-v0-6-verify",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-6-verify' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793320247.3133934,
+      "timestamp_str": "2026-10-30 03:30:47",
       "agent": "kilo:main"
     }
   ]
