@@ -636,7 +636,7 @@ test('debug helpers stay hidden outside the test harness', () => {
     'grantShards', 'buyMeta', 'props', 'setPlayer', 'setAlert', 'setUnbanked',
     'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
     'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest', 'hazardAtPoint', 'setMutators',
-    'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed'
+    'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed', 'forceBossAffix'
   ]) {
     assert.strictEqual(api[name], undefined, name + ' must be test-only');
   }
@@ -1178,4 +1178,160 @@ test('achievements evaluate against a pre-loaded career record', () => {
   assert.strictEqual(s.save.achievements.boss_slayer, true);
   assert.strictEqual(s.save.achievements.marathon, true);
   assert.ok(s.save.achievementCount >= 4);
+});
+
+test('the loadout offers the railgun as a fifth weapon', () => {
+  const g = boot({ seed: 463 });
+  enterSetup(g);
+  const ids = g.api.snapshot().buttons.map((b) => b.id);
+  assert.ok(ids.includes('weapon-rail'), 'the railgun is selectable');
+  const card = g.api.snapshot().buttons.find((b) => b.id === 'weapon-rail');
+  assert.ok(card.x + card.w <= 960, 'the fifth weapon card fits on screen');
+  deploy(g, { weapon: 'rail' });
+  const s = g.api.snapshot();
+  assert.strictEqual(s.weapon, 'rail');
+  assert.strictEqual(s.skills.rail, 1);
+});
+
+test('the railgun fires piercing shots through a line', () => {
+  const g = boot({ seed: 467 });
+  deploy(g, { weapon: 'rail' });
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('runner', 300, 0);
+  g.api.spawnEnemy('runner', 345, 0);
+  g.api.spawnEnemy('runner', 390, 0);
+  g.api.setEnemyHp(0, 40);
+  g.api.setEnemyHp(1, 40);
+  g.api.setEnemyHp(2, 40);
+  let fired = false;
+  let sawRailColor = false;
+  for (let i = 0; i < 10 && !fired; i++) {
+    g.step();
+    if (g.api.snapshot().shots.rail > 0) fired = true;
+  }
+  assert.ok(fired, 'the railgun auto-fires at nearby enemies');
+  for (let i = 0; i < 40; i++) {
+    g.step();
+    if (g.api.snapshot().bulletColors.includes('#9fe8ff')) sawRailColor = true;
+  }
+  const s = g.api.snapshot();
+  assert.ok(sawRailColor, 'railgun bullets use their own tracer color');
+  assert.ok(s.kills >= 3, 'one volley pierces the whole line, kills: ' + s.kills);
+});
+
+test('the railgun evolves into the lancer', () => {
+  const g = boot({ seed: 469 });
+  deploy(g, { weapon: 'rail' });
+  for (let i = 0; i < 4; i++) g.api.applyUpgrade('rail');
+  assert.strictEqual(g.api.snapshot().evolved.rail, undefined);
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  assert.strictEqual(g.api.snapshot().evolved.rail, 'lancer');
+});
+
+test('HIVE bosses fire bullet rings and spawn broods', () => {
+  const g = boot({ seed: 471 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('hive');
+  let maxRing = 0;
+  let brood = false;
+  let prevShots = 0;
+  let prevCount = 1;
+  for (let i = 0; i < 260; i++) {
+    g.step();
+    const s = g.api.snapshot();
+    const delta = (s.stats.shots.enemy || 0) - prevShots;
+    if (delta > maxRing) maxRing = delta;
+    prevShots = s.stats.shots.enemy || 0;
+    if (s.enemies.length - prevCount >= 3) brood = true;
+    prevCount = s.enemies.length;
+  }
+  assert.ok(maxRing >= 10, 'the hive fires a ten-bullet ring at once, saw ' + maxRing);
+  assert.ok(brood, 'the hive spawns brood mobs in trios');
+});
+
+test('SENTINEL bosses telegraph and fire a damaging beam', () => {
+  const g = boot({ seed: 479 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('sentinel');
+  let charged = false;
+  let fired = false;
+  let hpBefore = 100;
+  let postFire = 0;
+  for (let i = 0; i < 600 && postFire < 4; i++) {
+    g.step();
+    const s = g.api.snapshot();
+    if (!s.boss) break;
+    if (!charged && s.boss.beamState === 'charge') {
+      charged = true;
+      g.api.setInvulnerable(false);
+      hpBefore = s.hp;
+    }
+    if (s.boss.beamState === 'fire') {
+      fired = true;
+      postFire++;
+    }
+  }
+  assert.ok(charged, 'the sentinel telegraphs its beam');
+  assert.ok(fired, 'the sentinel fires its beam');
+  const s = g.api.snapshot();
+  assert.ok(s.hp <= hpBefore - 30, 'the beam deals heavy damage: ' + s.hp + ' vs ' + hpBefore);
+  assert.ok(s.hp > 0, 'the player survives the single test beam');
+});
+
+test('boss affixes change speed, armor and death', () => {
+  const g = boot({ seed: 483 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  const baseSpeed = g.api.snapshot().enemies[0].speed;
+  assert.ok(g.api.forceBossAffix(0, 'frenzied'));
+  assert.ok(g.api.snapshot().enemies[0].speed > baseSpeed * 1.29, 'frenzied bosses move faster');
+
+  const h = boot({ seed: 487 });
+  deploy(h);
+  h.api.setInvulnerable(true);
+  h.api.spawnBoss('warlord');
+  assert.ok(h.api.forceBossAffix(0, 'shielded'));
+  const hpBefore = h.api.snapshot().enemies[0].hp;
+  h.api.hitEnemy(0, 100);
+  assert.strictEqual(Math.round(hpBefore - h.api.snapshot().enemies[0].hp), 70, 'shielded bosses take 30% less damage');
+
+  const k = boot({ seed: 491 });
+  deploy(k);
+  k.api.spawnBoss('warlord');
+  k.api.setInvulnerable(true);
+  k.steps(30);
+  k.api.setInvulnerable(false);
+  const boss = k.api.snapshot().enemies[0];
+  k.api.setPlayer(boss.x + 40, boss.y);
+  assert.ok(k.api.forceBossAffix(0, 'volatile'));
+  const hpK = k.api.snapshot().hp;
+  k.api.killEnemies();
+  k.steps(1);
+  assert.ok(k.api.snapshot().hp <= hpK - 25, 'volatile bosses explode on death');
+});
+
+test('the boss cycle extends past the mega to sentinel and hive', () => {
+  const g = boot({ seed: 493 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const stages = [
+    [160, 'warlord'],
+    [360, 'overseer'],
+    [560, 'bombardier'],
+    [760, 'colossus'],
+    [960, 'sentinel'],
+    [1760, 'hive']
+  ];
+  for (const [time, type] of stages) {
+    g.api.killEnemies();
+    g.steps(1);
+    g.api.setTime(time);
+    g.steps(2);
+    const s = g.api.snapshot();
+    assert.ok(s.boss, 'a boss spawned at t=' + time);
+    assert.strictEqual(s.boss.type, type, 't=' + time + ' should spawn ' + type);
+  }
 });

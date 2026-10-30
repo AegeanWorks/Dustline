@@ -380,6 +380,7 @@ const sfx = {
     tone('square', 140, 55, 0.07, 0.06);
   },
   smg() { noiseShot(0.11, 0.035, 2800, 0.9); tone('square', 190, 90, 0.04, 0.04); },
+  rail() { noiseSweep(0.12, 0.22, 2400, 300, 'bandpass'); tone('sawtooth', 1200, 120, 0.08, 0.22); noiseShot(0.06, 0.3, 900, 0.4); },
   dmr() {
     noiseShot(0.22, 0.09, 1500, 0.5);
     noiseSweep(0.16, 0.16, 1200, 140, 'lowpass');
@@ -432,7 +433,7 @@ const sfx = {
 };
 
 const SKILL_ORDER = [
-  'rifle', 'smg', 'shotgun', 'dmr', 'blades', 'grenade', 'turret', 'aura',
+  'rifle', 'smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret', 'aura',
   'squad', 'speed', 'vitality', 'magnet', 'damage',
   'bulletSpeed', 'lifesteal', 'dashPower', 'crit'
 ];
@@ -469,6 +470,14 @@ const SKILLS = {
     kind: 'weapon',
     desc: 'Slow, heavy, shots pierce the line.',
     color: '#ffeab0'
+  },
+  rail: {
+    name: 'RAILGUN',
+    short: 'RG',
+    max: 5,
+    kind: 'weapon',
+    desc: 'Slow charge, punches through whole lines.',
+    color: '#9fe8ff'
   },
   blades: {
     name: 'Bayonet Blades',
@@ -625,10 +634,11 @@ const WEAPONS = {
   ak: { name: 'AK-47', skill: 'rifle', blurb: 'Balanced auto rifle', color: '#ffd27a' },
   smg: { name: 'SMG-45', skill: 'smg', blurb: 'Fast and frantic', color: '#ffcf5c' },
   spas: { name: 'SPAS-12', skill: 'shotgun', blurb: 'Close-range shredder', color: '#ffb066' },
-  dmr: { name: 'DMR-308', skill: 'dmr', blurb: 'Piercing precision', color: '#ffeab0' }
+  dmr: { name: 'DMR-308', skill: 'dmr', blurb: 'Piercing precision', color: '#ffeab0' },
+  rail: { name: 'RAILGUN', skill: 'rail', blurb: 'Punches through lines', color: '#9fe8ff' }
 };
 
-const WEAPON_ORDER = ['ak', 'smg', 'spas', 'dmr'];
+const WEAPON_ORDER = ['ak', 'smg', 'spas', 'dmr', 'rail'];
 
 const MAPS = {
   desert: {
@@ -686,8 +696,15 @@ const EVOLUTIONS = {
   rifle: { id: 'ripper', name: 'RIPPER', needs: 'bulletSpeed', desc: 'Triple-shot spread, +60% damage' },
   smg: { id: 'storm', name: 'STORM', needs: 'crit', desc: 'Twin-linked shots, +10% crit' },
   shotgun: { id: 'breaker', name: 'BREAKER', needs: 'damage', desc: '+4 pellets, piercing shells' },
-  dmr: { id: 'reaper', name: 'REAPER', needs: 'lifesteal', desc: '+3 pierce, +30% damage, double leech' }
+  dmr: { id: 'reaper', name: 'REAPER', needs: 'lifesteal', desc: '+3 pierce, +30% damage, double leech' },
+  rail: { id: 'lancer', name: 'LANCER', needs: 'bulletSpeed', desc: 'Infinite pierce, +40% damage, faster' }
 };
+
+const BOSS_AFFIXES = [
+  { id: 'frenzied', name: 'FRENZIED', color: '#ffcf5c', speed: 1.3 },
+  { id: 'shielded', name: 'SHIELDED', color: '#9fd8ff' },
+  { id: 'volatile', name: 'VOLATILE', color: '#ff8a5c' }
+];
 
 const CHAMPION_AFFIXES = [
   { id: 'volatile', name: 'VOLATILE', color: '#ff8a5c', desc: 'explodes on death' },
@@ -718,6 +735,8 @@ const BOSS_TYPES = {
   warlord: { hp: 780, speed: 34, r: 36, touch: 30, xp: 45, color: '#8a2f2f', dark: '#3a0f12', name: 'WARLORD', style: 'charge' },
   overseer: { hp: 700, speed: 30, r: 33, touch: 24, xp: 45, color: '#5d3f8a', dark: '#241733', name: 'OVERSEER', style: 'spray' },
   bombardier: { hp: 840, speed: 26, r: 38, touch: 26, xp: 50, color: '#8a5a2f', dark: '#3a2410', name: 'BOMBARDIER', style: 'bomb' },
+  hive: { hp: 900, speed: 20, r: 40, touch: 24, xp: 55, color: '#5f8a3a', dark: '#23340f', name: 'HIVE', style: 'hive' },
+  sentinel: { hp: 820, speed: 28, r: 34, touch: 22, xp: 55, color: '#4a6a8a', dark: '#17273a', name: 'SENTINEL', style: 'beam' },
   colossus: {
     hp: 2100, speed: 24, r: 54, touch: 36, xp: 170, color: '#3f4f6a', dark: '#141c28',
     name: 'COLOSSUS', style: 'mega', mega: true
@@ -728,7 +747,7 @@ const BOSS_TYPES = {
   }
 };
 
-const BOSS_ORDER = ['warlord', 'overseer', 'bombardier'];
+const BOSS_ORDER = ['warlord', 'overseer', 'bombardier', 'hive', 'sentinel'];
 const MEGA_ORDER = ['colossus', 'leviathan'];
 const BOSS_EVERY = 5;
 const MEGA_EVERY_BOSSES = 4;
@@ -1590,11 +1609,34 @@ function dmrStats() {
   return st;
 }
 
+function railStats() {
+  const lvl = G.skills.rail;
+  const st = {
+    dmg: (46 + 20 * (lvl - 1)) * damageMult(),
+    cd: Math.max(0.55, 1.3 - 0.07 * lvl),
+    range: 900,
+    speed: 1700,
+    pierce: 4 + Math.floor(lvl / 2),
+    color: '#9fe8ff',
+    sfx: 'rail',
+    shots: 1,
+    spread: 0
+  };
+  if (hasEvolution('rail')) {
+    st.dmg *= 1.4;
+    st.cd *= 0.8;
+    st.pierce = 99;
+    st.label = 'LANCER';
+  }
+  return st;
+}
+
 function weaponStats(id) {
   if (id === 'rifle') return rifleStats();
   if (id === 'smg') return smgStats();
   if (id === 'shotgun') return shotgunStats();
   if (id === 'dmr') return dmrStats();
+  if (id === 'rail') return railStats();
   return null;
 }
 
@@ -1657,7 +1699,7 @@ function updateSkills(dt) {
   const target = nearestEnemy(G.player.x, G.player.y, 620);
   if (target) G.player.angle = Math.atan2(target.y - G.player.y, target.x - G.player.x);
 
-  for (const id of ['rifle', 'smg', 'shotgun', 'dmr']) fireWeapon(id, dt);
+  for (const id of ['rifle', 'smg', 'shotgun', 'dmr', 'rail']) fireWeapon(id, dt);
 
   if (G.skills.grenade > 0) {
     G.cds.grenade -= dt;
@@ -1837,6 +1879,12 @@ function spawnEnemyAt(type, x, y) {
     burrowed: false,
     burrowT: 0,
     burrowCd: rnd(1.8, 3),
+    spawnCd: rnd(2, 3.4),
+    beamState: 'idle',
+    beamCd: rnd(2, 3.4),
+    beamT: 0,
+    beamAngle: 0,
+    beamHit: false,
     ghost: false,
     ghostT: 0,
     screamCd: rnd(2, 3.5),
@@ -1894,8 +1942,17 @@ function spawnBoss() {
   const y = G.player.y + Math.sin(ang) * 640;
   const boss = spawnEnemyAt(type, x, y);
   if (boss) {
+    if (srnd() < 0.35) {
+      const affix = BOSS_AFFIXES[Math.floor(srnd() * BOSS_AFFIXES.length)];
+      boss.affix = affix.id;
+      if (affix.speed) boss.speed *= affix.speed;
+      if (affix.id === 'shielded') {
+        boss.hp = Math.round(boss.hp * 1.15);
+        boss.maxHp = boss.hp;
+      }
+    }
     G.banner = BOSS_TYPES[type].name + ' INCOMING';
-    G.bannerSub = mega ? 'MEGA BOSS · THREE PHASES' : 'A BOSS ENTERS THE FIELD';
+    G.bannerSub = (boss.affix ? boss.affix.toUpperCase() + ' · ' : '') + (mega ? 'MEGA BOSS · THREE PHASES' : 'A BOSS ENTERS THE FIELD');
     G.bannerT = 2.8;
     G.news = mega ? BOSS_TYPES[type].name + ' has entered the sector' : 'Boss signature detected';
     shake = Math.max(shake, settings.shake ? (mega ? 14 : 9) : 0);
@@ -2110,6 +2167,53 @@ function updateEnemies(dt) {
           color: '#ff3b30'
         });
         sfx.throwBomb();
+      }
+    } else if (e.style === 'hive') {
+      if (e.fireCd <= 0) {
+        e.fireCd = 2.8;
+        const ringAng = Math.atan2(dy, dx);
+        for (let i = 0; i < 10; i++) {
+          spawnBullet(e.x, e.y, ringAng + (i / 10) * TAU, 240, 12 * (1 + G.time / 300), 'e', '#ff3b30', { life: 2.4 });
+        }
+        G.stats.shots.enemy += 10;
+        sfx.enemyShot();
+      }
+      e.spawnCd -= dt;
+      if (e.spawnCd <= 0) {
+        e.spawnCd = 3.4;
+        for (let i = 0; i < 3; i++) spawnEnemyAt(i % 2 ? 'runner' : 'swarm', e.x + rnd(-70, 70), e.y + rnd(-70, 70));
+        burst(e.x, e.y, 10, '#7fbf4f', 180, 2.6, 0.4);
+      }
+    } else if (e.style === 'beam') {
+      if (e.beamState === 'idle') {
+        e.beamCd -= dt;
+        if (e.beamCd <= 0 && d < 760) {
+          e.beamState = 'charge';
+          e.beamT = 0.9;
+          e.beamAngle = Math.atan2(dy, dx);
+          e.beamHit = false;
+          sfx.bossRoar();
+        }
+      } else if (e.beamState === 'charge') {
+        vx = 0;
+        vy = 0;
+        speed = 0;
+        e.beamT -= dt;
+        if (e.beamT <= 0) { e.beamState = 'fire'; e.beamT = 0.4; }
+      } else if (e.beamState === 'fire') {
+        vx = 0;
+        vy = 0;
+        speed = 0;
+        e.beamT -= dt;
+        if (!e.beamHit) {
+          const bx = e.x + Math.cos(e.beamAngle) * 820;
+          const by = e.y + Math.sin(e.beamAngle) * 820;
+          if (segHitsCircle(e.x, e.y, bx, by, G.player.x, G.player.y, 18)) {
+            e.beamHit = true;
+            damagePlayer(34 * (1 + G.time / 300));
+          }
+        }
+        if (e.beamT <= 0) { e.beamState = 'idle'; e.beamCd = 2.6; }
       }
     } else if (e.type === 'marksman' || e.type === 'spitter') {
       if (e.type === 'spitter') {
@@ -2427,6 +2531,7 @@ function killEnemy(e) {
   }
 
   if (e.boss) {
+    if (e.affix === 'volatile') explodeAt(e.x, e.y, 150, 32 * (1 + G.time / 240), '#ff8a5c', 'e');
     G.bossKills = (G.bossKills || 0) + 1;
     const def = BOSS_TYPES[e.type];
     const mega = !!(def && def.mega);
@@ -3204,6 +3309,18 @@ function drawEnemies() {
       ctx.closePath();
       ctx.fill();
     }
+    if (e.boss && e.affix) {
+      const affix = BOSS_AFFIXES.find((a) => a.id === e.affix);
+      if (affix) {
+        ctx.strokeStyle = affix.color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([7, 5]);
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 11, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
     if (e.auraShield) {
       ctx.strokeStyle = 'rgba(120,200,255,0.35)';
       ctx.lineWidth = 1.5;
@@ -3262,6 +3379,52 @@ function drawEnemies() {
         ctx.moveTo(-e.r * 0.75, 0);
         ctx.lineTo(-e.r * 1.2, 0);
         ctx.stroke();
+      } else if (e.style === 'hive') {
+        ctx.strokeStyle = 'rgba(127,191,79,0.75)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * TAU + uiT * 0.6;
+          const pr = e.r * (0.2 + 0.05 * Math.sin(uiT * 3 + i));
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * e.r * 0.6, Math.sin(a) * e.r * 0.6, pr, 0, TAU);
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(210,255,170,' + (0.22 + 0.22 * Math.sin(uiT * 5)) + ')';
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r * 0.42, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#1c2a10';
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r * 0.2, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#ff3b30';
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * TAU + uiT * 1.4;
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * e.r * 0.42, Math.sin(a) * e.r * 0.42, e.r * 0.07, 0, TAU);
+          ctx.fill();
+        }
+      } else if (e.style === 'beam') {
+        ctx.fillStyle = '#17324a';
+        ctx.beginPath();
+        ctx.moveTo(e.r, 0);
+        ctx.lineTo(0, e.r * 0.72);
+        ctx.lineTo(-e.r * 0.85, 0);
+        ctx.lineTo(0, -e.r * 0.72);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(159,232,255,0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const eyeR = e.r * (0.18 + (e.beamState !== 'idle' ? 0.06 + 0.03 * Math.sin(uiT * 22) : 0));
+        ctx.fillStyle = e.beamState === 'idle' ? '#9fd8ff' : '#ff5a4a';
+        ctx.beginPath();
+        ctx.arc(e.r * 0.26, 0, eyeR, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#0a1420';
+        ctx.beginPath();
+        ctx.arc(e.r * 0.26, 0, e.r * 0.08, 0, TAU);
+        ctx.fill();
       } else if (e.mega) {
         ctx.strokeStyle = 'rgba(180,140,255,0.6)';
         ctx.lineWidth = 2;
@@ -3567,6 +3730,32 @@ function drawEnemies() {
       ctx.fillRect(e.x - w / 2, e.y - e.r - 10, w * clamp(e.hp / e.maxHp, 0, 1), 4);
     }
   }
+  for (const e of G.enemies) {
+    if (e.dead || e.style !== 'beam' || e.beamState === 'idle') continue;
+    const bx = e.x + Math.cos(e.beamAngle) * 820;
+    const by = e.y + Math.sin(e.beamAngle) * 820;
+    if (e.beamState === 'charge') {
+      ctx.strokeStyle = 'rgba(255,90,74,' + (0.22 + 0.3 * Math.abs(Math.sin(uiT * 16))) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    } else if (e.beamState === 'fire') {
+      ctx.strokeStyle = 'rgba(159,232,255,0.3)';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      ctx.strokeStyle = '#ff5a4a';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawAura() {
@@ -3726,6 +3915,14 @@ function drawPlayer() {
   }
 
   const primary = primarySkill();
+  if (primary === 'rail') {
+    ctx.fillStyle = '#20262b';
+    ctx.fillRect(8, -2.5, 38, 5);
+    ctx.fillStyle = '#9fe8ff';
+    ctx.fillRect(30, -1, 16, 2);
+    ctx.fillStyle = '#39424a';
+    ctx.fillRect(14, -6, 8, 3);
+  }
   if (primary === 'smg') {
     ctx.fillStyle = '#20262b';
     ctx.fillRect(8, -3.5, 18, 7);
@@ -4003,7 +4200,7 @@ function drawHUD() {
     ctx.fillStyle = '#ffd0c0';
     ctx.font = '700 11px Consolas, monospace';
     ctx.fillText(
-      (boss.mega ? 'MEGA · ' : '') + BOSS_TYPES[boss.type].name +
+      (boss.mega ? 'MEGA · ' : '') + (boss.affix ? boss.affix.toUpperCase() + ' ' : '') + BOSS_TYPES[boss.type].name +
         (boss.mega ? '  P' + ((boss.phase || 0) + 1) : '') +
         '  ' + Math.ceil(boss.hp) + ' / ' + boss.maxHp,
       W / 2,
@@ -4209,13 +4406,13 @@ function drawSetupScreen() {
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
-    const x = 92 + i * 196;
+    const x = 92 + i * 166;
     const y = 92;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 184, h: 58 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 54;
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 158, h: 58 });
+    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 54;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 54, 7);
+    rr(x, y, 158, 54, 7);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
@@ -5308,6 +5505,7 @@ window.Dustline = {
         hp: e.hp,
         maxHp: e.maxHp,
         r: e.r,
+        speed: e.speed,
         boss: !!e.boss,
         style: e.style || null,
         champion: !!e.champion,
@@ -5357,7 +5555,16 @@ window.Dustline = {
       snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
       const boss = G.enemies.find((e) => e.boss && !e.dead);
       snap.boss = boss
-        ? { type: boss.type, style: boss.style, hp: boss.hp, maxHp: boss.maxHp, mega: !!boss.mega, phase: boss.phase || 0 }
+        ? {
+            type: boss.type,
+            style: boss.style,
+            hp: boss.hp,
+            maxHp: boss.maxHp,
+            mega: !!boss.mega,
+            phase: boss.phase || 0,
+            affix: boss.affix || null,
+            beamState: boss.beamState || null
+          }
         : null;
     }
     return snap;
@@ -5489,6 +5696,19 @@ if (window.__DUSTLINE_TEST__) {
     e.maxHp = e.hp;
     e.xp *= 3;
     if (chosen.id === 'swift') e.speed *= 1.35;
+    return true;
+  };
+  window.Dustline.forceBossAffix = (index, affix) => {
+    if (!G || !G.enemies[index]) return false;
+    const e = G.enemies[index];
+    const chosen = BOSS_AFFIXES.find((a) => a.id === affix);
+    if (!chosen) return false;
+    e.affix = chosen.id;
+    if (chosen.speed) e.speed *= chosen.speed;
+    if (chosen.id === 'shielded') {
+      e.hp = Math.round(e.hp * 1.15);
+      e.maxHp = e.hp;
+    }
     return true;
   };
   window.Dustline.hitEnemy = (index, dmg) => {
