@@ -43,12 +43,45 @@ function createCanvasStub(width, height, counter, record) {
     if (counter && TRACKED_OPS.has(String(prop))) counter[prop] = (counter[prop] || 0) + 1;
   };
   const alpha = () => (state.globalAlpha === undefined ? 1 : state.globalAlpha);
+  let tx = 0;
+  let ty = 0;
+  const transformStack = [];
   const ctx = new Proxy(
     {},
     {
       get(_t, prop) {
         if (prop === 'canvas') return canvas;
         if (prop === 'measureText') return () => ({ width: 0 });
+        if (prop === 'translate') {
+          return (x, y) => {
+            tx += x;
+            ty += y;
+            count(prop);
+          };
+        }
+        if (prop === 'save') {
+          return () => {
+            transformStack.push([tx, ty]);
+            count(prop);
+          };
+        }
+        if (prop === 'restore') {
+          return () => {
+            const previous = transformStack.pop();
+            if (previous) {
+              tx = previous[0];
+              ty = previous[1];
+            }
+            count(prop);
+          };
+        }
+        if (prop === 'setTransform') {
+          return () => {
+            tx = 0;
+            ty = 0;
+            count(prop);
+          };
+        }
         if (prop === 'fillText') {
           return (text, x, y) => {
             if (log) {
@@ -56,6 +89,8 @@ function createCanvasStub(width, height, counter, record) {
                 text: String(text),
                 x,
                 y,
+                sx: x + tx,
+                sy: y + ty,
                 font: state.font || '',
                 align: state.textAlign || 'left',
                 fillStyle: state.fillStyle
@@ -72,7 +107,7 @@ function createCanvasStub(width, height, counter, record) {
         }
         if (prop === 'fillRect') {
           return (x, y, w, h) => {
-            if (log) log.rects.push({ x, y, w, h, fillStyle: state.fillStyle, alpha: alpha() });
+            if (log) log.rects.push({ x, y, w, h, sx: x + tx, sy: y + ty, fillStyle: state.fillStyle, alpha: alpha() });
             count(prop);
           };
         }

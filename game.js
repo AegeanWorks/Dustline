@@ -4736,8 +4736,8 @@ function drawInteracts() {
   if (!G) return;
   for (const obj of G.interact) {
     if (obj.dead) continue;
-    const x = obj.x - G.cam.x;
-    const y = obj.y - G.cam.y;
+    const x = obj.x;
+    const y = obj.y;
     ctx.save();
     ctx.translate(x, y);
     if (obj.kind === 'crate') {
@@ -4786,8 +4786,8 @@ function drawInteracts() {
   }
   if (G.warChest && !G.warChest.open) {
     const c = G.warChest;
-    const x = c.x - G.cam.x;
-    const y = c.y - G.cam.y;
+    const x = c.x;
+    const y = c.y;
     const remaining = Math.max(0, c.need - (G.kills - c.startKills));
     const ready = remaining <= 0;
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 4);
@@ -4821,8 +4821,8 @@ function drawInteracts() {
     ctx.restore();
   }
   if (G.bunker && !G.bunker.used) {
-    const x = G.bunker.x - G.cam.x;
-    const y = G.bunker.y - G.cam.y;
+    const x = G.bunker.x;
+    const y = G.bunker.y;
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 2);
     ctx.save();
     ctx.translate(x, y);
@@ -4861,8 +4861,8 @@ function drawInteracts() {
     }
   }
   if (G.bunker && G.bunker.used) {
-    const x = G.bunker.x - G.cam.x;
-    const y = G.bunker.y - G.cam.y;
+    const x = G.bunker.x;
+    const y = G.bunker.y;
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = '#1a1a1a';
@@ -5989,8 +5989,8 @@ function drawSoldiers() {
 function drawHeli() {
   if (!G.heli) return;
   const h = G.heli;
-  const x = G.player.x + Math.cos(h.ang) * 90 - G.cam.x;
-  const y = G.player.y + Math.sin(h.ang) * 90 - G.cam.y;
+  const x = G.player.x + Math.cos(h.ang) * 90;
+  const y = G.player.y + Math.sin(h.ang) * 90;
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
@@ -6132,7 +6132,7 @@ function drawPlayer() {
   }
 
   const camo = CAMO[G.map] || '#2f6fb5';
-  ctx.fillStyle = tier >= 1 ? camo : '#2f6fb5';
+  ctx.fillStyle = camo;
   ctx.beginPath();
   ctx.arc(0, 0, 15, 0, TAU);
   ctx.fill();
@@ -6643,7 +6643,7 @@ function drawHUD() {
   ctx.fillStyle = '#d9fff4';
   ctx.fillText('XP ' + Math.floor(G.xp) + ' / ' + G.xpNext, W - 9, H - 4);
 
-  if (G.bannerT > 0 && screen === 'play') {
+  if (G.bannerT > 0 && screen === 'play' && !(G.callout && G.callout.t > 0)) {
     const a = clamp(G.bannerT / 0.6, 0, 1);
     ctx.save();
     ctx.globalAlpha = a;
@@ -7045,36 +7045,36 @@ function drawSetupScreen() {
     const op = OPERATORS.find((o) => o.id === id);
     const chosen = setup.operator === id;
     const x = 92 + i * 166;
-    const y = 410;
-    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 158, h: 26 });
-    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 26;
+    const y = 408;
+    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 158, h: 24 });
+    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 24;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? op.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 158, 26, 5);
+    rr(x, y, 158, 24, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? op.color : '#cfc6ad';
     ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(op.name, x + 9, y + 12);
+    ctx.fillText(op.name, x + 9, y + 11);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(op.blurb, x + 9, y + 22);
+    ctx.fillText(op.blurb, x + 9, y + 21);
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 442);
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 36, 446);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
     const x = 36 + i * 152;
-    const y = 448;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 22 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 22;
+    const y = 450;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 20 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 20;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 142, 22, 5);
+    rr(x, y, 142, 20, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
@@ -7088,27 +7088,27 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATION · A RUN-LONG TWIST', 92, 484);
+  ctx.fillText('MUTATION · A RUN-LONG TWIST', 36, 482);
   MUTATION_ORDER.forEach((id, i) => {
     const def = MUTATIONS.find((m) => m.id === id);
     if (!def) return;
     const chosen = setup.mutation === id;
     const x = 36 + i * 180;
-    const y = 490;
-    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 170, h: 22 });
-    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 22;
+    const y = 486;
+    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 170, h: 20 });
+    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 20;
     ctx.fillStyle = chosen ? 'rgba(255,138,92,0.18)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 170, 22, 5);
+    rr(x, y, 170, 20, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
     ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 10);
+    ctx.fillText(def.name, x + 7, y + 9);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
     ctx.font = '600 7px Consolas, monospace';
-    ctx.fillText(def.blurb, x + 7, y + 18);
+    ctx.fillText(def.blurb, x + 7, y + 17);
   });
 
   drawButton(

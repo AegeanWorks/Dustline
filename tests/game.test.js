@@ -2747,3 +2747,62 @@ test('the setup mutation row fits on screen', () => {
   assert.strictEqual(buttons.length, 5);
   for (const b of buttons) assert.ok(b.y + b.h <= 600, b.id + ' must fit');
 });
+
+
+test('the setup rows keep clear separation between labels and cards', () => {
+  const g = boot({ seed: 9003, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  const text = (prefix) => g.texts.find((t) => t.text.indexOf(prefix) === 0);
+  const label = text('MUTATORS');
+  const mutator = g.texts.find((t) => t.text === 'GLASS CANNON');
+  const mutationLabel = text('MUTATION');
+  const mutation = g.texts.find((t) => t.text === 'STANDARD');
+  assert.ok(label && mutator && mutationLabel && mutation, 'all setup labels render');
+  assert.ok(label.y < mutator.y - 2, 'the mutator header clears its cards');
+  assert.ok(mutator.y < mutationLabel.y - 2, 'the mutation header clears the mutator cards');
+  assert.ok(mutationLabel.y < mutation.y - 2, 'the mutation header clears its cards');
+});
+
+test('an active callout suppresses the banner so they never collide', () => {
+  const g = boot({ seed: 9005, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setKills(10);
+  g.api.spawnInteract('stash', 30, 0);
+  g.api.setPlayer(30, 0);
+  g.steps(4);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('KILLING SPREE'), 'the callout draws');
+  assert.ok(!labels.some((t) => t.indexOf('HIDDEN STASH') === 0), 'the banner yields to the callout');
+});
+
+test('the player body is tinted with the map camouflage', () => {
+  const g = boot({ seed: 9007, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  g.api.clickButton('map-desert');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const camo = g.api.snapshot().camo;
+  assert.ok(
+    g.fills.some((f) => String(f.fillStyle).toLowerCase() === camo.toLowerCase()),
+    'the player fill uses ' + camo
+  );
+});
+
+
+test('world interactables render with a single camera offset', () => {
+  const g = boot({ seed: 9009, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setPlayer(2000, 3000);
+  g.steps(30);
+  g.api.spawnInteract('stash', 2040, 3000);
+  g.steps(1);
+  const s = g.api.snapshot();
+  const box = g.rects.find((r) => r.w === 24 && r.h === 24 && String(r.fillStyle).toLowerCase() === '#3a6a6a');
+  assert.ok(box, 'the stash body draws');
+  assert.ok(Math.abs(box.sx - (2040 - 12 - s.cam.x)) < 1, 'x uses one camera offset, got ' + box.sx);
+  assert.ok(Math.abs(box.sy - (3000 - 12 - s.cam.y)) < 1, 'y uses one camera offset, got ' + box.sy);
+});
