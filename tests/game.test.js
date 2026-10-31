@@ -2341,4 +2341,33 @@ test('particle bursts stay capped under spam', () => {
   assert.ok(total < 7000, 'a full particle pool used ' + total + ' canvas ops');
 });
 
+test('each map has ground decorations from its own palette', () => {
+  const expected = {
+    desert: ['grass', 'bones', 'pebbles'],
+    frost: ['snowgrass', 'ice', 'pebbles'],
+    ash: ['charred', 'bones', 'crack'],
+    jungle: ['fern', 'flower', 'mushroom']
+  };
+  for (const map of Object.keys(expected)) {
+    const g = boot({ seed: 2300 + map.length });
+    g.api.startRun({ map });
+    const decor = g.api.decor(0, 0, 800);
+    assert.ok(decor.length > 0, map + ' has ground decor');
+    for (const d of decor) assert.ok(expected[map].includes(d.kind), map + ' decor kind ' + d.kind);
+  }
+});
+
+test('explosions leave fading scorch decals within a cap', () => {
+  const g = boot({ seed: 2401 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  for (let i = 0; i < 20; i++) assert.ok(g.api.explode(0, 0, 80));
+  assert.ok(g.api.snapshot().decals > 0, 'a blast leaves a decal');
+  assert.ok(g.api.snapshot().decals <= 12, 'decals stay capped');
+  g.steps(700);
+  assert.strictEqual(g.api.snapshot().decals, 0, 'decals fade out');
+});
+
+
 

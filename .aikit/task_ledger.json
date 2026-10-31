@@ -1,82 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-20",
+    "task_id": "dustline-v0-21",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793429696.5777452,
+    "updated_at": 1793435136.6572251,
     "owner": "opencode:visual-audit",
     "started_by": "opencode:visual-audit",
     "continuations": [],
-    "completed_at": 1793429696.8570535
+    "completed_at": 1793435137.1295998
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-15",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-15' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793389686.7811904,
-      "timestamp_str": "2026-10-30 22:48:06",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-16",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.16 Field Manual - menu entry and bestiary screen with enemy/boss/relic tabs, behaviour tips, lifetime and run kill counts",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793390064.1594355,
-      "timestamp_str": "2026-10-30 22:54:24",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The game now has 18 mobs, 8 bosses and 10 relics but nothing in-game explains what they do; the upgrades codex only covers skills and relics are described only at the moment of picking",
-        "benefits": "Makes the whole content library discoverable, helps new players learn counters, and turns lifetime kill data into visible progress without touching balance",
-        "risks": "contract: main menu gains a button and snapshot gains a manual field; dependency: none; concurrency: ledger shared; state: none, no save-schema change",
-        "mitigation": "Keep the manual read-only over existing tables, verify menu button layout fits the 960px canvas, add tab/content tests, full suite and gates before commit"
-      }
-    },
-    {
-      "task_id": "dustline-v0-16",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: Field Manual screen with hostile/boss/relic tabs, 19 enemy tips, 8 boss tips, lifetime kill counts, 4-column enemy grid (fixed a real overflow found by the probe), menu MANUAL button in a 3x2 layout, snapshot manual block; 100/100 tests, 5/5 gates, menu and manual layout scans OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793390864.211953,
-      "timestamp_str": "2026-10-30 23:07:44",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-16",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-16' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793390864.9283757,
-      "timestamp_str": "2026-10-30 23:07:44",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-17",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.17 Daily Challenge - UTC-day seeded run with forced operator/weapon/map/difficulty/mode/mutators, daily screen with ruleset and best, per-day best records pruned to 30 days, two daily achievements",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793391253.7547002,
-      "timestamp_str": "2026-10-30 23:14:13",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The game has modes, operators and records but nothing that gives players a shared, date-driven reason to return and compare; runs are always local and arbitrary",
-        "benefits": "Adds a repeatable daily hook with a comparable seed and ruleset, reuses setup/mode/operator/mutator systems, and gives the record screen a new axis",
-        "risks": "contract: menu and snapshot gain daily fields, startRun accepts seed/operator/mutators; dependency: none; concurrency: ledger shared; state: save gains dailyBest map, pruned and clamped",
-        "mitigation": "Daily seeding is deterministic and testable through a setDay seam, records are pruned to 30 keys with zero defaults, existing setup flow untouched, full suite and gates before commit"
-      }
-    },
     {
       "task_id": "dustline-v0-17",
       "phase": "in_progress",
@@ -254,6 +189,66 @@
       "status": "completed",
       "timestamp": 1793429696.8570552,
       "timestamp_str": "2026-10-31 09:54:56",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-21",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Plan: v0.21 world graphics pass - per-map ground decor, layered trees, shaded rocks and lit building windows, fading scorch decals, player rim/overdrive and boss ground auras",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793435078.9328897,
+      "timestamp_str": "2026-10-31 11:24:38",
+      "agent": "opencode:visual-audit",
+      "impact_assessment": {
+        "why": "After v0.20 the atmosphere and combat feedback read well, but screenshots still showed empty ground between props, flat trees and rocks, unlit window holes, explosions that vanished without a trace, and weak player/boss presence against the terrain",
+        "benefits": "Each map gets a distinct ground-detail identity, props gain depth and inhabited details, explosions leave spatial history, and the player and bosses read more clearly without changing gameplay",
+        "risks": "contract: render helpers gain non-solid decor and decal state, snapshot gains a read-only decals count, no save schema or mechanics change; dependency: none; concurrency: ledger shared; state: decals capped and transient",
+        "mitigation": "Place decor by hash so the seeded gameplay stream is unchanged, keep decor non-solid, cap and fade decals, test per-map decor kinds and decal lifecycle, rerun the full suite and draw budgets, capture fresh screenshots, then run python aikit.py check dustline"
+      }
+    },
+    {
+      "task_id": "dustline-v0-21",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/4] Map decor complete: deterministic non-solid 210px decor fields with desert grass/bones/pebbles, frost snowgrass/ice/pebbles, ash charred stumps/bones/ember cracks, and jungle ferns/flowers/mushrooms; each cluster has wind sway and is drawn under props/entities",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793435125.777324,
+      "timestamp_str": "2026-10-31 11:25:25",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-21",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] Prop and presence pass complete: layered tree canopies with sway, shaded faceted rocks, building roof overhangs/plinth/door step/warm windows, a capped 12-slot nine-second scorch decal pool from explosions, player rim light plus overdrive ring and boss ground aura; decor/explode seams and snapshot.decals added; 123/123 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793435125.7808995,
+      "timestamp_str": "2026-10-31 11:25:25",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-21",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Verification complete: 123/123 tests pass, python aikit.py check dustline reports 5/5 gates, and fresh captures (85-world-*, 86-scorch-decal, 88-boss-aura, 89-overdrive-rim, 91-decor-*) plus the v0.21 contact sheet confirm per-map decor, layered props, scorch decals, player rim/overdrive and boss auras; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793435136.6572251,
+      "timestamp_str": "2026-10-31 11:25:36",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-21",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-21' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793435137.1296046,
+      "timestamp_str": "2026-10-31 11:25:37",
       "agent": "opencode:visual-audit"
     }
   ]
