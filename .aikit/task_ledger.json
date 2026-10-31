@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "dustline-v0-23",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793445912.7905657,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793445995.3925197
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-19",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/4] Rendering polish: ground variants now share one base colour with low-alpha patches, cracks and specks so cached 140px tiles no longer seam; hazards render from a per-map cached 256px radial sprite with a faint rim and a fallback ellipse, replacing flat hard-edged pools; verified by a new drawImage/fill layout recorder in the harness",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793399400.4670472,
-      "timestamp_str": "2026-10-31 01:30:00",
-      "agent": "opencode:visual-audit"
-    },
     {
       "task_id": "dustline-v0-19",
       "phase": "phase 3",
@@ -250,6 +240,16 @@
       "status": "in_progress",
       "timestamp": 1793445912.7905657,
       "timestamp_str": "2026-10-31 14:25:12",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-23",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-23' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793445995.392521,
+      "timestamp_str": "2026-10-31 14:26:35",
       "agent": "kilo:continue"
     }
   ]
