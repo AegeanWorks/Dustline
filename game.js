@@ -124,6 +124,41 @@ const MUTATORS = [
 
 const MUTATOR_ORDER = ['glass', 'swarm', 'elite', 'fog', 'vampiric', 'bounty'];
 
+const STREAK_TIERS = [
+  { kills: 10, name: 'KILLING SPREE', color: '#ffd27a' },
+  { kills: 25, name: 'RAMPAGE', color: '#ffcf5c' },
+  { kills: 50, name: 'WAR MACHINE', color: '#ff8a5c' },
+  { kills: 100, name: 'UNSTOPPABLE', color: '#ff6a4a' },
+  { kills: 250, name: 'ONE MAN ARMY', color: '#ff4ad2' },
+  { kills: 500, name: 'LEGENDARY', color: '#ffe08a' }
+];
+
+const STREAK_REWARDS = [
+  { at: 15, id: 'supply', name: 'SUPPLY DROP', color: '#63dcc0' },
+  { at: 30, id: 'airstrike', name: 'AIRSTRIKE', color: '#ffcf5c' },
+  { at: 60, id: 'heli', name: 'ATTACK HELICOPTER', color: '#9fd8ff' },
+  { at: 120, id: 'missile', name: 'MISSILE BARRAGE', color: '#ff8a5c' }
+];
+
+const MUTATIONS = [
+  { id: 'none', name: 'STANDARD', blurb: 'No mutation', color: '#8f9ba4' },
+  { id: 'explosive', name: 'EXPLOSIVE BLOOD', blurb: 'Death blast', color: '#ff8a5c' },
+  { id: 'berserker', name: 'BERSERKER', blurb: '+45% dmg low HP', color: '#ff6a4a' },
+  { id: 'overclock', name: 'OVERCLOCK', blurb: '+20% fire rate', color: '#ffe08a' },
+  { id: 'veteran', name: 'WAR VETERAN', blurb: '+10% dmg per boss', color: '#63dcc0' }
+];
+
+const MUTATION_ORDER = ['none', 'explosive', 'berserker', 'overclock', 'veteran'];
+
+const CAMO = {
+  desert: '#8f7a4a',
+  frost: '#6a7f8c',
+  ash: '#6a4a3a',
+  jungle: '#4a6a3a',
+  crater: '#6a5a6a',
+  toxic: '#5a7a3a'
+};
+
 const ACHIEVEMENTS = [
   { id: 'first_blood', name: 'FIRST BLOOD', desc: 'Kill 1 enemy', goal: (s) => s.totalKills, target: 1, reward: 10 },
   { id: 'culler', name: 'CULLER', desc: 'Kill 250 enemies', goal: (s) => s.totalKills, target: 250, reward: 25 },
@@ -144,7 +179,10 @@ const ACHIEVEMENTS = [
   { id: 'shield_wall', name: 'SHIELD WALL', desc: 'Absorb 10 hits with the Aegis', goal: (s) => s.shieldSaves || 0, target: 10, reward: 45 },
   { id: 'full_loadout', name: 'FULL LOADOUT', desc: 'Fill every offense and defense slot', goal: (s) => s.slotsFull || 0, target: 1, reward: 55 },
   { id: 'daily_done', name: 'DAILY DRIVER', desc: 'Finish a daily challenge', goal: (s) => s.dailyDone || 0, target: 1, reward: 40 },
-  { id: 'daily_win', name: 'DAILY ACE', desc: 'Win a daily challenge', goal: (s) => s.dailyWins || 0, target: 1, reward: 80 }
+  { id: 'daily_win', name: 'DAILY ACE', desc: 'Win a daily challenge', goal: (s) => s.dailyWins || 0, target: 1, reward: 80 },
+  { id: 'legend', name: 'LEGEND', desc: 'Kill 500 enemies in one run', goal: (s) => s.bestKills || 0, target: 500, reward: 100 },
+  { id: 'high_score', name: 'HIGH SCORE', desc: 'Score 10,000 in one run', goal: (s) => s.bestScore || 0, target: 10000, reward: 80 },
+  { id: 'secret_seeker', name: 'SECRET SEEKER', desc: 'Discover 3 secret combos', goal: (s) => s.secrets || 0, target: 3, reward: 70 }
 ];
 
 function achievementUnlocked() {
@@ -156,6 +194,9 @@ function achievementStats() {
   return {
     totalKills: save.totalKills + (live ? G.kills : 0),
     bestTime: Math.max(save.bestTime, live ? G.time : 0),
+    bestKills: Math.max(save.bestKills || 0, live ? G.kills : 0),
+    bestScore: Math.max(save.bestScore || 0, live ? G.score || 0 : 0),
+    secrets: (save.secrets || []).length,
     bossKills: save.bossKills + (live ? G.bossKills || 0 : 0),
     megaKills: (save.megaKills || 0) + (live ? G.megaKills || 0 : 0),
     bankedTotal: (save.bankedTotal || 0) + (live ? Math.floor(G.banked) : 0),
@@ -254,6 +295,8 @@ function defaultSave() {
     rushClears: 0,
     rushBest: 0,
     bestWave: 1,
+    bestScore: 0,
+    secrets: [],
     shieldSaves: 0,
     dailyBest: {},
     achievements: {},
@@ -287,8 +330,11 @@ function loadSave() {
   for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
-  for (const key of ['bestTime', 'bestKills', 'rushBest']) merged[key] = Math.max(0, Number(merged[key]) || 0);
+  for (const key of ['bestTime', 'bestKills', 'rushBest', 'bestScore']) merged[key] = Math.max(0, Number(merged[key]) || 0);
   merged.bestWave = Math.max(1, Math.round(Number(merged.bestWave) || 1));
+  merged.secrets = Array.isArray(raw.secrets)
+    ? raw.secrets.filter((id) => typeof id === 'string').slice(0, 24)
+    : [];
   merged.lastSeed = (Number(merged.lastSeed) >>> 0) || 20261029;
   const cleanBest = {};
   if (merged.dailyBest && typeof merged.dailyBest === 'object') {
@@ -503,9 +549,27 @@ const sfx = {
     tone('sine', f, f * 1.5, 0.05, 0.08);
   },
   heal() { pad([520, 660, 780], 0.07, 0.2, 0.05); },
-  level() { pad([523, 659, 784, 1046], 0.09, 0.28, 0.07); },
+  level() {
+    pad([523, 659, 784, 1046, 1318], 0.1, 0.34, 0.06);
+    tone('sine', 1046, 1568, 0.05, 0.24);
+    noiseShot(0.05, 0.18, 2600, 1.1);
+  },
   upgrade() { pad([392, 587, 784], 0.08, 0.24, 0.06); },
   wave() { pad([330, 440, 587], 0.07, 0.3, 0.1); },
+  milestone(step) {
+    const base = 392 + Math.min(6, step || 1) * 44;
+    pad([base, base * 1.25, base * 1.5, base * 2], 0.11, 0.42, 0.08);
+    noiseShot(0.08, 0.25, 1500, 0.6);
+  },
+  reward() {
+    pad([523, 784, 1046, 1318], 0.1, 0.4, 0.07);
+    tone('sawtooth', 220, 880, 0.06, 0.3);
+  },
+  lastStand() {
+    tone('sawtooth', 90, 48, 0.16, 1.0);
+    tone('square', 400, 180, 0.07, 0.6);
+    noiseSweep(0.2, 0.8, 900, 90, 'lowpass');
+  },
   click() { tone('square', 660, 520, 0.03, 0.03); },
   swap() { tone('square', 500, 340, 0.03, 0.03); },
   denied() { tone('square', 200, 140, 0.04, 0.09); },
@@ -793,6 +857,30 @@ const COMBOS = [
     needs: ['aegis', 'vitality'],
     desc: 'Shield recharges 40% faster',
     color: '#9fd8ff'
+  },
+  {
+    id: 'executioner',
+    name: 'EXECUTIONER',
+    needs: ['dmr', 'crit'],
+    desc: '+5% crit chance',
+    color: '#ff8ad8',
+    secret: true
+  },
+  {
+    id: 'singularity',
+    name: 'SINGULARITY',
+    needs: ['aura', 'magnet'],
+    desc: '+20% aura radius',
+    color: '#c9a8ff',
+    secret: true
+  },
+  {
+    id: 'gunner',
+    name: 'GUNNER',
+    needs: ['squad', 'bulletSpeed'],
+    desc: 'Squad fires 25% faster',
+    color: '#7fd0ff',
+    secret: true
   }
 ];
 
@@ -1059,7 +1147,7 @@ const FORMATION = [
 ];
 
 function levelNeed(level) {
-  return Math.round(18 + 16 * level + 0.6 * level * level);
+  return Math.round(32 + 24 * level + 1.2 * level * level);
 }
 
 function metaRank(id) {
@@ -1094,6 +1182,7 @@ function dailyRules(day) {
     weapon: WEAPON_ORDER[(d + 2) % WEAPON_ORDER.length],
     map: MAP_ORDER[d % MAP_ORDER.length],
     difficulty: DAILY_DIFFS[d % DAILY_DIFFS.length],
+    mutation: MUTATION_ORDER[(d + 1) % MUTATION_ORDER.length],
     mode,
     mutators: mode === 'survivors' ? [MUTATOR_ORDER[(d * 7) % MUTATOR_ORDER.length]] : []
   };
@@ -1148,12 +1237,12 @@ function activeCombos() {
 }
 
 function playerSpeed() {
-  return 210 * (1 + 0.08 * G.skills.speed) * (1 + 0.04 * metaRank('speed')) * (1 + 0.08 * (G.momentum || 0)) * (G.hp < G.maxHp * 0.3 ? 1.15 : 1);
+  return 210 * (1 + 0.08 * G.skills.speed) * (1 + 0.04 * metaRank('speed')) * (1 + 0.08 * (G.momentum || 0)) * (G.hp < G.maxHp * 0.3 ? 1.15 : 1) * (G.lastStand ? 1.1 : 1);
 }
 
 function auraRadius() {
   return G.skills.aura > 0
-    ? (72 + 9 * G.skills.aura) * (hasEvolution('aura') ? 1.35 : 1) * (isOperator('engineer') ? 1.15 : 1)
+    ? (72 + 9 * G.skills.aura) * (hasEvolution('aura') ? 1.35 : 1) * (isOperator('engineer') ? 1.15 : 1) * (hasCombo('singularity') ? 1.2 : 1)
     : 0;
 }
 
@@ -1178,13 +1267,30 @@ function blastMult() {
 }
 
 function fireRateMult() {
-  return (odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1) * (hasRelic('chrono') ? 1.15 : 1) * (G.overchargeT > 0 ? 1.6 : 1);
+  return (
+    (odActive() ? 1.25 : 1) *
+    (G.frenzyT > 0 ? 1.5 : 1) *
+    (hasRelic('chrono') ? 1.15 : 1) *
+    (G.overchargeT > 0 ? 1.6 : 1) *
+    (G.mutation === 'overclock' ? 1.2 : 1) *
+    (G.lastStand ? 1.15 : 1)
+  );
 }
 
 function damageMult() {
   const od = odActive() ? 1.4 : 1;
   const glass = hasMutator('glass') ? 1.4 : 1;
-  return (1 + 0.12 * G.skills.damage) * (1 + 0.06 * metaRank('power')) * od * glass * (1 + 0.15 * (G.momentum || 0)) * (G.enemies.length >= 50 ? 1.2 : 1) * (G.hp < G.maxHp * 0.3 ? 1.3 : 1);
+  const berserk = G.mutation === 'berserker' && G.hp < G.maxHp * 0.35 ? 1.45 : 1;
+  const veteran = G.mutation === 'veteran' ? 1 + 0.1 * (G.bossKills || 0) : 1;
+  const lastStand = G.lastStand ? 1.5 : 1;
+  return (
+    (1 + 0.12 * G.skills.damage) *
+    (1 + 0.06 * metaRank('power')) *
+    od * glass * berserk * veteran * lastStand *
+    (1 + 0.15 * (G.momentum || 0)) *
+    (G.enemies.length >= 50 ? 1.2 : 1) *
+    (G.hp < G.maxHp * 0.3 ? 1.3 : 1)
+  );
 }
 
 function magnetRadius() {
@@ -1201,7 +1307,8 @@ function critChance() {
     (hasEvolution('smg') ? 0.1 : 0) +
     (G.surgeT > 0 ? 0.15 : 0) +
     (hasRelic('voidlens') ? 0.1 : 0) +
-    (isOperator('marksman') ? 0.08 : 0)
+    (isOperator('marksman') ? 0.08 : 0) +
+    (hasCombo('executioner') ? 0.05 : 0)
   );
 }
 
@@ -1379,6 +1486,22 @@ function updateInteracts(dt) {
       triggerNuke(G.bunker);
     }
   }
+  if (G.warChest && !G.warChest.open) {
+    const c = G.warChest;
+    c.spin += dt * 0.8;
+    c.deniedCd = Math.max(0, c.deniedCd - dt);
+    const d = Math.hypot(G.player.x - c.x, G.player.y - c.y);
+    if (d < 46) {
+      const remaining = Math.max(0, c.need - (G.kills - c.startKills));
+      if (remaining <= 0) {
+        openWarChest();
+      } else if (c.deniedCd <= 0) {
+        c.deniedCd = 1.4;
+        spawnFloater(c.x, c.y - 30, 'KILL ' + remaining + ' MORE', '#ffcf5c', 12);
+        sfx.denied();
+      }
+    }
+  }
   for (const obj of G.interact) {
     if (obj.dead) continue;
     obj.spin += dt * 2;
@@ -1519,7 +1642,7 @@ function addSoldier() {
   });
 }
 
-let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger' };
+let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger', mutation: 'none' };
 
 function freshSkills() {
   const skills = {};
@@ -1549,6 +1672,7 @@ function startRun(options) {
   }
   if (opts.mode && MODES.some((m) => m.id === opts.mode)) setup.mode = opts.mode;
   if (opts.operator && OPERATOR_ORDER.indexOf(opts.operator) >= 0) setup.operator = opts.operator;
+  if (opts.mutation && MUTATION_ORDER.indexOf(opts.mutation) >= 0) setup.mutation = opts.mutation;
   if (Array.isArray(opts.mutators)) setup.mutators = opts.mutators.slice(0, 2);
   const limit = findLimit(setup.limit);
   const diff = findDifficulty(setup.difficulty);
@@ -1562,6 +1686,7 @@ function startRun(options) {
     weapon: setup.weapon,
     mode: setup.mode,
     operator: OPERATOR_ORDER.indexOf(setup.operator) >= 0 ? setup.operator : 'ranger',
+    mutation: MUTATION_ORDER.indexOf(setup.mutation) >= 0 ? setup.mutation : 'none',
     daily: opts.daily != null ? Number(opts.daily) : null,
     rush: setup.mode === 'bossrush' ? { index: 0, target: RUSH_TARGET, next: 2, alive: false } : null,
     map: setup.map,
@@ -1616,6 +1741,18 @@ function startRun(options) {
     recentKills: [],
     momentum: 0,
     hitStop: 0,
+    score: 0,
+    milestoneIdx: 0,
+    rewardIdx: 0,
+    streakRewards: [],
+    callout: null,
+    flashT: 0,
+    flashColor: '#ffffff',
+    lastStand: false,
+    warChest: null,
+    airstrike: null,
+    heli: null,
+    missiles: null,
     relics: [],
     relicOffers: [],
     salvage: [],
@@ -1749,6 +1886,7 @@ function recordRun(outcome) {
   } else {
     save.bestWave = Math.max(save.bestWave || 1, G.wave);
   }
+  if (G.score > (save.bestScore || 0)) save.bestScore = Math.round(G.score);
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
@@ -2478,7 +2616,7 @@ function updateSoldiers(dt) {
     if (near && s.fireCd <= 0) {
       const dmg = (8 + 3 * G.skills.squad) * damageMult();
       spawnBullet(s.x + Math.cos(s.angle) * 13, s.y + Math.sin(s.angle) * 13, s.angle + rnd(-0.05, 0.05), 780, dmg, 's', '#7fd0ff');
-      s.fireCd = Math.max(0.5, 0.9 - 0.05 * G.skills.squad);
+      s.fireCd = Math.max(0.5, 0.9 - 0.05 * G.skills.squad) * (hasCombo('gunner') ? 0.75 : 1);
       s.flash = 0.05;
       G.stats.shots.soldier++;
       sfx.soldier();
@@ -3336,6 +3474,160 @@ function damageEnemy(e, dmg, x, y, crit, splash) {
   }
 }
 
+function announceCallout(text, sub, color, dur) {
+  if (!G) return;
+  const max = dur || 2.4;
+  G.callout = { text, sub: sub || '', color: color || '#ffd27a', t: max, max };
+}
+
+function evaluateLastStand() {
+  if (!G) return;
+  if (G.hp > 0 && G.hp <= G.maxHp * 0.1) {
+    if (!G.lastStand) {
+      G.lastStand = true;
+      announceCallout('LAST STAND', '10% HEALTH · +50% DAMAGE · MORE RISK', '#ff4a3a', 3.2);
+      G.flashT = 0.4;
+      G.flashColor = '#ff2a1a';
+      sfx.lastStand();
+    }
+  } else if (G.hp > G.maxHp * 0.12) {
+    G.lastStand = false;
+  }
+}
+
+function checkKillMilestones() {
+  while (G.milestoneIdx < STREAK_TIERS.length && G.kills >= STREAK_TIERS[G.milestoneIdx].kills) {
+    const tier = STREAK_TIERS[G.milestoneIdx];
+    G.milestoneIdx++;
+    G.score += tier.kills * 5;
+    announceCallout(tier.name, tier.kills + ' TOTAL KILLS · +' + tier.kills * 5 + ' SCORE', tier.color, 3);
+    G.flashT = 0.35;
+    G.flashColor = tier.color;
+    sfx.milestone(G.milestoneIdx);
+    save.milestones = save.milestones || {};
+    save.milestones[tier.name] = (save.milestones[tier.name] || 0) + 1;
+  }
+}
+
+function checkStreakRewards() {
+  while (G.rewardIdx < STREAK_REWARDS.length && G.streak >= STREAK_REWARDS[G.rewardIdx].at) {
+    const reward = STREAK_REWARDS[G.rewardIdx];
+    G.rewardIdx++;
+    triggerStreakReward(reward);
+  }
+}
+
+function triggerStreakReward(reward) {
+  G.score += 150;
+  G.streakRewards.push(reward.id);
+  announceCallout(reward.name, 'KILL STREAK REWARD · +150 SCORE', reward.color, 2.8);
+  G.flashT = 0.3;
+  G.flashColor = reward.color;
+  sfx.reward();
+  if (reward.id === 'supply') {
+    for (let i = 0; i < 3; i++) G.medkits.push({ x: G.player.x + rnd(-50, 50), y: G.player.y + rnd(-50, 50) });
+    const kinds = Object.keys(CHIPS);
+    for (let i = 0; i < 2; i++) {
+      G.chips.push({ x: G.player.x + rnd(-60, 60), y: G.player.y + rnd(-60, 60), kind: kinds[Math.floor(srnd() * kinds.length)], spin: 0 });
+    }
+    G.news = 'Supply drop landed.';
+  } else if (reward.id === 'airstrike') {
+    G.airstrike = { t: 0, n: 10, x: G.player.x, y: G.player.y, ang: G.player.angle };
+    G.news = 'Airstrike inbound.';
+  } else if (reward.id === 'heli') {
+    G.heli = { t: 14, cd: 0, ang: 0 };
+    G.news = 'Attack helicopter on station.';
+  } else if (reward.id === 'missile') {
+    G.missiles = { t: 0, n: 18 };
+    G.news = 'Missile barrage authorized.';
+  }
+}
+
+function updateRewards(dt) {
+  if (G.airstrike) {
+    const a = G.airstrike;
+    a.t -= dt;
+    if (a.t <= 0) {
+      a.t = 0.14;
+      const ang = a.ang + rnd(-0.7, 0.7);
+      const dist = rnd(80, 520);
+      explodeAt(a.x + Math.cos(ang) * dist, a.y + Math.sin(ang) * dist, 95, 60 * damageMult(), '#ffcf5c', 'p');
+      shake = Math.max(shake, settings.shake ? 5 : 0);
+      a.n--;
+      if (a.n <= 0) G.airstrike = null;
+    }
+  }
+  if (G.missiles) {
+    const m = G.missiles;
+    m.t -= dt;
+    if (m.t <= 0) {
+      m.t = 0.12;
+      const a = rnd(0, TAU);
+      const d = rnd(60, 560);
+      explodeAt(G.player.x + Math.cos(a) * d, G.player.y + Math.sin(a) * d, 120, 85 * damageMult(), '#ff8a5c', 'p');
+      shake = Math.max(shake, settings.shake ? 7 : 0);
+      m.n--;
+      if (m.n <= 0) G.missiles = null;
+    }
+  }
+  if (G.heli) {
+    const h = G.heli;
+    h.t -= dt;
+    h.ang += dt * 1.4;
+    h.cd -= dt;
+    const hx = G.player.x + Math.cos(h.ang) * 90;
+    const hy = G.player.y + Math.sin(h.ang) * 90;
+    if (h.cd <= 0) {
+      const target = nearestEnemy(hx, hy, 560);
+      if (target) {
+        spawnBullet(hx, hy, Math.atan2(target.y - hy, target.x - hx), 900, 24 * damageMult(), 'p', '#9fd8ff');
+        h.cd = 0.32;
+      } else {
+        h.cd = 0.2;
+      }
+    }
+    if (h.t <= 0) G.heli = null;
+  }
+}
+
+function maybeSpawnWarChest(wave) {
+  if (!G || G.warChest || wave < 3 || wave % 3 !== 0) return;
+  const ang = rnd(0, TAU);
+  const d = rnd(420, 760);
+  const need = 20 + wave * 4;
+  G.warChest = {
+    x: G.player.x + Math.cos(ang) * d,
+    y: G.player.y + Math.sin(ang) * d,
+    need,
+    startKills: G.kills,
+    spin: 0,
+    deniedCd: 0
+  };
+  G.news = 'WAR CHEST SIGNAL · ' + need + ' kills to crack it.';
+  announceCallout('WAR CHEST', 'HIDDEN CACHE · KILL ' + need + ' MORE', '#63dcc0', 2.8);
+}
+
+function openWarChest() {
+  const c = G.warChest;
+  if (!c || c.open) return false;
+  c.open = true;
+  const payout = 40 + G.wave * 8;
+  addUnbanked(payout);
+  G.hp = Math.min(G.maxHp, G.hp + 45);
+  G.stats.healing += 45;
+  G.stats.warChests = (G.stats.warChests || 0) + 1;
+  const kinds = Object.keys(CHIPS);
+  for (let i = 0; i < 4; i++) {
+    G.chips.push({ x: c.x + rnd(-40, 40), y: c.y + rnd(-40, 40), kind: kinds[Math.floor(srnd() * kinds.length)], spin: 0 });
+  }
+  G.chests.push({ x: c.x, y: c.y, spin: 0 });
+  G.score += 750;
+  announceCallout('WAR CHEST', 'MILITARY CACHE · +' + payout + ' SHARDS · +750 SCORE', '#63dcc0', 3.2);
+  sfx.reward();
+  G.warChest = null;
+  return true;
+}
+
 function killEnemy(e) {
   if (e.dead) return;
   e.dead = true;
@@ -3343,7 +3635,10 @@ function killEnemy(e) {
   G.killsByType[e.type] = (G.killsByType[e.type] || 0) + 1;
   G.streak += 1;
   G.streakT = 2.6;
+  G.score += Math.round((8 + e.xp * 3) * (1 + G.streak * 0.01));
   if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+  checkKillMilestones();
+  checkStreakRewards();
   G.recentKills = (G.recentKills || []).filter((t) => G.time - t < 1);
   G.recentKills.push(G.time);
   if (G.recentKills.length >= 3) {
@@ -3437,6 +3732,8 @@ function killEnemy(e) {
     const def = BOSS_TYPES[e.type];
     const mega = !!(def && def.mega);
     if (mega) G.megaKills = (G.megaKills || 0) + 1;
+    G.score += mega ? 2500 : 1000;
+    announceCallout(def.name + ' DOWN', (mega ? 'MEGA BOSS' : 'BOSS') + ' BONUS · +' + (mega ? 2500 : 1000) + ' SCORE', '#ffd27a', 2.8);
     G.medkits.push({ x: e.x, y: e.y });
     const gemCount = mega ? 22 : 8;
     for (let i = 0; i < gemCount; i++) spawnGem(e.x + rnd(-60, 60), e.y + rnd(-60, 60), 5, i % 3 === 0 ? 1 : 0);
@@ -3513,9 +3810,15 @@ function damagePlayer(dmg) {
   sfx.hurt();
   if (G.hp <= 0) {
     G.hp = 0;
+    if (G.mutation === 'explosive') {
+      explodeAt(G.player.x, G.player.y, 190 * blastMult(), 120 * damageMult(), '#ff8a5c', 'p');
+      fxBurst(G.player.x, G.player.y, 1, '#ff8a5c', 0, 190, 0.6, 'ring');
+    }
     burst(G.player.x, G.player.y, 30, '#8a1f24', 260, 4, 0.7);
     gameOver();
+    return;
   }
+  evaluateLastStand();
 }
 
 function updatePickups(dt) {
@@ -3727,10 +4030,19 @@ function announceCombos() {
     const active = combo.needs.every((s) => G.skills[s] >= 2);
     if (active && G.combosSeen.indexOf(combo.id) < 0) {
       G.combosSeen.push(combo.id);
-      G.banner = combo.name;
-      G.bannerSub = 'SKILL COMBO · ' + combo.desc;
-      G.bannerT = 2.2;
-      sfx.upgrade();
+      if (combo.secret) {
+        save.secrets = save.secrets || [];
+        if (save.secrets.indexOf(combo.id) < 0) save.secrets.push(combo.id);
+        announceCallout('SECRET COMBO', combo.name + ' · ' + combo.desc, '#ff8ad8', 3);
+        G.flashT = 0.3;
+        G.flashColor = '#ff8ad8';
+        sfx.reward();
+      } else {
+        G.banner = combo.name;
+        G.bannerSub = 'SKILL COMBO · ' + combo.desc;
+        G.bannerT = 2.2;
+        sfx.upgrade();
+      }
     }
   }
 }
@@ -3869,6 +4181,7 @@ function updateRun(dt) {
       G.bannerT = 2.2;
       sfx.wave();
       if (wave % BOSS_EVERY === 0) spawnBoss();
+      maybeSpawnWarChest(wave);
     }
   }
   G.bannerT = Math.max(0, G.bannerT - dt);
@@ -3886,6 +4199,9 @@ function updateRun(dt) {
   G.streakT = Math.max(0, G.streakT - dt);
   if (G.streakT <= 0 && G.streak > 0) G.streak = 0;
   G.momentum = Math.max(0, (G.momentum || 0) - 0.4 * dt);
+  if (G.callout) G.callout.t = Math.max(0, G.callout.t - dt);
+  G.flashT = Math.max(0, G.flashT - dt);
+  evaluateLastStand();
   G.surgeT = Math.max(0, G.surgeT - dt);
   G.frenzyT = Math.max(0, G.frenzyT - dt);
   G.alert = Math.max(0, G.alert - 0.35 * dt);
@@ -4010,6 +4326,7 @@ function updateRun(dt) {
 
   updateSkills(dt);
   updateSoldiers(dt);
+  updateRewards(dt);
   updateSpawner(dt);
   updateEnemies(dt);
   if (screen !== 'play') return;
@@ -4465,6 +4782,42 @@ function drawInteracts() {
       ctx.lineWidth = 1.5;
       ctx.strokeRect(-12, -12, 24, 24);
     }
+    ctx.restore();
+  }
+  if (G.warChest && !G.warChest.open) {
+    const c = G.warChest;
+    const x = c.x - G.cam.x;
+    const y = c.y - G.cam.y;
+    const remaining = Math.max(0, c.need - (G.kills - c.startKills));
+    const ready = remaining <= 0;
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 4);
+    ctx.save();
+    ctx.translate(x, y);
+    const glow = ctx.createRadialGradient(0, 0, 10, 0, 0, 90);
+    glow.addColorStop(0, ready ? 'rgba(99,220,192,0.34)' : 'rgba(255,176,102,0.22)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-90, -90, 180, 180);
+    ctx.fillStyle = '#2e3a2c';
+    ctx.fillRect(-19, -13, 38, 26);
+    ctx.fillStyle = ready ? '#63dcc0' : '#8a7a4a';
+    ctx.fillRect(-19, -13, 38, 4);
+    ctx.fillStyle = '#1a221a';
+    ctx.fillRect(-12, -6, 24, 15);
+    ctx.fillStyle = ready ? '#63dcc0' : '#ffb066';
+    ctx.fillRect(-4, -1, 8, 6);
+    ctx.strokeStyle = ready ? 'rgba(99,220,192,' + (0.5 + 0.4 * pulse) + ')' : 'rgba(255,176,102,0.6)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-19, -13, 38, 26);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(x, y - 30);
+    ctx.fillStyle = 'rgba(8,10,12,0.82)';
+    ctx.fillRect(-58, -14, 116, 22);
+    ctx.fillStyle = ready ? '#63dcc0' : '#ffcf5c';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(ready ? 'WAR CHEST · OPEN' : 'WAR CHEST · ' + remaining + ' KILLS', 0, 1);
     ctx.restore();
   }
   if (G.bunker && !G.bunker.used) {
@@ -5633,6 +5986,42 @@ function drawSoldiers() {
   }
 }
 
+function drawHeli() {
+  if (!G.heli) return;
+  const h = G.heli;
+  const x = G.player.x + Math.cos(h.ang) * 90 - G.cam.x;
+  const y = G.player.y + Math.sin(h.ang) * 90 - G.cam.y;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(2, 12, 20, 6, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#2b3a44';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 20, 9, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#9fd8ff';
+  ctx.beginPath();
+  ctx.arc(8, 0, 5, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(159,216,255,0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-26, -10);
+  ctx.lineTo(26, -10);
+  ctx.stroke();
+  const blur = Math.sin(uiT * 40) * 2;
+  ctx.strokeStyle = 'rgba(220,240,255,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(-18, -10 + blur);
+  ctx.lineTo(18, -10 - blur);
+  ctx.stroke();
+  ctx.fillStyle = '#ffcf5c';
+  ctx.fillRect(-8, 8, 16, 3);
+  ctx.restore();
+}
+
 function evolutionTier(level) {
   if (level >= 18) return 3;
   if (level >= 10) return 2;
@@ -5742,11 +6131,19 @@ function drawPlayer() {
     ctx.fillRect(12, 5, 4, 7);
   }
 
-  ctx.fillStyle = tier >= 1 ? '#2b6a5e' : '#2f6fb5';
+  const camo = CAMO[G.map] || '#2f6fb5';
+  ctx.fillStyle = tier >= 1 ? camo : '#2f6fb5';
   ctx.beginPath();
   ctx.arc(0, 0, 15, 0, TAU);
   ctx.fill();
   ctx.strokeStyle = accent;
+  if (tier === 0) {
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.arc(-5, -4, 5, 0, TAU);
+    ctx.arc(5, 5, 4, 0, TAU);
+    ctx.fill();
+  }
   ctx.lineWidth = tier > 0 ? 2.5 : 2;
   ctx.stroke();
   if (tier >= 1) {
@@ -6046,11 +6443,17 @@ function drawHUD() {
   ctx.font = '600 9px Consolas, monospace';
   const news = G.news.length > 44 ? G.news.slice(0, 42) + '...' : G.news;
   ctx.fillText(news, 26, 86);
-  if (G.mutators && G.mutators.length) {
+  const tags = [];
+  if (G.mutators && G.mutators.length) tags.push('MUTATORS · ' + G.mutators.map((id) => (mutatorDef(id) || {}).name || id).join(' + '));
+  if (G.mutation && G.mutation !== 'none') {
+    const mut = MUTATIONS.find((m) => m.id === G.mutation);
+    if (mut) tags.push('MUTATION · ' + mut.name);
+  }
+  if (tags.length) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e8a87c';
     ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText('MUTATORS · ' + G.mutators.map((id) => (mutatorDef(id) || {}).name || id).join(' + '), 26, 100);
+    ctx.fillText(tags.join('  ·  '), 26, 100);
   }
 
   ctx.textAlign = 'center';
@@ -6097,6 +6500,8 @@ function drawHUD() {
   );
   ctx.fillStyle = G.relics.length ? '#63dcc0' : '#8f9ba4';
   ctx.fillText('RELICS ' + G.relics.length + ' / ' + RELICS.length, W - 200, 58);
+  ctx.fillStyle = G.lastStand ? '#ff6a4a' : '#8f9ba4';
+  ctx.fillText(G.lastStand ? 'LAST STAND · +50% DMG' : 'SCORE ' + Math.round(G.score).toLocaleString('en-US'), W - 200, 71);
 
   const combo = activeCombos();
   if (combo.length) {
@@ -6253,6 +6658,33 @@ function drawHUD() {
     ctx.font = '600 13px Consolas, monospace';
     ctx.fillText(G.bannerSub || 'THE HORDE GROWS', W / 2, 200);
     ctx.restore();
+  }
+
+  if (G.callout && G.callout.t > 0 && screen === 'play') {
+    const c = G.callout;
+    const fade = clamp(Math.min(c.t, c.max - c.t) / 0.25, 0, 1);
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 9);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = c.color;
+    ctx.shadowBlur = 18 + pulse * 10;
+    ctx.fillStyle = c.color;
+    ctx.font = '700 44px Consolas, monospace';
+    ctx.fillText(c.text, W / 2, H * 0.36);
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = 'rgba(245,238,225,0.95)';
+    ctx.font = '600 12px Consolas, monospace';
+    ctx.fillText(c.sub, W / 2, H * 0.36 + 24);
+    ctx.restore();
+  }
+
+  if (G.lastStand && screen === 'play') {
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 10);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,70,50,' + (0.5 + 0.4 * pulse) + ')';
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText('LAST STAND · +50% DAMAGE · NO DEFENSE', W / 2, 142);
   }
 
   ctx.textAlign = 'left';
@@ -6632,40 +7064,65 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 450);
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 92, 442);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
-    const x = 92 + (i % 3) * 260;
-    const y = 456 + Math.floor(i / 3) * 26;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 248, h: 24 });
-    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 24;
+    const x = 36 + i * 152;
+    const y = 448;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 22 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 22;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 248, 24, 5);
+    rr(x, y, 142, 22, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(def.name, x + 10, y + 11);
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText(def.name, x + 7, y + 10);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(def.blurb + '  ·  LOOT x' + def.shard, x + 10, y + 21);
+    ctx.font = '600 7px Consolas, monospace';
+    ctx.fillText('LOOT x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 18);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('MUTATION · A RUN-LONG TWIST', 92, 484);
+  MUTATION_ORDER.forEach((id, i) => {
+    const def = MUTATIONS.find((m) => m.id === id);
+    if (!def) return;
+    const chosen = setup.mutation === id;
+    const x = 36 + i * 180;
+    const y = 490;
+    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 170, h: 22 });
+    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 22;
+    ctx.fillStyle = chosen ? 'rgba(255,138,92,0.18)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
+    rr(x, y, 170, 22, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? def.color : '#cfc6ad';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText(def.name, x + 7, y + 10);
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 7px Consolas, monospace';
+    ctx.fillText(def.blurb, x + 7, y + 18);
   });
 
   drawButton(
     'setup-start',
     'DEPLOY',
     W / 2,
-    512,
+    526,
     380,
-    40,
+    34,
     WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
       findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
       operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
   );
-  drawButton('back-setup', 'BACK', W / 2, 558, 180, 28);
+  drawButton('back-setup', 'BACK', W / 2, 564, 180, 24);
 }
 
 function drawArmoryScreen() {
@@ -6687,30 +7144,30 @@ function drawArmoryScreen() {
     const rank = metaRank(id);
     const maxed = rank >= meta.max;
     const cost = meta.cost(rank);
-    const y = 146 + i * 46;
+    const y = 140 + i * 34;
     ctx.fillStyle = 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = 'rgba(224,178,92,0.28)';
-    rr(300, y, 420, 40, 7);
+    rr(300, y, 420, 30, 7);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f2e6c8';
     ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(meta.name, 318, y + 17);
+    ctx.fillText(meta.name, 318, y + 13);
     ctx.fillStyle = 'rgba(200,195,180,0.7)';
-    ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(meta.desc, 318, y + 31);
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(meta.desc, 318, y + 25);
     for (let r = 0; r < meta.max; r++) {
       ctx.fillStyle = r < rank ? '#63dcc0' : 'rgba(255,255,255,0.12)';
-      ctx.fillRect(548 + r * 14, y + 14, 10, 4);
+      ctx.fillRect(548 + r * 14, y + 10, 10, 4);
     }
     const canBuy = !maxed && save.shards >= cost;
-    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 4, 76, 32);
+    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 1, 76, 28);
     if (!canBuy && !maxed) {
       ctx.fillStyle = 'rgba(255,90,70,0.75)';
-      ctx.font = '700 9px Consolas, monospace';
+      ctx.font = '700 8px Consolas, monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('NEED ' + cost, 548, y + 31);
+      ctx.fillText('NEED ' + cost, 548, y + 23);
     }
     ctx.textAlign = 'left';
   });
@@ -6737,6 +7194,8 @@ function drawStatisticsScreen() {
     ['VICTORIES', String(save.wins)],
     ['BEST SURVIVAL', fmtTime(save.bestTime)],
     ['MOST KILLS IN A RUN', String(save.bestKills)],
+    ['BEST SCORE', String(save.bestScore || 0)],
+    ['SECRET COMBOS', (save.secrets || []).length + ' / ' + COMBOS.filter((c) => c.secret).length],
     ['DAMAGE DEALT', String(save.damageDealt)],
     ['SHARDS EARNED', String(save.shards)],
     ['SHARDS SECURED', String(save.bankedTotal || 0)],
@@ -6758,16 +7217,16 @@ function drawStatisticsScreen() {
     const col = i % 3;
     const line = Math.floor(i / 3);
     const x = 142 + col * 228;
-    const y = 118 + line * 38;
+    const y = 114 + line * 34;
     ctx.fillStyle = 'rgba(16,20,24,0.9)';
-    rr(x, y, 214, 34, 6);
+    rr(x, y, 214, 30, 6);
     ctx.fill();
     ctx.fillStyle = 'rgba(180,175,155,0.7)';
     ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(row[0], x + 12, y + 14);
+    ctx.fillText(row[0], x + 12, y + 12);
     ctx.fillStyle = '#f2e6c8';
-    ctx.font = '700 15px Consolas, monospace';
-    ctx.fillText(row[1], x + 12, y + 28);
+    ctx.font = '700 14px Consolas, monospace';
+    ctx.fillText(row[1], x + 12, y + 25);
   });
 
   const types = Object.keys(save.killsByType);
@@ -6852,6 +7311,7 @@ function startDaily() {
     difficulty: rules.difficulty,
     mode: rules.mode,
     operator: rules.operator,
+    mutation: rules.mutation,
     mutators: rules.mutators,
     seed: rules.seed,
     daily: rules.day
@@ -6881,6 +7341,7 @@ function drawDailyScreen() {
     ['MAP', MAPS[r.map].name],
     ['DIFFICULTY', findDifficulty(r.difficulty).name],
     ['MODE', r.mode === 'bossrush' ? 'BOSS RUSH · ' + RUSH_TARGET + ' BOSSES' : 'SURVIVORS'],
+    ['MUTATION', (MUTATIONS.find((m) => m.id === r.mutation) || MUTATIONS[0]).name],
     ['MUTATORS', r.mutators.length ? r.mutators.map((id) => mutatorDef(id).name).join(' + ') : 'NONE'],
     ['SEED', String(r.seed)]
   ];
@@ -7085,12 +7546,14 @@ function drawHelpScreen() {
     ['EVOLVE', 'Max a skill at level 10 and take its partner to level 3 to evolve it.'],
     ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
     ['HAZARDS', 'Each map has a terrain hazard: quicksand, ice, embers or vines.'],
-    ['MUTATORS', 'Take up to two run modifiers for extra shard loot.'],
+    ['MUTATORS', 'Take up to two run modifiers, plus one run-long mutation.'],
+    ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 fire callouts.'],
+    ['LAST STAND', 'Under 10% health: +50% damage, no extra safety. Recover to escape.'],
+    ['WAR CHEST', 'From wave 3, a hidden cache needs kills before it opens.'],
     ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
     ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
     ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
     ['DAILY', 'One seeded run per day with a fixed loadout. Beat your best.'],
-    ['SLOTS', 'Six offense and six defense skills per run. Rig ranks add more.'],
     ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
   ];
   let y = 100;
@@ -7102,7 +7565,7 @@ function drawHelpScreen() {
     ctx.fillStyle = 'rgba(225,215,195,0.82)';
     ctx.font = '600 12px Consolas, monospace';
     ctx.fillText(line[1], 270, y);
-    y += 22;
+    y += 20;
   }
   drawButton('back-help', 'BACK', W / 2, 532, 180, 30);
 }
@@ -7434,16 +7897,17 @@ function drawUpgradesScreen() {
   ctx.font = '600 9px Consolas, monospace';
   ctx.fillText('COMBOS', 42, 392);
   COMBOS.forEach((combo, i) => {
-    const x = 42 + (i % 3) * 300;
-    const y = 406 + Math.floor(i / 3) * 34;
+    const x = 42 + (i % 4) * 232;
+    const y = 404 + Math.floor(i / 4) * 30;
     const active = G ? combo.needs.every((s) => G.skills[s] >= 2) : false;
-    ctx.fillStyle = active ? combo.color : 'rgba(200,195,180,0.45)';
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText((active ? '● ' : '○ ') + combo.name, x, y);
+    const known = !combo.secret || (save.secrets || []).indexOf(combo.id) >= 0;
+    ctx.fillStyle = !known ? 'rgba(120,115,105,0.4)' : active ? combo.color : 'rgba(200,195,180,0.45)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText((active ? '● ' : '○ ') + (known ? combo.name : '???'), x, y);
     ctx.fillStyle = 'rgba(190,185,170,0.55)';
-    ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(combo.needs.map((s) => SKILLS[s].short).join(' + '), x, y + 11);
-    ctx.fillText(combo.desc, x, y + 22);
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(known ? combo.needs.map((s) => SKILLS[s].short).join(' + ') : 'SECRET · UNDISCOVERED', x, y + 10);
+    ctx.fillText(known ? combo.desc : 'Find the hidden pair.', x, y + 19);
   });
 
   drawButton('back-upgrades', 'BACK', W / 2, 512, 180, 34);
@@ -7919,34 +8383,41 @@ function drawOverScreen() {
   ctx.fillStyle = 'rgba(215,205,185,0.8)';
   ctx.font = '600 13px Consolas, monospace';
   ctx.fillText(G.kills + ' KILLS   ·   LEVEL ' + G.level + '   ·   SQUAD ' + G.soldiers.length + '   ·   BOSSES ' + (G.bossKills || 0), W / 2, 192);
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '700 18px Consolas, monospace';
+  ctx.fillText('SCORE ' + Math.round(G.score).toLocaleString('en-US'), W / 2, 216);
+  ctx.fillStyle = 'rgba(255,210,122,0.6)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('BEST SCORE ' + (save.bestScore || 0).toLocaleString('en-US'), W / 2, 232);
   const record = G.time > best.time - 0.001 && G.time > 0;
   ctx.fillStyle = record ? '#ffd27a' : 'rgba(200,190,165,0.6)';
   ctx.font = '600 12px Consolas, monospace';
-  ctx.fillText(record ? 'NEW PERSONAL BEST' : 'BEST ' + fmtTime(best.time), W / 2, 214);
+  ctx.fillText(record ? 'NEW PERSONAL BEST' : 'BEST ' + fmtTime(best.time), W / 2, 250);
   ctx.fillStyle = '#63dcc0';
   ctx.font = '700 16px Consolas, monospace';
-  ctx.fillText('+' + (G.shardsEarned || 0) + ' SHARDS   ·   ' + save.shards + ' TOTAL', W / 2, 244);
+  ctx.fillText('+' + (G.shardsEarned || 0) + ' SHARDS   ·   ' + save.shards + ' TOTAL', W / 2, 274);
   ctx.fillStyle = 'rgba(190,185,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
   const modeLine =
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
       : 'SURVIVORS · WAVE ' + G.wave;
-  ctx.fillText(operatorDef().name + ' · ' + modeLine + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 266);
+  const mut = MUTATIONS.find((m) => m.id === G.mutation);
+  ctx.fillText(operatorDef().name + ' · ' + modeLine + (mut && mut.id !== 'none' ? '   ·   ' + mut.name : '') + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 292);
   if (G.relics.length) {
     const names = G.relics.map((id) => RELICS.find((r) => r.id === id).name).join(' · ');
     ctx.fillStyle = 'rgba(99,220,192,0.75)';
-    ctx.fillText(names, W / 2, 282);
+    ctx.fillText(names, W / 2, 306);
   }
   const combo = activeCombos();
   if (combo.length) {
     ctx.fillStyle = 'rgba(255,210,122,0.8)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, 298);
+    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, 320);
   }
-  drawButton('retry', 'REDEPLOY', W / 2 - 130, 292, 240, 48);
-  drawButton('menu-over', 'MAIN MENU', W / 2 + 130, 292, 240, 48);
-  drawButton('stats-over', 'STATISTICS', W / 2, 354, 240, 40);
+  drawButton('retry', 'REDEPLOY', W / 2 - 130, 336, 240, 46);
+  drawButton('menu-over', 'MAIN MENU', W / 2 + 130, 336, 240, 46);
+  drawButton('stats-over', 'STATISTICS', W / 2, 394, 240, 38);
 }
 
 function drawScreens() {
@@ -8027,6 +8498,11 @@ function pressButton(id) {
     if (idx >= 0) setup.mutators.splice(idx, 1);
     else if (setup.mutators.length < 2) setup.mutators.push(mut);
     else sfx.denied();
+    return;
+  }
+  if (id.indexOf('mutation-') === 0) {
+    const mut = id.slice(9);
+    if (MUTATIONS.some((m) => m.id === mut)) setup.mutation = mut;
     return;
   }
   if (id === 'reroll') {
@@ -8197,6 +8673,7 @@ function render() {
     drawEnemies();
     drawBlades();
     drawSoldiers();
+    drawHeli();
     drawTurrets();
     drawAfterimages();
     drawPlayer();
@@ -8212,6 +8689,12 @@ function render() {
   if (touchMode) drawTouchControls();
     drawVignette();
     drawDangerBorder();
+    if (G.flashT > 0) {
+      ctx.globalAlpha = clamp(G.flashT / 0.4, 0, 1) * 0.2;
+      ctx.fillStyle = G.flashColor;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
   }
 
   drawScreens();
@@ -8400,6 +8883,8 @@ window.Dustline = {
         bossKills: save.bossKills,
         bestTime: save.bestTime,
         bestKills: save.bestKills,
+        bestScore: save.bestScore || 0,
+        secrets: (save.secrets || []).slice(),
         damageDealt: save.damageDealt,
         jackpots: save.jackpots || 0,
         nearMisses: save.nearMisses || 0,
@@ -8577,6 +9062,19 @@ window.Dustline = {
   snap.interactables = G.interact.map((o) => ({ kind: o.kind, x: o.x, y: o.y }));
   snap.bunker = G.bunker ? { x: G.bunker.x, y: G.bunker.y, used: G.bunker.used } : null;
   snap.nuke = G.nuke ? { t: G.nuke.t, i: G.nuke.i, kills: G.nuke.kills, total: G.nuke.total } : null;
+  snap.score = Math.round(G.score);
+  snap.mutation = G.mutation;
+  snap.camo = CAMO[G.map] || '#2f6fb5';
+  snap.lastStand = !!G.lastStand;
+  snap.milestones = STREAK_TIERS.filter((t) => G.kills >= t.kills).map((t) => t.name);
+  snap.streakRewards = G.streakRewards.slice();
+  snap.callout = G.callout && G.callout.t > 0 ? { text: G.callout.text, sub: G.callout.sub, color: G.callout.color } : null;
+  snap.heli = !!G.heli;
+  snap.airstrike = !!G.airstrike;
+  snap.missiles = !!G.missiles;
+  snap.warChest = G.warChest
+    ? { x: G.warChest.x, y: G.warChest.y, need: G.warChest.need, remaining: Math.max(0, G.warChest.need - (G.kills - G.warChest.startKills)), open: !!G.warChest.open }
+    : null;
       snap.mods = {
         fireRate: fireRateMult(),
         crit: critChance(),
@@ -8779,6 +9277,31 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.spawnBunker = (x, y) => {
     if (!G) return false;
     return spawnBunker(Number(x), Number(y));
+  };
+  window.Dustline.spawnWarChest = (x, y, need) => {
+    if (!G) return false;
+    G.warChest = {
+      x: x == null ? G.player.x : Number(x) || 0,
+      y: y == null ? G.player.y : Number(y) || 0,
+      need: Math.max(0, Number(need) || 10),
+      startKills: G.kills,
+      spin: 0,
+      deniedCd: 0
+    };
+    return G.warChest;
+  };
+  window.Dustline.setKills = (value) => {
+    if (!G) return 0;
+    G.kills = Math.max(0, Math.floor(Number(value) || 0));
+    checkKillMilestones();
+    return G.kills;
+  };
+  window.Dustline.setStreak = (value) => {
+    if (!G) return 0;
+    G.streak = Math.max(0, Math.floor(Number(value) || 0));
+    G.streakT = 2.6;
+    checkStreakRewards();
+    return G.streak;
   };
   window.Dustline.triggerNuke = () => {
     if (!G || !G.bunker) return false;

@@ -2,7 +2,7 @@
 
 [![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
 
-Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, six maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 20 skills across 6 offense and 6 defense slots with 10 ranks each, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker and a permanent out-of-run armory.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, six maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 20 skills across 6 offense and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker and a permanent out-of-run armory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -45,6 +45,7 @@ Before every run you pick:
 - **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
 - **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +35% loot) or Nightmare (+90% health, +50% spawns, +80% loot).
 - **Mutators**: pick up to two run modifiers — Glass Cannon, Swarm, Elite Hunt, Fog, Vampiric Horde or Bounty — each raising shard loot.
+- **Mutation**: pick one run-long twist — Standard, Explosive Blood (a death blast), Berserker (+45% damage under 35% health), Overclock (+20% fire rate) or War Veteran (+10% damage per boss kill).
 - **Map hazard**: every map has terrain that changes the fight: quicksand slows you, ice speeds everyone up, ember vents burn, vines slow the horde, tar pits slow both sides and toxic gas burns.
 
 ### Modes and screens
@@ -70,6 +71,12 @@ Before every run you pick:
 - **Evolutions**: max a skill at level 10 and raise its partner to level 3 to evolve it. Weapons: Ripper (rifle), Storm (SMG), Breaker (SPAS), Reaper (DMR), Lancer (railgun). Actives: Tempest (blades), Cluster (grenades), Overwatch (turret), Solar Crown (aura). Support: Carom (ricochet).
 - **Rerolls and banishes**: each run starts with 2 rerolls (more with Loaded Dice) and 1 banish, usable on the level-up screen.
 - **Waves**: every 40 seconds the horde grows and new mob types unlock.
+- **Score and kill milestones**: every kill pays score, with boss bonuses and cache payouts. Total kills fire escalating callouts at 10 (KILLING SPREE), 25 (RAMPAGE), 50 (WAR MACHINE), 100 (UNSTOPPABLE), 250 (ONE MAN ARMY) and 500 (LEGENDARY). The run score and personal best are kept.
+- **LAST STAND**: drop below 10% health to enter LAST STAND: a red screen, a warning tone, +50% damage, +15% fire rate and a slight speed boost, with no extra invulnerability. Recover above 12% to leave it.
+- **Kill streak rewards**: a 15-kill streak calls a supply drop, 30 an airstrike, 60 an attack helicopter and 120 a missile barrage. Each fires once per run.
+- **War chests**: hidden military caches appear from wave 3. Touch one to see how many more kills it needs; cracking it pays shards, repairs, chips and a supply chest.
+- **Secret combos**: three hidden skill pairs exist beyond the public combo list. They show as ??? in the codex until discovered, then stay unlocked in the career record.
+- **Camouflage**: the player's body colour follows the map palette, from desert khaki to toxic green.
 - **Bosses**: every fifth wave rotates between the Warlord (charge + fan fire), the Overseer (bullet spray, enraged below half health), the Bombardier (lobs bombs), the Hive (spawns broods, fires bullet rings) and the Sentinel (telegraphed lance beam). About a third of bosses arrive with a Frenzied, Shielded or Volatile affix. All have health bars, guaranteed loot and a salvage crate.
 - **Boss Rush**: skip the horde and fight all eight bosses in order — Warlord, Overseer, Bombardier, Hive, Sentinel, then the Colossus, Leviathan and WYRM megas. Bosses get tougher each slot, the next signature arrives four seconds after each kill, and clearing the eighth wins the run. Boss minions and summoned adds still appear; wave spawns do not.
 - **Salvage relics**: each boss leaves a crate for 40 seconds. Step on it to choose one of three relics, permanent for the run and outside the skill slots: Chrono Coil (+15% fire rate), Void Lens (+10% crit), Overclock Core (+25% bullet speed), Volatile Rounds (+30% blast), Warhead Casing (bigger, stronger bombs), Bloodstone (+3% lifesteal), Aegis Core (+1 shield charge), Lodestone (+60 pickup radius), Thornhide (reflect contact damage) or Greed Engine (+20% shards). Own all ten and crates pay shards instead.

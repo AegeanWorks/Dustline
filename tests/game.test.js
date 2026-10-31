@@ -65,7 +65,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
-  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger' }));
+  assert.strictEqual(JSON.stringify(g.api.snapshot().setup), JSON.stringify({ weapon: 'dmr', map: 'jungle', limit: '10', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger', mutation: 'none' }));
   g.api.clickButton('setup-start');
   g.steps(1);
   const s = g.api.snapshot();
@@ -154,7 +154,7 @@ test('enemy projectiles are red', () => {
 test('leveling offers three distinct upgrades and enforces the cap', () => {
   const g = boot({ seed: 19 });
   deploy(g);
-  g.api.giveXp(40);
+  g.api.giveXp(60);
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.screen, 'levelup');
@@ -582,7 +582,7 @@ test('the character evolves through visual tiers as it levels', () => {
   const g = boot({ seed: 131 });
   deploy(g);
   assert.strictEqual(g.api.snapshot().tier, 0);
-  g.api.giveXp(1500);
+  g.api.giveXp(1800);
   for (let i = 0; i < 80 && g.api.snapshot().screen === 'levelup'; i++) {
     g.api.clickButton('upgrade-0');
   }
@@ -637,7 +637,7 @@ test('debug helpers stay hidden outside the test harness', () => {
     'bankNow', 'triggerEvent', 'setEventCd', 'setRng', 'setEnemyHp', 'setOverdrive',
     'spawnChip', 'hitEnemy', 'setHunterCd', 'forceContracts', 'spawnChest', 'hazardAtPoint', 'setMutators',
     'reroll', 'banish', 'forceChampion', 'setGhost', 'setBurrowed', 'forceBossAffix',
-    'grantRelic', 'spawnSalvage'
+    'grantRelic', 'spawnSalvage', 'spawnWarChest', 'setKills', 'setStreak'
   ]) {
     assert.strictEqual(api[name], undefined, name + ' must be test-only');
   }
@@ -709,6 +709,7 @@ test('beacons bank risky shards and death halves what is left', () => {
   g.api.setPlayer(s.beacon.x, s.beacon.y);
   g.steps(4);
   for (let i = 0; i < 20 && g.api.snapshot().screen === 'levelup'; i++) g.api.clickButton('upgrade-0');
+  if (g.api.snapshot().screen === 'relic') g.api.clickButton('relic-0');
   s = g.api.snapshot();
   assert.strictEqual(s.beacon, null);
   const secured = s.banked;
@@ -968,7 +969,7 @@ test('difficulty scales enemies, damage and loot', () => {
 test('rerolls and banishes reshape the level-up offers', () => {
   const g = boot({ seed: 409 });
   deploy(g);
-  g.api.giveXp(40);
+  g.api.giveXp(60);
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.screen, 'levelup');
@@ -2522,4 +2523,227 @@ test('touch input switches on the on-screen controls', () => {
   assert.ok(labels.includes('DASH'), 'dash button renders');
   assert.ok(labels.includes('BOMB'), 'bomb button renders');
   assert.ok(labels.includes('OD'), 'overdrive button renders');
+});
+
+
+test('total kill milestones fire escalating callouts and score', () => {
+  const g = boot({ seed: 3601 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setKills(10);
+  let s = g.api.snapshot();
+  assert.ok(s.milestones.includes('KILLING SPREE'), 'the first tier is live');
+  assert.strictEqual(s.callout.text, 'KILLING SPREE');
+  const firstScore = s.score;
+  assert.ok(firstScore >= 50, 'the milestone pays score');
+
+  g.api.setKills(500);
+  s = g.api.snapshot();
+  for (const name of ['KILLING SPREE', 'RAMPAGE', 'WAR MACHINE', 'UNSTOPPABLE', 'ONE MAN ARMY', 'LEGENDARY']) {
+    assert.ok(s.milestones.includes(name), name + ' milestone');
+  }
+  assert.strictEqual(s.callout.text, 'LEGENDARY');
+  assert.ok(s.score > firstScore, 'later tiers add score');
+});
+
+test('kills and bosses build a score that saves a personal best', () => {
+  const store = makeStore();
+  const g = boot({ seed: 3603, storage: store });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 40, 0);
+  g.api.setEnemyHp(0, 1);
+  g.api.hitEnemy(0, 99);
+  let s = g.api.snapshot();
+  assert.ok(s.score > 0, 'kills award score');
+  const afterKill = s.score;
+  g.api.spawnBoss('warlord');
+  g.api.killEnemies();
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.ok(s.score >= afterKill + 1000, 'a boss adds a large bonus');
+  g.api.setInvulnerable(false);
+  g.api.hurt(9999);
+  g.steps(3);
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.ok(s.save.bestScore >= 1000, 'best score persists: ' + s.save.bestScore);
+});
+
+test('last stand unlocks under 10 percent health', () => {
+  const base = boot({ seed: 3605 });
+  deploy(base);
+  const baseDmg = base.api.snapshot().damageMult;
+  const g = boot({ seed: 3605 });
+  deploy(g);
+  g.api.hurt(95);
+  const s = g.api.snapshot();
+  assert.ok(s.hp <= 10, 'health is critical');
+  assert.strictEqual(s.lastStand, true);
+  assert.ok(s.damageMult >= baseDmg * 1.8, 'last stand raises damage, saw ' + s.damageMult);
+  assert.strictEqual(s.callout.text, 'LAST STAND');
+});
+
+test('kill streak rewards unlock supply drops, airstrikes, a helicopter and missiles', () => {
+  const g = boot({ seed: 3607 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const before = g.api.snapshot().medkits;
+  g.api.setStreak(15);
+  let s = g.api.snapshot();
+  assert.ok(s.streakRewards.includes('supply'));
+  assert.ok(s.medkits >= before + 3, 'supply drop scatters medkits');
+
+  g.api.setStreak(30);
+  assert.strictEqual(g.api.snapshot().callout.text, 'AIRSTRIKE');
+  assert.strictEqual(g.api.snapshot().airstrike, true);
+  g.api.setStreak(60);
+  assert.strictEqual(g.api.snapshot().callout.text, 'ATTACK HELICOPTER');
+  assert.strictEqual(g.api.snapshot().heli, true);
+  g.api.setStreak(120);
+  s = g.api.snapshot();
+  assert.strictEqual(s.callout.text, 'MISSILE BARRAGE');
+  assert.strictEqual(s.missiles, true);
+  assert.strictEqual(s.streakRewards.length, 4);
+});
+
+test('war chests stay locked until enough kills are earned', () => {
+  const g = boot({ seed: 3609 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.spawnWarChest(40, 0, 10));
+  g.api.setPlayer(40, 0);
+  g.steps(4);
+  let s = g.api.snapshot();
+  assert.ok(s.warChest, 'the chest remains');
+  assert.strictEqual(s.warChest.open, false);
+  assert.strictEqual(s.warChest.remaining, 10, 'locked until ten kills');
+  const before = s.unbanked;
+  const chestsBefore = s.stats.chests;
+  g.api.setKills(10);
+  g.steps(4);
+  s = g.api.snapshot();
+  assert.strictEqual(s.warChest, null, 'the chest opens');
+  assert.ok(s.unbanked > before + 30, 'the cache pays shards');
+  assert.ok(s.stats.chests > chestsBefore, 'the cache drops a supply chest');
+});
+
+test('mutations apply their run-long modifiers', () => {
+  const g = boot({ seed: 3611 });
+  g.api.clickButton('play');
+  g.steps(1);
+  let ids = g.api.snapshot().buttons.map((b) => b.id);
+  for (const id of ['mutation-none', 'mutation-explosive', 'mutation-berserker', 'mutation-overclock', 'mutation-veteran']) {
+    assert.ok(ids.includes(id), id);
+  }
+  g.api.clickButton('mutation-berserker');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.mutation, 'berserker');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().mutation, 'berserker');
+  g.api.hurt(70);
+  assert.ok(g.api.snapshot().damageMult > 1.4, 'berserker boosts damage at low health');
+
+  const h = boot({ seed: 3613 });
+  h.api.clickButton('play');
+  h.steps(1);
+  h.api.clickButton('mutation-overclock');
+  h.api.clickButton('setup-start');
+  h.steps(1);
+  assert.ok(h.api.snapshot().mods.fireRate > 1.15, 'overclock raises fire rate');
+
+  const k = boot({ seed: 3615 });
+  k.api.clickButton('play');
+  k.steps(1);
+  k.api.clickButton('mutation-veteran');
+  k.api.clickButton('setup-start');
+  k.steps(1);
+  k.api.setInvulnerable(true);
+  k.api.spawnBoss('warlord');
+  k.api.killEnemies();
+  k.steps(1);
+  assert.ok(k.api.snapshot().damageMult > 1.05, 'war veteran rewards boss kills');
+});
+
+test('secret combos are discovered, announced and saved', () => {
+  const store = makeStore();
+  const g = boot({ seed: 3617, storage: store });
+  deploy(g);
+  assert.strictEqual(g.api.snapshot().save.secrets.length, 0);
+  for (let i = 0; i < 2; i++) g.api.applyUpgrade('dmr');
+  for (let i = 0; i < 2; i++) g.api.applyUpgrade('crit');
+  let s = g.api.snapshot();
+  assert.ok(s.combos.includes('executioner'), 'the hidden combo activates');
+  assert.ok(s.save.secrets.includes('executioner'), 'the discovery is recorded');
+  assert.strictEqual(s.callout.text, 'SECRET COMBO');
+  g.api.setInvulnerable(false);
+  g.api.hurt(9999);
+  g.steps(3);
+  const reloaded = boot({ seed: 3619, storage: store }).api.snapshot().save;
+  assert.ok(reloaded.secrets.includes('executioner'), 'the discovery survives a reload');
+});
+
+test('player camouflage follows the map palette', () => {
+  const desert = boot({ seed: 3621 });
+  desert.api.startRun({ map: 'desert' });
+  desert.steps(1);
+  const frost = boot({ seed: 3621 });
+  frost.api.startRun({ map: 'frost' });
+  frost.steps(1);
+  const toxic = boot({ seed: 3621 });
+  toxic.api.startRun({ map: 'toxic' });
+  toxic.steps(1);
+  const a = desert.api.snapshot().camo;
+  const b = frost.api.snapshot().camo;
+  const c = toxic.api.snapshot().camo;
+  assert.match(a, /^#[0-9a-f]{6}$/i);
+  assert.notStrictEqual(a, b);
+  assert.notStrictEqual(b, c);
+});
+
+test('the slower xp curve keeps early level ups meaningful', () => {
+  const g = boot({ seed: 3623 });
+  deploy(g);
+  g.api.giveXp(56);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().level, 1, '56 xp is not enough');
+  assert.strictEqual(g.api.snapshot().screen, 'play');
+  g.api.giveXp(1);
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.level, 2, '57 xp levels the player');
+  assert.strictEqual(s.screen, 'levelup');
+});
+
+
+test('the hud shows score and milestone callouts', () => {
+  const g = boot({ seed: 3625, record: true });
+  deploy(g);
+  g.api.setKills(10);
+  g.step();
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('KILLING SPREE'), 'the milestone callout draws');
+  assert.ok(labels.some((t) => /^SCORE 50$/.test(t)), 'the score readout draws');
+  const callout = g.texts.find((t) => t.text === 'KILLING SPREE');
+  assert.ok(callout.y > 200, 'the callout clears the wave banner');
+});
+
+test('the skills codex fits every combo above the back button', () => {
+  const g = boot({ seed: 3627, record: true });
+  assert.ok(g.api.clickButton('upgrades'));
+  g.steps(1);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.some((t) => t.indexOf('???') >= 0), 'secret combos stay hidden');
+  const last = g.texts.find((t) => t.text === 'Shield recharges 40% faster');
+  assert.ok(last, 'the last public combo renders');
+  assert.ok(last.y < 500, 'combo text clears the back button, saw ' + last.y);
+});
+
+test('the setup mutation row fits on screen', () => {
+  const g = boot({ seed: 3629 });
+  enterSetup(g);
+  const buttons = g.api.snapshot().buttons.filter((b) => b.id.indexOf('mutation-') === 0);
+  assert.strictEqual(buttons.length, 5);
+  for (const b of buttons) assert.ok(b.y + b.h <= 600, b.id + ' must fit');
 });

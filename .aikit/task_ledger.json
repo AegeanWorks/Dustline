@@ -1,66 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-23",
+    "task_id": "dustline-v0-24",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793445912.7905657,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793472459.5405016,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
-    "continuations": [],
-    "completed_at": 1793445995.3925197
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-19",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[3/4] Layout and regression tests complete: statistics kills-by-type block moved below the stat grid, armory rank pips and NEED text moved inside each row, selected setup map now uses the lighter overlay, timer panel contains the alert label/bar, boss bar moved below it, pause hides combat readouts and live banners with the title at y=128; added opt-in fillText/fill/rect/drawImage recorder and 7 tests (ground base, soft hazards, statistics, armory, setup map, alert, pause); 117/117 tests pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793399429.7698007,
-      "timestamp_str": "2026-10-31 01:30:29",
-      "agent": "opencode:visual-audit"
-    },
-    {
-      "task_id": "dustline-v0-19",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Verification complete: 117/117 tests pass, python aikit.py check dustline reports 5/5 gates, and fresh canvas captures of menu, setup, statistics, armory, all four maps, a hazard centre and the pause overlay confirm seamless ground, visible soft hazards with rims, fixed statistics/armory/HUD layout, a clear selected map and a collision-free pause; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793399458.3972247,
-      "timestamp_str": "2026-10-31 01:30:58",
-      "agent": "opencode:visual-audit"
-    },
-    {
-      "task_id": "dustline-v0-19",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-19' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793399464.2850885,
-      "timestamp_str": "2026-10-31 01:31:04",
-      "agent": "opencode:visual-audit"
-    },
-    {
-      "task_id": "dustline-v0-20",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] Plan: v0.20 visual juice pass - biome ambience particles, shaped combat particles (spark/smoke/shard/ring/flash), muzzle and bullet glow, dash afterimages, low-health danger vignette, skill/relic card glyphs and animated button hover",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793428135.8847053,
-      "timestamp_str": "2026-10-31 09:28:55",
-      "agent": "opencode:visual-audit",
-      "impact_assessment": {
-        "why": "The v0.19 pass fixed seams, hazards and layout, but screenshots still show flat biome atmosphere, one-note circular particles, a sparse level-up/relic card interior, no dash trail, and no persistent low-health warning; the game needs another visual layer that reinforces map identity and combat feedback",
-        "benefits": "Distinct desert/frost/ash/jungle atmosphere, readable shot/hit/death/pickup feedback, stronger skill and relic identity on choice cards, a clear dash trail and danger state, all procedural and within the existing draw budgets",
-        "risks": "contract: particle objects and render helpers change, snapshot gains read-only particles/afterimages/ambience data, no save-schema or mechanics change; dependency: none; concurrency: ledger shared; state: none",
-        "mitigation": "Cap every particle family, keep ambience screen-space and deterministic, reuse cached canvases for danger glow, add particle-kind and afterimage tests, rerun the full suite and draw budgets, compare fresh screenshots, then run python aikit.py check dustline"
-      }
-    },
     {
       "task_id": "dustline-v0-20",
       "phase": "phase 3",
@@ -250,6 +200,56 @@
       "status": "completed",
       "timestamp": 1793445995.392521,
       "timestamp_str": "2026-10-31 14:26:35",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-24",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Plan: playtest feedback pass - total-kill milestone callouts (10/25/50/100/250/500), a score system, LAST STAND under 10% HP, kill-streak rewards (supply, airstrike, helicopter, missile barrage), per-run mutations, secret combos, war chests gated by kills, a slower XP curve and map camouflage",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793449658.7156112,
+      "timestamp_str": "2026-10-31 15:27:38",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "Playtesters asked for stronger dopamine feedback, a score, low-health risk, hidden unlocks and slower leveling; the current build announces only every tenth streak kill and has no total-kill milestones, score, mutations or kill-gated chests",
+        "benefits": "Each run now has escalating callouts and rewards, visible score progression, a high-risk LAST STAND, mutation-driven replayability, community-discoverable secret combos and map-specific camouflage, while level-ups slow to a readable pace",
+        "risks": "contract: run state, save schema, HUD and setup gains fields, combat multipliers change; dependency: none; concurrency: ledger shared; state: save migration must default new score/secret fields",
+        "mitigation": "Keep every new family capped and seeded, extend snapshot/seams for tests, migrate saves with defaults, update the full suite, run all gates, and capture screenshots for the new overlays"
+      }
+    },
+    {
+      "task_id": "dustline-v0-24",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/4] Feedback systems complete: total-kill milestone callouts and a persisted score, LAST STAND under 10% HP, one-shot streak rewards (supply, airstrike, helicopter, missile barrage), five setup/daily mutations, kill-gated war chests every third wave, three secret combos with codex ??? and save.secrets, a slower XP curve, map camouflage, a redesigned HUD/run summary/statistics, and 142 passing tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793472167.3817244,
+      "timestamp_str": "2026-10-31 21:42:47",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-24",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] Docs complete: README setup/run sections document mutations, score milestones, LAST STAND, streak rewards, war chests, secret combos and camouflage; package is 0.23.0; ADR-022 records the feedback pass; README encoding restored to clean UTF-8",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793472380.955004,
+      "timestamp_str": "2026-10-31 21:46:20",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-24",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Verification complete: 142/142 tests pass, python aikit.py check dustline reports 5/5 gates, layout guards cover the setup mutation row, codex combos, HUD callout and score readout; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793472459.5405016,
+      "timestamp_str": "2026-10-31 21:47:39",
       "agent": "kilo:continue"
     }
   ]
