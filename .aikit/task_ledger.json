@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "dustline-v0-24",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793472459.5405016,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793472570.155127
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-20",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/4] Particle and effect layer complete: deterministic biome ambience for all four maps, shape-coded particle kinds (dot/spark/smoke/shard/ring/flash/glow) with additive highlights, muzzle flash and glowing bullet trails, impact sparks, shard/smoke deaths, explosion rings, dash afterimages and a cached low-health red vignette plus pulsing border; new cosmetic bursts use a separate run-seeded fx RNG so the gameplay RNG stream stays unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793429684.491453,
-      "timestamp_str": "2026-10-31 09:54:44",
-      "agent": "opencode:visual-audit"
-    },
     {
       "task_id": "dustline-v0-20",
       "phase": "phase 3",
@@ -250,6 +240,16 @@
       "status": "in_progress",
       "timestamp": 1793472459.5405016,
       "timestamp_str": "2026-10-31 21:47:39",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-24",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-24' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793472570.1551282,
+      "timestamp_str": "2026-10-31 21:49:30",
       "agent": "kilo:continue"
     }
   ]
