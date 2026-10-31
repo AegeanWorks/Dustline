@@ -1,83 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-19",
+    "task_id": "dustline-v0-20",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793399458.3972247,
+    "updated_at": 1793429696.5777452,
     "owner": "opencode:visual-audit",
     "started_by": "opencode:visual-audit",
     "continuations": [],
-    "completed_at": 1793399464.2850873
+    "completed_at": 1793429696.8570535
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-14",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.14 Records and mastery - rush clears/best time, best wave, shield saves in save+stats, six achievements for relics/rush/wyrm/shield/slots, HUD relic readout, richer run summary",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793387138.8538013,
-      "timestamp_str": "2026-10-30 22:05:38",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "New systems (relics, boss rush, aegis, slot caps, WYRM) have no achievements, records or on-screen presence outside their own screens, and the save's best-run fields only cover survivors",
-        "benefits": "Gives the shard economy new goals, makes mastery visible (rush times, best wave), surfaces relics during play and closes the loop on every v0.10-v0.13 feature",
-        "risks": "contract: save gains four additive fields and snapshot.save grows; dependency: none; concurrency: ledger shared; state: additive save fields default to zero and are clamped on load",
-        "mitigation": "Additive schema with clamping and zero defaults, merge live stats the same way chests/hunters already do, add tests for legacy saves, full suite and gates before commit"
-      }
-    },
-    {
-      "task_id": "dustline-v0-14",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: rushClears/rushBest/bestWave/shieldSaves save fields with clamping, six new achievements (rush clear, sub-90s rush, 5 relics, WYRM, 10 shield saves, full loadout), live achievement checks from upgrades/relics, HUD relic readout, statistics record rows, mode-aware run summary; 93/93 tests, 5/5 gates, persistence probe (38.1s rush clear recorded and reloaded) OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793387856.9291794,
-      "timestamp_str": "2026-10-30 22:17:36",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-14",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-14' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793387857.159388,
-      "timestamp_str": "2026-10-30 22:17:37",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-15",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan: v0.15 Operators - five playable operators with distinct perks chosen at setup, perk hooks in HP/defense/velocity/crit/turret/aura/shard/relic-count, HUD and run summary display",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793388768.3590813,
-      "timestamp_str": "2026-10-30 22:32:48",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Every run starts from an identical baseline, so the newest systems (slots, relics, rush) vary but the character never does; no starting choice defines a run's identity",
-        "benefits": "Adds a run-defining choice at deploy, gives the three specialists reasons to replay, and reuses existing stat hooks so no new content pipeline is needed",
-        "risks": "contract: setup and snapshot gain an operator field, relic offer count varies; dependency: none; concurrency: ledger shared; state: no save change, operator is per-run and defaults to the baseline ranger",
-        "mitigation": "Baseline operator applies no modifiers so all existing balance tests are unchanged, gate perks behind one G.operator lookup, add per-operator tests plus a legacy regression run, full suite and gates before commit"
-      }
-    },
-    {
-      "task_id": "dustline-v0-15",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/5] Implementation and verification complete: five operators (ranger baseline, vanguard, marksman, engineer, scavenger) with perks on HP/damage-taken/velocity/crit/aura/turret-life/shards/relic-count, setup OPERATOR row with compacted bottom layout, HUD and summary display; 98/98 tests, 5/5 gates, setup overlap scan (31 buttons), all-operator 15s live runs and 4-vs-3 relic pick proof OK; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793389685.9996352,
-      "timestamp_str": "2026-10-30 22:48:05",
-      "agent": "kilo:continue"
-    },
     {
       "task_id": "dustline-v0-15",
       "phase": "completed",
@@ -260,6 +194,66 @@
       "status": "completed",
       "timestamp": 1793399464.2850885,
       "timestamp_str": "2026-10-31 01:31:04",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-20",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Plan: v0.20 visual juice pass - biome ambience particles, shaped combat particles (spark/smoke/shard/ring/flash), muzzle and bullet glow, dash afterimages, low-health danger vignette, skill/relic card glyphs and animated button hover",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793428135.8847053,
+      "timestamp_str": "2026-10-31 09:28:55",
+      "agent": "opencode:visual-audit",
+      "impact_assessment": {
+        "why": "The v0.19 pass fixed seams, hazards and layout, but screenshots still show flat biome atmosphere, one-note circular particles, a sparse level-up/relic card interior, no dash trail, and no persistent low-health warning; the game needs another visual layer that reinforces map identity and combat feedback",
+        "benefits": "Distinct desert/frost/ash/jungle atmosphere, readable shot/hit/death/pickup feedback, stronger skill and relic identity on choice cards, a clear dash trail and danger state, all procedural and within the existing draw budgets",
+        "risks": "contract: particle objects and render helpers change, snapshot gains read-only particles/afterimages/ambience data, no save-schema or mechanics change; dependency: none; concurrency: ledger shared; state: none",
+        "mitigation": "Cap every particle family, keep ambience screen-space and deterministic, reuse cached canvases for danger glow, add particle-kind and afterimage tests, rerun the full suite and draw budgets, compare fresh screenshots, then run python aikit.py check dustline"
+      }
+    },
+    {
+      "task_id": "dustline-v0-20",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/4] Particle and effect layer complete: deterministic biome ambience for all four maps, shape-coded particle kinds (dot/spark/smoke/shard/ring/flash/glow) with additive highlights, muzzle flash and glowing bullet trails, impact sparks, shard/smoke deaths, explosion rings, dash afterimages and a cached low-health red vignette plus pulsing border; new cosmetic bursts use a separate run-seeded fx RNG so the gameplay RNG stream stays unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793429684.491453,
+      "timestamp_str": "2026-10-31 09:54:44",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-20",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/4] UI and card graphics complete: procedural skill glyphs on level-up cards and the codex, relic glyphs on salvage cards, animated hover pulse/glow on buttons, spread floaters with a text shadow, README and package 0.20.0 updated, ADR-020 recorded; 121/121 tests pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793429684.491681,
+      "timestamp_str": "2026-10-31 09:54:44",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-20",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Verification complete: 121/121 tests pass, python aikit.py check dustline reports 5/5 gates, fresh canvas captures and the v0.20 contact sheet confirm hover glow, codex/level-up/relic glyphs, all four biome ambience modes, dash afterimages, low-health warning and shaped explosion particles; particle cap and 7,000-op budgets hold; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793429696.5777452,
+      "timestamp_str": "2026-10-31 09:54:56",
+      "agent": "opencode:visual-audit"
+    },
+    {
+      "task_id": "dustline-v0-20",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-20' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793429696.8570552,
+      "timestamp_str": "2026-10-31 09:54:56",
       "agent": "opencode:visual-audit"
     }
   ]

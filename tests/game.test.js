@@ -2275,3 +2275,70 @@ test('pause hides the combat bars and the achievement banner', () => {
   assert.ok(!labels.some((t) => t.includes('WARLORD')), 'boss bar stays hidden while paused');
 });
 
+test('particle kinds render distinct canvas shapes', () => {
+  function counts(kind) {
+    const g = boot({ seed: 1900 + kind.length * 7 });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    g.api.killEnemies();
+    g.step();
+    assert.ok(g.api.spawnBurst(kind), kind + ' burst seam');
+    g.step();
+    return {
+      arc: g.ops.arc || 0,
+      lineTo: g.ops.lineTo || 0,
+      stroke: g.ops.stroke || 0,
+      fillRect: g.ops.fillRect || 0,
+      rotate: g.ops.rotate || 0,
+      kinds: g.api.snapshot().particleKinds
+    };
+  }
+  const dot = counts('dot');
+  const spark = counts('spark');
+  const shard = counts('shard');
+  const ring = counts('ring');
+  const glow = counts('glow');
+  assert.ok(spark.kinds.spark >= 8, 'spark particles are tagged');
+  assert.ok(spark.lineTo > dot.lineTo, 'sparks draw streaks');
+  assert.ok(shard.fillRect > dot.fillRect && shard.rotate > dot.rotate, 'shards draw rotated fragments');
+  assert.ok(ring.stroke > dot.stroke, 'rings draw an outline');
+  assert.ok(glow.arc > dot.arc, 'glow particles add a halo');
+});
+
+test('each map declares its own ambient particle mode', () => {
+  const expected = { desert: 'dust', frost: 'snow', ash: 'ember', jungle: 'firefly' };
+  for (const map of Object.keys(expected)) {
+    const g = boot({ seed: 2000 + map.length });
+    g.api.startRun({ map });
+    g.step();
+    const amb = g.api.ambience();
+    assert.strictEqual(amb.mode, expected[map], map + ' ambience');
+    assert.ok(amb.count > 0, map + ' ambient particle count');
+  }
+});
+
+test('dashing leaves a fading afterimage trail', () => {
+  const g = boot({ seed: 2101 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.key('d', true);
+  g.key('shift', true);
+  g.steps(3);
+  const n = g.api.snapshot().afterimages;
+  assert.ok(n > 0, 'dash trail is visible, saw ' + n);
+  assert.ok(n <= 9, 'dash trail stays capped, saw ' + n);
+  g.steps(40);
+  assert.strictEqual(g.api.snapshot().afterimages, 0, 'afterimages fade out');
+});
+
+test('particle bursts stay capped under spam', () => {
+  const g = boot({ seed: 2201 });
+  deploy(g);
+  for (let i = 0; i < 100; i++) assert.ok(g.api.spawnBurst('dot'));
+  assert.ok(g.api.snapshot().particles <= 420, 'particle pool cap holds');
+  g.step();
+  const total = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  assert.ok(total < 7000, 'a full particle pool used ' + total + ' canvas ops');
+});
+
+
