@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -154,7 +154,7 @@ test('enemy projectiles are red', () => {
 test('leveling offers three distinct upgrades and enforces the cap', () => {
   const g = boot({ seed: 19 });
   deploy(g);
-  g.api.giveXp(12);
+  g.api.giveXp(40);
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.screen, 'levelup');
@@ -169,8 +169,8 @@ test('leveling offers three distinct upgrades and enforces the cap', () => {
   assert.strictEqual(s.screen, 'play');
   assert.strictEqual(s.skills[chosen], before + 1);
 
-  for (let i = 0; i < 8; i++) g.api.applyUpgrade('rifle');
-  assert.strictEqual(g.api.snapshot().skills.rifle, 5, 'skills cap at level 5');
+  for (let i = 0; i < 12; i++) g.api.applyUpgrade('rifle');
+  assert.strictEqual(g.api.snapshot().skills.rifle, 10, 'skills cap at level 10');
   assert.strictEqual(g.api.applyUpgrade('rifle'), false);
 });
 
@@ -279,17 +279,17 @@ test('every fifth wave brings a different boss, and bosses attack', () => {
   assert.ok(s.boss.maxHp > 1500, 'bosses are much tougher than mobs');
 
   g.api.killEnemies();
-  g.steps(1);
+  g.steps(4);
   g.api.setTime(360);
-  g.steps(2);
+  g.steps(4);
   s = g.api.snapshot();
   assert.strictEqual(s.wave, 10);
   assert.strictEqual(s.boss.type, 'overseer');
 
   g.api.killEnemies();
-  g.steps(1);
+  g.steps(4);
   g.api.setTime(560);
-  g.steps(2);
+  g.steps(4);
   s = g.api.snapshot();
   assert.strictEqual(s.wave, 15);
   assert.strictEqual(s.boss.type, 'bombardier');
@@ -582,7 +582,7 @@ test('the character evolves through visual tiers as it levels', () => {
   const g = boot({ seed: 131 });
   deploy(g);
   assert.strictEqual(g.api.snapshot().tier, 0);
-  g.api.giveXp(700);
+  g.api.giveXp(1500);
   for (let i = 0; i < 80 && g.api.snapshot().screen === 'levelup'; i++) {
     g.api.clickButton('upgrade-0');
   }
@@ -707,7 +707,7 @@ test('beacons bank risky shards and death halves what is left', () => {
   assert.ok(s.beacon, 'the boss arms an extraction beacon');
   assert.ok(s.unbanked > 0);
   g.api.setPlayer(s.beacon.x, s.beacon.y);
-  g.steps(1);
+  g.steps(4);
   for (let i = 0; i < 20 && g.api.snapshot().screen === 'levelup'; i++) g.api.clickButton('upgrade-0');
   s = g.api.snapshot();
   assert.strictEqual(s.beacon, null);
@@ -715,7 +715,7 @@ test('beacons bank risky shards and death halves what is left', () => {
   assert.ok(secured > 0, 'touching the beacon secures shards');
   g.api.setUnbanked(100);
   g.api.hurt(999);
-  g.steps(2);
+  g.steps(4);
   s = g.api.snapshot();
   assert.strictEqual(s.lost, 50, 'death burns half of the unbanked shards');
   assert.ok(s.banked >= secured + 50, 'the other half is banked');
@@ -738,9 +738,9 @@ test('mega bosses arrive after three regular bosses and use phases', () => {
   s = g.api.snapshot();
   assert.ok(s.boss && s.boss.phase >= 1, 'the mega boss enters phase two');
   g.api.killEnemies();
-  g.steps(1);
+  g.steps(4);
   g.api.setTime(1560);
-  g.steps(2);
+  g.steps(4);
   s = g.api.snapshot();
   assert.strictEqual(s.wave, 40);
   assert.strictEqual(s.boss.type, 'leviathan');
@@ -800,7 +800,7 @@ test('contracts complete and pay out', () => {
   const before = g.api.snapshot().unbanked;
   for (let i = 0; i < 50; i++) g.api.spawnEnemy('grunt', 900 + i * 4, 900);
   g.api.killEnemies();
-  g.steps(2);
+  g.steps(4);
   const s = g.api.snapshot();
   assert.strictEqual(s.contracts[0].done, true);
   assert.strictEqual(s.stats.contracts >= 1, true);
@@ -907,7 +907,7 @@ test('maxing a weapon and its partner evolves it', () => {
   const g = boot({ seed: 401 });
   deploy(g);
   g.api.setInvulnerable(true);
-  for (let i = 0; i < 4; i++) assert.ok(g.api.applyUpgrade('rifle'));
+  for (let i = 0; i < 9; i++) assert.ok(g.api.applyUpgrade('rifle'));
   assert.ok(!g.api.snapshot().evolved.rifle, 'a maxed weapon alone does not evolve');
   for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
   let s = g.api.snapshot();
@@ -936,7 +936,7 @@ test('champions carry affixes and drop supply caches', () => {
   assert.strictEqual(s.stats.champions, 1);
   assert.strictEqual(s.chests, 1, 'a champion always drops a cache');
   g.api.setPlayer(120, 0);
-  g.steps(2);
+  g.steps(4);
   s = g.api.snapshot();
   assert.strictEqual(s.chests, 0);
   assert.strictEqual(s.stats.chests, 1);
@@ -968,7 +968,7 @@ test('difficulty scales enemies, damage and loot', () => {
 test('rerolls and banishes reshape the level-up offers', () => {
   const g = boot({ seed: 409 });
   deploy(g);
-  g.api.giveXp(12);
+  g.api.giveXp(40);
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.screen, 'levelup');
@@ -1056,11 +1056,11 @@ test('champions and caches persist in the career record', () => {
   g.api.hitEnemy(0, 999);
   g.steps(1);
   g.api.setPlayer(60, 0);
-  g.steps(2);
+  g.steps(4);
   for (let i = 0; i < 20 && g.api.snapshot().screen === 'levelup'; i++) g.api.clickButton('upgrade-0');
   g.api.setInvulnerable(false);
   g.api.hurt(9999);
-  g.steps(2);
+  g.steps(4);
   const saved = g.api.snapshot().save;
   assert.ok(saved.champions >= 1);
   assert.ok(saved.chests >= 1);
@@ -1223,7 +1223,7 @@ test('the railgun fires piercing shots through a line', () => {
 test('the railgun evolves into the lancer', () => {
   const g = boot({ seed: 469 });
   deploy(g, { weapon: 'rail' });
-  for (let i = 0; i < 4; i++) g.api.applyUpgrade('rail');
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rail');
   assert.strictEqual(g.api.snapshot().evolved.rail, undefined);
   for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
   assert.strictEqual(g.api.snapshot().evolved.rail, 'lancer');
@@ -1328,9 +1328,9 @@ test('the boss cycle extends past the mega to sentinel and hive', () => {
   ];
   for (const [time, type] of stages) {
     g.api.killEnemies();
-    g.steps(1);
+    g.steps(4);
     g.api.setTime(time);
-    g.steps(2);
+    g.steps(4);
     const s = g.api.snapshot();
     assert.ok(s.boss, 'a boss spawned at t=' + time);
     assert.strictEqual(s.boss.type, type, 't=' + time + ' should spawn ' + type);
@@ -1375,7 +1375,7 @@ test('active skills evolve into tempest, cluster, overwatch and solar crown', ()
     ['aura', 'vitality', 'crown']
   ];
   for (const [skill, partner, evo] of plans) {
-    for (let i = 0; i < 5; i++) g.api.applyUpgrade(skill);
+    for (let i = 0; i < 10; i++) g.api.applyUpgrade(skill);
     for (let i = 0; i < 3; i++) g.api.applyUpgrade(partner);
     assert.strictEqual(g.api.snapshot().evolved[skill], evo, skill + ' should evolve');
   }
@@ -2371,3 +2371,155 @@ test('explosions leave fading scorch decals within a cap', () => {
 
 
 
+
+
+test('crater and dead-zone maps expose tar and gas hazards', () => {
+  const expectations = { crater: 'tar', toxic: 'gas' };
+  for (const map of Object.keys(expectations)) {
+    const g = boot({ seed: 3000 + map.length });
+    g.api.startRun({ map });
+    g.steps(1);
+    assert.strictEqual(g.api.snapshot().map, map);
+    let found = null;
+    for (let r = 60; r <= 1600 && !found; r += 40) {
+      for (let a = 0; a < 32; a++) {
+        const x = Math.cos((a / 32) * Math.PI * 2) * r;
+        const y = Math.sin((a / 32) * Math.PI * 2) * r;
+        const hz = g.api.hazardAtPoint(x, y);
+        if (hz) { found = { hz, x, y }; break; }
+      }
+    }
+    assert.ok(found, map + ' exposes a hazard');
+    assert.strictEqual(found.hz, expectations[map]);
+    if (map === 'toxic') {
+      g.api.setInvulnerable(false);
+      g.api.setPlayer(found.x, found.y);
+      const before = g.api.snapshot().hp;
+      g.steps(80);
+      assert.ok(g.api.snapshot().hp < before, 'toxic gas burns the player');
+    }
+  }
+});
+
+test('hidden stashes pay risky shards and crates are consumed on touch', () => {
+  const g = boot({ seed: 3101 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const before = g.api.snapshot().unbanked;
+  const stash = g.api.spawnInteract('stash', 40, 0);
+  assert.ok(stash, 'the stash spawns');
+  assert.strictEqual(stash.kind, 'stash');
+  g.api.setPlayer(40, 0);
+  g.steps(4);
+  let s = g.api.snapshot();
+  assert.ok(s.unbanked > before + 30, 'the stash pays a large shard bonus');
+  assert.strictEqual(s.interactables.filter((o) => o.kind === 'stash').length, 0, 'the stash is opened');
+
+  const crate = g.api.spawnInteract('crate', 60, 0);
+  assert.ok(crate);
+  g.api.setPlayer(60, 0);
+  g.steps(4);
+  s = g.api.snapshot();
+  assert.strictEqual(s.interactables.filter((o) => o.kind === 'crate').length, 0, 'the crate is opened');
+});
+
+test('a nuclear bunker detonates, clears the horde and pays shards', () => {
+  const g = boot({ seed: 3201 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 14; i++) g.api.spawnEnemy('grunt', 200 + i * 8, 160);
+  const bunker = g.api.spawnBunker(40, 0);
+  assert.ok(bunker, 'the bunker spawns');
+  g.api.setPlayer(40, 0);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.bunker.used, true, 'touching the bunker arms the nuke');
+  assert.ok(s.nuke, 'the strike is in progress');
+  const before = s.unbanked;
+  for (let i = 0; i < 600 && g.api.snapshot().nuke; i++) g.steps(3);
+  s = g.api.snapshot();
+  assert.strictEqual(s.nuke, null, 'the strike finishes');
+  assert.ok(s.kills >= 14, 'the strike clears the horde, kills: ' + s.kills);
+  assert.ok(s.unbanked > before, 'clearing the map pays a bonus');
+});
+
+test('ricochet rounds bounce bullets into a second target', () => {
+  const g = boot({ seed: 3301 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 4; i++) assert.ok(g.api.applyUpgrade('ricochet'));
+  g.api.spawnEnemy('tank', 170, 0);
+  g.api.spawnEnemy('tank', 260, 12);
+  g.api.setEnemyHp(0, 50000);
+  g.api.setEnemyHp(1, 50000);
+  let bounced = false;
+  for (let i = 0; i < 260 && !bounced; i++) {
+    g.step();
+    bounced = g.api.snapshot().stats.ricochets > 0;
+  }
+  assert.ok(bounced, 'bullets redirect after a hit');
+});
+
+test('maxing ricochet and crit evolves it into carom', () => {
+  const g = boot({ seed: 3303 });
+  deploy(g);
+  for (let i = 0; i < 10; i++) assert.ok(g.api.applyUpgrade('ricochet'));
+  assert.strictEqual(g.api.snapshot().evolved.ricochet, undefined);
+  for (let i = 0; i < 3; i++) assert.ok(g.api.applyUpgrade('crit'));
+  assert.strictEqual(g.api.snapshot().evolved.ricochet, 'carom');
+});
+
+test('hyper velocity, salvage rig and combat stim meta ranks apply', () => {
+  const base = boot({ seed: 3403 });
+  deploy(base);
+  const baseMods = base.api.snapshot().mods;
+  const baseHp = base.api.snapshot().hp;
+  base.api.hurt(100);
+  const baseLost = baseHp - base.api.snapshot().hp;
+
+  const g = boot({ seed: 3403 });
+  g.api.grantShards(5000);
+  assert.ok(g.api.buyMeta('velocity'));
+  assert.ok(g.api.buyMeta('harvest'));
+  assert.ok(g.api.buyMeta('resolve'));
+  deploy(g);
+  const mods = g.api.snapshot().mods;
+  assert.ok(mods.bulletSpeed > baseMods.bulletSpeed, 'hyper velocity raises bullet speed');
+  g.api.hurt(100);
+  const lost = g.api.snapshot().maxHp - g.api.snapshot().hp;
+  assert.ok(lost < baseLost, 'combat stim reduces damage taken');
+
+  const plain = boot({ seed: 3405 });
+  deploy(plain);
+  plain.api.setInvulnerable(true);
+  plain.api.setRng(7777);
+  plain.api.spawnEnemy('tank', 60, 0);
+  plain.api.setEnemyHp(0, 1);
+  plain.api.hitEnemy(0, 50);
+  const plainShards = plain.api.snapshot().unbanked;
+
+  const rich = boot({ seed: 3405 });
+  rich.api.grantShards(5000);
+  assert.ok(rich.api.buyMeta('harvest'));
+  deploy(rich);
+  rich.api.setInvulnerable(true);
+  rich.api.setRng(7777);
+  rich.api.spawnEnemy('tank', 60, 0);
+  rich.api.setEnemyHp(0, 1);
+  rich.api.hitEnemy(0, 50);
+  const richShards = rich.api.snapshot().unbanked;
+  assert.ok(plainShards > 0);
+  assert.ok(richShards > plainShards, 'salvage rig raises shard gain');
+});
+
+test('touch input switches on the on-screen controls', () => {
+  const g = boot({ seed: 3501, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.handlers.touchstart({ preventDefault() {}, changedTouches: [{ identifier: 1, clientX: 60, clientY: 400 }] });
+  g.step();
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('DASH'), 'dash button renders');
+  assert.ok(labels.includes('BOMB'), 'bomb button renders');
+  assert.ok(labels.includes('OD'), 'overdrive button renders');
+});

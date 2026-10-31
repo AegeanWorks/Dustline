@@ -99,6 +99,8 @@ const HAZARDS = {
   quicksand: { name: 'QUICKSAND', color: 'rgba(150,120,70,0.20)', playerSpeed: 0.62 },
   ice: { name: 'BLACK ICE', color: 'rgba(190,225,255,0.20)', playerSpeed: 1.28, enemySpeed: 1.1 },
   embers: { name: 'EMBER VENTS', color: 'rgba(255,110,60,0.20)', burn: 5 },
+  gas: { name: 'TOXIC GAS', color: 'rgba(130,220,100,0.22)', burn: 4 },
+  tar: { name: 'TAR PITS', color: 'rgba(48,56,50,0.30)', playerSpeed: 0.55, enemySpeed: 0.85 },
   vines: { name: 'CHOKE VINES', color: 'rgba(80,140,70,0.22)', enemySpeed: 0.72 }
 };
 
@@ -106,7 +108,9 @@ const AMBIENCE = {
   desert: { mode: 'dust', color: 'rgba(110,88,56,0.5)', count: 26, speed: 12 },
   frost: { mode: 'snow', color: 'rgba(250,255,255,0.9)', count: 34, speed: 20 },
   ash: { mode: 'ember', color: 'rgba(255,150,80,0.62)', count: 24, speed: 14 },
-  jungle: { mode: 'firefly', color: 'rgba(210,255,140,0.6)', count: 22, speed: 6 }
+  jungle: { mode: 'firefly', color: 'rgba(210,255,140,0.6)', count: 22, speed: 6 },
+  crater: { mode: 'dust', color: 'rgba(160,120,180,0.45)', count: 26, speed: 10 },
+  toxic: { mode: 'firefly', color: 'rgba(150,255,170,0.55)', count: 26, speed: 5 }
 };
 
 const MUTATORS = [
@@ -211,7 +215,7 @@ function mutatorShardMult() {
   }, 1);
 }
 
-const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck', 'rig'];
+const META_ORDER = ['power', 'armor', 'speed', 'greed', 'magnet', 'luck', 'rig', 'velocity', 'harvest', 'resolve'];
 const META = {
   power: { name: 'BALLISTICS', desc: '+6% damage per rank', max: 5, cost: (n) => 60 + 45 * n },
   armor: { name: 'PLATE CARRIER', desc: '+10 max health per rank', max: 5, cost: (n) => 60 + 45 * n },
@@ -219,7 +223,10 @@ const META = {
   greed: { name: 'SCAVENGER KIT', desc: '+10% XP per rank', max: 5, cost: (n) => 70 + 50 * n },
   magnet: { name: 'POWER MAGNET', desc: '+12 pickup radius per rank', max: 5, cost: (n) => 50 + 35 * n },
   luck: { name: 'LOADED DICE', desc: '+1 reroll and better drops', max: 3, cost: (n) => 110 + 70 * n },
-  rig: { name: 'LOADOUT RIG', desc: '+1 offense and defense slot per rank', max: 2, cost: (n) => 150 + 100 * n }
+  rig: { name: 'LOADOUT RIG', desc: '+1 offense and defense slot per rank', max: 2, cost: (n) => 150 + 100 * n },
+  velocity: { name: 'HYPER VELOCITY', desc: '+5% bullet speed per rank', max: 3, cost: (n) => 90 + 70 * n },
+  harvest: { name: 'SALVAGE RIG', desc: '+8% shard gain per rank', max: 3, cost: (n) => 100 + 80 * n },
+  resolve: { name: 'COMBAT STIM', desc: '-3% damage taken per rank', max: 3, cost: (n) => 120 + 90 * n }
 };
 
 const SLOT_BASE = 6;
@@ -252,7 +259,7 @@ function defaultSave() {
     achievements: {},
     lastSeed: 20261029,
     killsByType: {},
-    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0 },
+    meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0, velocity: 0, harvest: 0, resolve: 0 },
     unlocked: { weapons: ['ak'], maps: ['desert'] }
   };
 }
@@ -324,6 +331,7 @@ let upgradesReturn = 'menu';
 let statsReturn = 'menu';
 let mapReturn = 'paused';
 let manualTab = 'enemies';
+let skillPage = 'grid';
 let dailyOverride = null;
 let uiButtons = [];
 let uiT = 0;
@@ -505,17 +513,19 @@ const sfx = {
   over() { tone('sawtooth', 220, 55, 0.12, 0.9); noiseSweep(0.18, 0.6, 420, 60, 'lowpass'); }
 };
 
+const SKILL_MAX = 10;
+
 const SKILL_ORDER = [
   'rifle', 'smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret', 'aura',
   'squad', 'speed', 'vitality', 'aegis', 'magnet', 'damage',
-  'bulletSpeed', 'lifesteal', 'dashPower', 'crit'
+  'bulletSpeed', 'lifesteal', 'dashPower', 'crit', 'ricochet'
 ];
 
 const SKILLS = {
   rifle: {
     name: 'AK-47',
     short: 'AK',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'weapon',
     desc: 'Workhorse auto rifle with steady damage.',
     color: '#ffd27a'
@@ -523,7 +533,7 @@ const SKILLS = {
   smg: {
     name: 'SMG-45',
     short: 'SMG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'weapon',
     desc: 'Very fast, low-damage spray.',
     color: '#ffcf5c'
@@ -531,7 +541,7 @@ const SKILLS = {
   shotgun: {
     name: 'SPAS-12',
     short: 'SG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'weapon',
     desc: 'Point-blank pellet spread.',
     color: '#ffb066'
@@ -539,7 +549,7 @@ const SKILLS = {
   dmr: {
     name: 'DMR-308',
     short: 'DMR',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'weapon',
     desc: 'Slow, heavy, shots pierce the line.',
     color: '#ffeab0'
@@ -547,7 +557,7 @@ const SKILLS = {
   rail: {
     name: 'RAILGUN',
     short: 'RG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'weapon',
     desc: 'Slow charge, punches through whole lines.',
     color: '#9fe8ff'
@@ -555,7 +565,7 @@ const SKILLS = {
   blades: {
     name: 'Bayonet Blades',
     short: 'BL',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'active',
     desc: 'Orbiting knives shred nearby enemies.',
     color: '#c9d8ff'
@@ -563,7 +573,7 @@ const SKILLS = {
   grenade: {
     name: 'Frag Grenade',
     short: 'FR',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'active',
     desc: 'Lobs explosives into the horde.',
     color: '#ff8a5c'
@@ -571,7 +581,7 @@ const SKILLS = {
   turret: {
     name: 'Sentry Turret',
     short: 'TR',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'active',
     desc: 'Deploys a gun that fires on its own.',
     color: '#b8c6d0'
@@ -579,7 +589,7 @@ const SKILLS = {
   aura: {
     name: 'Ember Aura',
     short: 'AU',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'active',
     desc: 'Burns every enemy close to you.',
     color: '#ff9f6a'
@@ -587,7 +597,7 @@ const SKILLS = {
   squad: {
     name: 'Recruit Soldier',
     short: 'SQ',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'active',
     desc: 'A squadmate joins and fires for you.',
     color: '#7fd0ff'
@@ -595,7 +605,7 @@ const SKILLS = {
   speed: {
     name: 'Combat Boots',
     short: 'SP',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+8% movement speed per level.',
     color: '#9be59b'
@@ -603,7 +613,7 @@ const SKILLS = {
   vitality: {
     name: 'Body Armor',
     short: 'HP',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+25 max health and heals 25.',
     color: '#7fe0a0'
@@ -611,7 +621,7 @@ const SKILLS = {
   aegis: {
     name: 'Aegis Field',
     short: 'AEG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: 'Regenerating shield blocks one hit per charge.',
     color: '#9fd8ff'
@@ -619,7 +629,7 @@ const SKILLS = {
   magnet: {
     name: 'Field Magnet',
     short: 'MG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+45 pickup radius per level.',
     color: '#9fe8e0'
@@ -627,7 +637,7 @@ const SKILLS = {
   damage: {
     name: 'Hollow Points',
     short: 'DMG',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+12% damage from every source.',
     color: '#ff9f9f'
@@ -635,7 +645,7 @@ const SKILLS = {
   bulletSpeed: {
     name: 'Match Ammo',
     short: 'VEL',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+10% bullet speed and range.',
     color: '#ffe08a'
@@ -643,7 +653,7 @@ const SKILLS = {
   lifesteal: {
     name: 'Blood Leech',
     short: 'LS',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: 'Heal on kill for a share of damage.',
     color: '#ff7f8f'
@@ -651,7 +661,7 @@ const SKILLS = {
   dashPower: {
     name: 'Shock Boots',
     short: 'DSH',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: 'Dash crushes enemies it passes through.',
     color: '#9fd8ff'
@@ -659,12 +669,80 @@ const SKILLS = {
   crit: {
     name: 'Killer Instinct',
     short: 'CRT',
-    max: 5,
+    max: SKILL_MAX,
     kind: 'passive',
     desc: '+7% critical chance for double damage.',
     color: '#ff8ad8'
+  },
+  ricochet: {
+    name: 'Ricochet Rounds',
+    short: 'RIC',
+    max: SKILL_MAX,
+    kind: 'passive',
+    desc: 'Bullets reflect into a nearby hostile after a hit.',
+    color: '#7fe8ff'
   }
 };
+
+const SKILL_DETAILS = {
+  rifle: 'A steady mid-range rifle. Every level adds damage and shortens the trigger interval. Match Ammo at level 3 unlocks the Ripper.',
+  smg: 'A close-range spray weapon with the fastest trigger in the game. Pair it with Killer Instinct to unlock Storm.',
+  shotgun: 'A point-blank shredder. Extra levels add pellets and damage; Hollow Points unlocks the Breaker.',
+  dmr: 'A slow precision rifle that punches through a line. Blood Leech at level 3 unlocks the Reaper.',
+  rail: 'A charge rifle that skewers whole columns. Match Ammo at level 3 unlocks the infinite-pierce Lancer.',
+  blades: 'Two bayonet blades orbit you and shred anything they touch. Shock Boots at level 3 unlocks Tempest.',
+  grenade: 'Lobs a frag at the thickest cluster. Hollow Points at level 3 unlocks Cluster, which throws two.',
+  turret: 'Deploys a temporary sentry that fires on its own. Killer Instinct at level 3 unlocks Overwatch.',
+  aura: 'A burning ring around you that damages every hostile inside. Body Armor at level 3 unlocks Solar Crown.',
+  squad: 'Adds a rifleman who follows your formation and fires independently. More levels add damage and rate.',
+  speed: 'Raises your base movement speed, making hazard crossings and kiting safer.',
+  vitality: 'Raises maximum health and immediately heals the same amount, so it is never a wasted pick.',
+  aegis: 'Adds a regenerating shield charge. Each charge absorbs one whole hit and protects your kill streak.',
+  magnet: 'Pulls XP gems, medkits, chips and caches from farther away so you can keep moving.',
+  damage: 'Multiplies every damage source: weapons, blades, grenades, turrets and the ember aura.',
+  bulletSpeed: 'Makes bullets faster and extends their reach, which helps against fast and distant targets.',
+  lifesteal: 'Heals a share of every hit you deal. The Vampire combo doubles the rate.',
+  dashPower: 'Turns your dash into a damaging pass that can crush a whole line of mobs.',
+  crit: 'Adds critical chance; crits deal double damage and feed the crit surge feedback.',
+  ricochet: 'After a bullet hits, it reflects toward the nearest hostile it has not hit yet. Extra levels add bounces and range.'
+};
+
+function skillRankTotal() {
+  return SKILL_ORDER.reduce((sum, id) => sum + (G ? G.skills[id] : 0), 0);
+}
+
+function ricochetBounces(level) {
+  const base = level <= 0 ? 0 : 1 + Math.floor(level / 4);
+  return base + (hasEvolution('ricochet') ? 2 : 0);
+}
+
+function skillStatLine(id, lvl) {
+  const cur = Math.max(1, lvl);
+  const next = Math.min(SKILL_MAX, lvl + 1);
+  const atMax = lvl >= SKILL_MAX;
+  const range = (a, b) => (atMax ? String(a) : a + ' → ' + b);
+  if (id === 'rifle') return 'DMG ' + range(14 + 5 * (cur - 1), 14 + 5 * (next - 1)) + ' · CD ' + range((0.55 - 0.055 * cur).toFixed(2), (0.55 - 0.055 * next).toFixed(2)) + 's';
+  if (id === 'smg') return 'DMG ' + range(6 + 2.2 * (cur - 1), 6 + 2.2 * (next - 1)) + ' · CD ' + range((0.19 - 0.012 * cur).toFixed(2), (0.19 - 0.012 * next).toFixed(2)) + 's';
+  if (id === 'shotgun') return 'DMG ' + range(7 + 2 * cur, 7 + 2 * next) + ' · PELLETS ' + range(2 + cur, 2 + next);
+  if (id === 'dmr') return 'DMG ' + range(34 + 14 * (cur - 1), 34 + 14 * (next - 1)) + ' · PIERCE ' + range(2 + Math.floor(cur / 2), 2 + Math.floor(next / 2));
+  if (id === 'rail') return 'DMG ' + range(46 + 20 * (cur - 1), 46 + 20 * (next - 1)) + ' · PIERCE ' + range(4 + Math.floor(cur / 2), 4 + Math.floor(next / 2));
+  if (id === 'blades') return 'BLADES ' + range(cur + 1, next + 1) + ' · DMG ' + range(8 + 6 * cur, 8 + 6 * next);
+  if (id === 'grenade') return 'DMG ' + range(30 + 18 * cur, 30 + 18 * next) + ' · RADIUS ' + range(78 + 6 * cur, 78 + 6 * next);
+  if (id === 'turret') return 'DMG ' + range(9 + 4 * cur, 9 + 4 * next) + ' · LIFE ' + range((10 + 1.5 * cur).toFixed(1), (10 + 1.5 * next).toFixed(1)) + 's';
+  if (id === 'aura') return 'DMG ' + range(4 + 3 * cur, 4 + 3 * next) + ' · RADIUS ' + range(72 + 9 * cur, 72 + 9 * next);
+  if (id === 'squad') return 'DMG ' + range(8 + 3 * cur, 8 + 3 * next) + ' · RATE ' + range((0.9 - 0.05 * cur).toFixed(2), (0.9 - 0.05 * next).toFixed(2)) + 's';
+  if (id === 'speed') return 'MOVE +' + range(8 * cur, 8 * next) + '%';
+  if (id === 'vitality') return 'MAX HP +' + range(25 * cur, 25 * next);
+  if (id === 'aegis') return 'CHARGES ' + range(cur, next) + ' · RECHARGE ' + range(Math.max(4, 9 - 0.8 * cur).toFixed(1), Math.max(4, 9 - 0.8 * next).toFixed(1)) + 's';
+  if (id === 'magnet') return 'PICKUP +' + range(45 * cur, 45 * next);
+  if (id === 'damage') return 'DAMAGE +' + range(12 * cur, 12 * next) + '%';
+  if (id === 'bulletSpeed') return 'BULLET SPEED +' + range(10 * cur, 10 * next) + '%';
+  if (id === 'lifesteal') return 'LEECH ' + range((2.5 * cur).toFixed(1), (2.5 * next).toFixed(1)) + '%';
+  if (id === 'dashPower') return 'DASH DMG ' + range(10 + 8 * cur, 10 + 8 * next);
+  if (id === 'crit') return 'CRIT +' + range(7 * cur, 7 * next) + '%';
+  if (id === 'ricochet') return 'BOUNCES ' + range(ricochetBounces(cur), ricochetBounces(next)) + ' · RANGE ' + range(220 + 12 * cur, 220 + 12 * next);
+  return 'LEVEL ' + cur + ' / ' + SKILL_MAX;
+}
 
 const COMBOS = [
   {
@@ -806,10 +884,26 @@ const MAPS = {
     accent: '#9be59b',
     hazard: 'vines',
     props: { building: '#7d7a5c', rock: '#6d6b5a', tree: '#3f6b3a' }
+  },
+  crater: {
+    name: 'CRATER FIELD',
+    blurb: 'Impact craters, tar pits',
+    sky: ['#8a7d8f', '#837688', '#7d7082'],
+    accent: '#c8a2d8',
+    hazard: 'tar',
+    props: { building: '#6d5a68', rock: '#7a6f78', tree: '#5d6a52' }
+  },
+  toxic: {
+    name: 'DEAD ZONE',
+    blurb: 'Chemical ponds, ruins',
+    sky: ['#7a8a6a', '#738462', '#6b7c5a'],
+    accent: '#a8ff8f',
+    hazard: 'gas',
+    props: { building: '#687660', rock: '#73755c', tree: '#43702f' }
   }
 };
 
-const MAP_ORDER = ['desert', 'frost', 'ash', 'jungle'];
+const MAP_ORDER = ['desert', 'frost', 'ash', 'jungle', 'crater', 'toxic'];
 
 const TIME_LIMITS = [
   { id: 'endless', label: 'ENDLESS', sec: 0 },
@@ -835,7 +929,8 @@ const EVOLUTIONS = {
   blades: { id: 'tempest', name: 'TEMPEST', needs: 'dashPower', desc: '+2 blades, +50% spin and damage' },
   grenade: { id: 'cluster', name: 'CLUSTER', needs: 'damage', desc: 'Twin grenades, +30% blast' },
   turret: { id: 'overwatch', name: 'OVERWATCH', needs: 'crit', desc: 'Third turret, +30% fire rate and life' },
-  aura: { id: 'crown', name: 'SOLAR CROWN', needs: 'vitality', desc: '+35% radius, pulses 60% faster' }
+  aura: { id: 'crown', name: 'SOLAR CROWN', needs: 'vitality', desc: '+35% radius, pulses 60% faster' },
+  ricochet: { id: 'carom', name: 'CAROM', needs: 'crit', desc: '+2 ricochets and 25% more bounce damage' }
 };
 
 const BOSS_AFFIXES = [
@@ -964,7 +1059,7 @@ const FORMATION = [
 ];
 
 function levelNeed(level) {
-  return Math.round(6 + 6 * level);
+  return Math.round(18 + 16 * level + 0.6 * level * level);
 }
 
 function metaRank(id) {
@@ -1053,7 +1148,7 @@ function activeCombos() {
 }
 
 function playerSpeed() {
-  return 210 * (1 + 0.08 * G.skills.speed) * (1 + 0.04 * metaRank('speed'));
+  return 210 * (1 + 0.08 * G.skills.speed) * (1 + 0.04 * metaRank('speed')) * (1 + 0.08 * (G.momentum || 0)) * (G.hp < G.maxHp * 0.3 ? 1.15 : 1);
 }
 
 function auraRadius() {
@@ -1083,13 +1178,13 @@ function blastMult() {
 }
 
 function fireRateMult() {
-  return (odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1) * (hasRelic('chrono') ? 1.15 : 1);
+  return (odActive() ? 1.25 : 1) * (G.frenzyT > 0 ? 1.5 : 1) * (hasRelic('chrono') ? 1.15 : 1) * (G.overchargeT > 0 ? 1.6 : 1);
 }
 
 function damageMult() {
   const od = odActive() ? 1.4 : 1;
   const glass = hasMutator('glass') ? 1.4 : 1;
-  return (1 + 0.12 * G.skills.damage) * (1 + 0.06 * metaRank('power')) * od * glass;
+  return (1 + 0.12 * G.skills.damage) * (1 + 0.06 * metaRank('power')) * od * glass * (1 + 0.15 * (G.momentum || 0)) * (G.enemies.length >= 50 ? 1.2 : 1) * (G.hp < G.maxHp * 0.3 ? 1.3 : 1);
 }
 
 function magnetRadius() {
@@ -1097,7 +1192,7 @@ function magnetRadius() {
 }
 
 function bulletSpeedMult() {
-  return 1 + 0.10 * G.skills.bulletSpeed + (hasRelic('overclock') ? 0.25 : 0) + (isOperator('marksman') ? 0.15 : 0);
+  return 1 + 0.10 * G.skills.bulletSpeed + 0.05 * metaRank('velocity') + (hasRelic('overclock') ? 0.25 : 0) + (isOperator('marksman') ? 0.15 : 0) + (G.overchargeT > 0 ? 0.3 : 0);
 }
 
 function critChance() {
@@ -1137,6 +1232,7 @@ function addUnbanked(value) {
     G.market *
     (G.diff ? G.diff.shard : 1) *
     mutatorShardMult() *
+    (1 + 0.08 * (save.meta.harvest || 0)) *
     (hasRelic('greedengine') ? 1.2 : 1) *
     (isOperator('scavenger') ? 1.2 : 1);
 }
@@ -1187,6 +1283,151 @@ function openChest() {
   sfx.chest();
   return granted;
 }
+
+function spawnInteract(kind, x, y) {
+  if (!G) return;
+  const k = kind || pick(['crate', 'barrel', 'stash']);
+  const obj = {
+    kind: k,
+    x: x != null ? x : G.player.x + Math.cos(rnd(0, TAU)) * rnd(260, 420),
+    y: y != null ? y : G.player.y + Math.sin(rnd(0, TAU)) * rnd(260, 420),
+    spin: 0,
+    hp: k === 'barrel' ? 14 : 0,
+    dead: false
+  };
+  G.interact.push(obj);
+  return obj;
+}
+
+function openCrate(obj) {
+  if (!G || !obj) return;
+  obj.dead = true;
+  G.stats.interact = (G.stats.interact || 0) + 1;
+  const roll = srnd();
+  fxBurst(obj.x, obj.y, 7, '#ffd27a', 190, 2.6, 0.38, 'spark');
+  if (roll < 0.32) {
+    G.hp = Math.min(G.maxHp, G.hp + 25);
+    G.stats.healing += 25;
+    spawnFloater(obj.x, obj.y - 14, '+25 HP', '#7fe0a0', 13);
+    sfx.heal();
+    G.news = 'Supply crate: medkit.';
+  } else if (roll < 0.58) {
+    const kinds = Object.keys(CHIPS);
+    for (let i = 0; i < 2; i++) {
+      const a = rnd(0, TAU);
+      const r = rnd(20, 60);
+      G.chips.push({ x: obj.x + Math.cos(a) * r, y: obj.y + Math.sin(a) * r, kind: kinds[Math.floor(srnd() * kinds.length)], spin: 0 });
+    }
+    spawnFloater(obj.x, obj.y - 14, 'CHIPS DROPPED', '#9fd8ff', 12);
+    G.news = 'Supply crate: chip cache.';
+  } else if (roll < 0.76) {
+    addUnbanked(18);
+    spawnFloater(obj.x, obj.y - 14, '+18 SHARDS', '#63dcc0', 13);
+    G.news = 'Supply crate: salvage.';
+  } else if (roll < 0.88) {
+    G.banner = 'TRAP';
+    G.bannerSub = 'THE CRATE BIT BACK';
+    G.bannerT = 1.8;
+    G.hurtT = 0.3;
+    G.hp = Math.max(1, G.hp - 12);
+    spawnFloater(obj.x, obj.y - 14, '-12 HP', '#ff7a6a', 13);
+    sfx.hurt();
+    G.news = 'Booby-trapped crate.';
+  } else {
+    const ang = rnd(0, TAU);
+    for (let i = 0; i < 4; i++) {
+      const a = ang + i * (TAU / 4);
+      spawnEnemyAt('grunt', obj.x + Math.cos(a) * 90, obj.y + Math.sin(a) * 90);
+    }
+    G.banner = 'AMBUSH';
+    G.bannerSub = 'THE HORDE POURS OUT';
+    G.bannerT = 2.0;
+    G.news = 'Ambush crate.';
+  }
+}
+
+function spawnBunker(x, y) {
+  if (!G) return;
+  G.bunker = { x: x != null ? x : G.player.x + Math.cos(rnd(0, TAU)) * rnd(900, 1400), y: y != null ? y : G.player.y + Math.sin(rnd(0, TAU)) * rnd(900, 1400), used: false, spin: 0 };
+  return G.bunker;
+}
+
+function triggerNuke(bunker) {
+  if (!G || !bunker || bunker.used) return false;
+  bunker.used = true;
+  G.stats.bunkers = (G.stats.bunkers || 0) + 1;
+  G.banner = 'NUCLEAR STRIKE';
+  G.bannerSub = 'BUNKER CACHE DETONATED';
+  G.bannerT = 3.0;
+  G.news = 'Nuclear bunker triggered.';
+  sfx.victory();
+  G.nuke = { t: 0, i: 0, kills: 0, total: G.enemies.filter((e) => !e.dead).length };
+  return true;
+}
+
+function updateInteracts(dt) {
+  if (!G) return;
+  G.interactCd -= dt;
+  if (G.interactCd <= 0) {
+    G.interactCd = 20 + rnd(0, 12);
+    if (G.interact.length < 6) spawnInteract();
+  }
+  if (G.bunker && !G.bunker.used) {
+    G.bunker.spin += dt * 0.6;
+    const d = Math.hypot(G.player.x - G.bunker.x, G.player.y - G.bunker.y);
+    if (d < 46) {
+      triggerNuke(G.bunker);
+    }
+  }
+  for (const obj of G.interact) {
+    if (obj.dead) continue;
+    obj.spin += dt * 2;
+    const d = Math.hypot(G.player.x - obj.x, G.player.y - obj.y);
+    if (obj.kind === 'crate' || obj.kind === 'stash') {
+      if (d < 32) {
+        if (obj.kind === 'stash') {
+          obj.dead = true;
+          G.stats.interact = (G.stats.interact || 0) + 1;
+          addUnbanked(40);
+          fxBurst(obj.x, obj.y, 8, '#63dcc0', 200, 2.8, 0.4, 'spark');
+          spawnFloater(obj.x, obj.y - 14, '+40 SHARDS', '#63dcc0', 14);
+          G.banner = 'HIDDEN STASH';
+          G.bannerSub = 'RARE LOOT UNLOCKED';
+          G.bannerT = 2.0;
+          G.news = 'Hidden stash cracked.';
+        } else {
+          openCrate(obj);
+        }
+      }
+    }
+  }
+  G.interact = G.interact.filter((o) => !o.dead && dist2(o.x, o.y, G.player.x, G.player.y) < 2600 * 2600);
+  if (G.nuke) {
+    G.nuke.t -= dt;
+    if (G.nuke.t <= 0) {
+      G.nuke.t = 0.12;
+      const alive = G.enemies.filter((e) => !e.dead);
+      const batch = alive.slice(0, 5);
+      for (const e of batch) {
+        explodeAt(e.x, e.y, e.r * 3, e.dmg || 0, '#ffd27a', 'p');
+        damageEnemy(e, 1e6, e.x, e.y, false);
+        G.nuke.kills++;
+      }
+      if (alive.length <= 5) {
+        G.nuke = null;
+        addUnbanked(120 + 10 * G.wave);
+        spawnFloater(G.player.x, G.player.y - 40, 'MAP CLEARED', '#ffd27a', 16);
+      }
+    }
+  }
+  // bunker spawn (rare, once per run)
+  if (!G.bunker && !G.bunkerTried) {
+    G.bunkerTried = true;
+    if (srnd() < 0.3) spawnBunker();
+  }
+}
+
+function pick(arr) { return arr[Math.floor(srnd() * arr.length)]; }
 
 function spawnHunter() {
   const ang = rnd(0, TAU);
@@ -1353,6 +1594,12 @@ function startRun(options) {
     medkits: [],
     chips: [],
     chests: [],
+    interact: [],
+    overcharges: [],
+    bunker: null,
+    bunkerTried: false,
+    interactCd: 22,
+    nuke: null,
     grenades: [],
     particles: [],
     floaters: [],
@@ -1366,6 +1613,9 @@ function startRun(options) {
     shield: { charges: 0, t: 0 },
     slowT: 0,
     pools: [],
+    recentKills: [],
+    momentum: 0,
+    hitStop: 0,
     relics: [],
     relicOffers: [],
     salvage: [],
@@ -1389,6 +1639,7 @@ function startRun(options) {
     mutators: [],
     turrets: [],
     burnCd: 0,
+    overchargeT: 0,
     evolved: {},
     rerolls: 2 + metaRank('luck'),
     banishes: 1,
@@ -1419,9 +1670,12 @@ function startRun(options) {
       contracts: 0,
       champions: 0,
       chests: 0,
+      interact: 0,
+      bunkers: 0,
       shieldSaves: 0,
       banked: 0,
-      lost: 0
+      lost: 0,
+      ricochets: 0
     }
   };
   G.mutators = Array.isArray(setup.mutators) ? setup.mutators.slice(0, 2) : [];
@@ -1665,6 +1919,8 @@ function decorTile(tx, ty) {
   if (map === 'frost') kind = roll < 0.46 ? 'snowgrass' : roll < 0.76 ? 'ice' : 'pebbles';
   else if (map === 'ash') kind = roll < 0.5 ? 'charred' : roll < 0.76 ? 'bones' : 'crack';
   else if (map === 'jungle') kind = roll < 0.46 ? 'fern' : roll < 0.72 ? 'flower' : 'mushroom';
+  else if (map === 'crater') kind = roll < 0.48 ? 'crack' : roll < 0.74 ? 'pebbles' : 'bones';
+  else if (map === 'toxic') kind = roll < 0.44 ? 'fern' : roll < 0.72 ? 'charred' : 'pebbles';
   else kind = roll < 0.55 ? 'grass' : roll < 0.78 ? 'bones' : 'pebbles';
   return [{
     kind,
@@ -1869,6 +2125,7 @@ function spawnBullet(x, y, ang, speed, dmg, owner, color, opts) {
     crit: !!o.crit,
     web: !!o.web,
     hits: [],
+    bounces: owner === 'p' ? ricochetBounces((G && G.skills.ricochet) || 0) : 0,
     life: o.life || 1.4,
     dead: false
   });
@@ -2865,6 +3122,18 @@ function updateBullets(dt) {
       burst(b.x, b.y, 4, '#c9b89a', 120, 1.6, 0.2);
       continue;
     }
+    for (const obj of G.interact) {
+      if (obj.dead || obj.kind !== 'barrel') continue;
+      if (segHitsCircle(x0, y0, b.x, b.y, obj.x, obj.y, 13)) {
+        obj.dead = true;
+        explodeAt(obj.x, obj.y, 88, 0, '#ff8a5c', 'p');
+        fxBurst(obj.x, obj.y, 10, '#ff8a5c', 260, 3.2, 0.45, 'spark');
+        b.pierce = 0;
+        b.dead = true;
+        break;
+      }
+    }
+    if (b.dead) continue;
     for (const e of G.enemies) {
       if (e.dead || b.hits.indexOf(e) >= 0) continue;
       if (segHitsCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + 4)) {
@@ -2872,6 +3141,31 @@ function updateBullets(dt) {
         damageEnemy(e, b.dmg, b.x, b.y, b.crit);
         if (b.pierce > 0) {
           b.pierce--;
+        } else if (b.bounces > 0) {
+          let next = null;
+          let best = (220 + 12 * ((G && G.skills.ricochet) || 0)) ** 2;
+          for (const o of G.enemies) {
+            if (o.dead || o === e || b.hits.indexOf(o) >= 0) continue;
+            const d = dist2(b.x, b.y, o.x, o.y);
+            if (d < best) {
+              best = d;
+              next = o;
+            }
+          }
+          if (next) {
+            b.bounces--;
+            b.ang = Math.atan2(next.y - b.y, next.x - b.x);
+            const speed = Math.hypot(b.vx, b.vy) || 800;
+            b.vx = Math.cos(b.ang) * speed;
+            b.vy = Math.sin(b.ang) * speed;
+            b.life = Math.max(b.life, 0.6);
+            if (hasEvolution('ricochet')) b.dmg *= 1.25;
+            G.stats.ricochets++;
+            burst(b.x, b.y, 3, '#7fe8ff', 150, 2, 0.22, 'spark');
+            continue;
+          }
+          b.dead = true;
+          break;
         } else {
           b.dead = true;
           break;
@@ -2990,10 +3284,11 @@ function throwBomb() {
   return true;
 }
 
-function damageEnemy(e, dmg, x, y, crit) {
+function damageEnemy(e, dmg, x, y, crit, splash) {
   if (e.dead) return;
   if (e.burrowed) return;
   if (e.ghost) return;
+  if (splash === undefined) splash = true;
   let dealt = dmg;
   if (e.type === 'warden' && !crit) dealt *= 0.55;
   if (e.affix === 'shielded') dealt *= 0.7;
@@ -3024,7 +3319,21 @@ function damageEnemy(e, dmg, x, y, crit) {
       sfx.combo(14);
     }
   }
-  if (e.hp <= 0) killEnemy(e);
+  if (e.hp <= 0) {
+    const over = Math.max(0, -e.hp);
+    killEnemy(e);
+    if (splash && over > 0) {
+      const targets = G.enemies
+        .filter((o) => !o.dead && o !== e)
+        .map((o) => ({ o, d: Math.hypot(o.x - e.x, o.y - e.y) }))
+        .filter((t) => t.d < 90)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 2);
+      for (const t of targets) {
+        damageEnemy(t.o, over * 0.3, t.o.x, t.o.y, false, false);
+      }
+    }
+  }
 }
 
 function killEnemy(e) {
@@ -3035,6 +3344,30 @@ function killEnemy(e) {
   G.streak += 1;
   G.streakT = 2.6;
   if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+  G.recentKills = (G.recentKills || []).filter((t) => G.time - t < 1);
+  G.recentKills.push(G.time);
+  if (G.recentKills.length >= 3) {
+    G.hp = Math.min(G.maxHp, G.hp + 1);
+    G.stats.healing += 1;
+    G.recentKills = [];
+    spawnFloater(G.player.x, G.player.y - 20, 'BLOODLUST +1', '#ff7a6a', 11);
+    fxBurst(G.player.x, G.player.y, 6, '#ff7a6a', 160, 2.4, 0.3, 'spark');
+  }
+  G.momentum = Math.min(1, (G.momentum || 0) + 0.06);
+  G.hitStop = Math.max(G.hitStop || 0, 0.035);
+  if (G.kills % 25 === 0) {
+    explodeAt(G.player.x, G.player.y, 130, 0, '#ffd27a', 'p');
+    for (const en of G.enemies) {
+      if (en.dead) continue;
+      if (Math.hypot(en.x - G.player.x, en.y - G.player.y) < 150) {
+        damageEnemy(en, 40 * damageMult(), en.x, en.y, true);
+      }
+    }
+    G.banner = 'FINISHER';
+    G.bannerSub = '25 KILLS · SHOCKWAVE';
+    G.bannerT = 1.6;
+    fxBurst(G.player.x, G.player.y, 1, '#ffd27a', 0, 140, 0.45, 'ring');
+  }
   G.alert = Math.min(100, G.alert + (e.boss ? 12 : e.elite ? 4 : 0.7));
 
   const roll = srnd();
@@ -3057,6 +3390,10 @@ function killEnemy(e) {
     G.news = 'Hardware chip recovered from ' + (ENEMY_TYPES[e.type] ? ENEMY_TYPES[e.type].name : 'hostile');
   }
   addUnbanked(0.3 + e.xp * 0.24 * streakMult());
+  if (srnd() < 0.05) {
+    G.overcharges.push({ x: e.x, y: e.y, spin: 0 });
+    spawnFloater(e.x, e.y - e.r - 10, 'OVERCHARGE', '#9fd8ff', 12);
+  }
   checkAchievements();
 
   if (G.streak % 10 === 0) {
@@ -3161,7 +3498,8 @@ function damagePlayer(dmg) {
     (G.diff ? G.diff.dmg : 1) *
     (odActive() ? 1.5 : 1) *
     (hasMutator('glass') ? 1.6 : 1) *
-    (isOperator('vanguard') ? 0.9 : 1);
+    (isOperator('vanguard') ? 0.9 : 1) *
+    (1 - 0.03 * (save.meta.resolve || 0));
   G.hp -= taken;
   if (G.streak > 0) {
     G.streak = 0;
@@ -3282,6 +3620,25 @@ function updatePickups(dt) {
     }
   }
   G.medkits = G.medkits.filter((k) => !k.dead && dist2(k.x, k.y, G.player.x, G.player.y) < 2200 * 2200);
+  for (const oc of G.overcharges) {
+    oc.spin = (oc.spin || 0) + dt * 3;
+    const dx = G.player.x - oc.x;
+    const dy = G.player.y - oc.y;
+    const d = Math.hypot(dx, dy) || 1;
+    if (d < pr) {
+      const pull = 220 + (1 - d / pr) * 360;
+      oc.x += (dx / d) * pull * dt;
+      oc.y += (dy / d) * pull * dt;
+    }
+    if (d < 24) {
+      oc.dead = true;
+      G.overchargeT = 8;
+      fxBurst(oc.x, oc.y, 6, '#9fd8ff', 180, 2.6, 0.35, 'spark');
+      spawnFloater(oc.x, oc.y - 12, 'OVERCHARGE · 8s', '#9fd8ff', 13);
+      sfx.upgrade();
+    }
+  }
+  G.overcharges = G.overcharges.filter((o) => !o.dead && dist2(o.x, o.y, G.player.x, G.player.y) < 2200 * 2200);
 }
 
 function updateParticles(dt) {
@@ -3488,6 +3845,10 @@ function chooseUpgrade(index) {
 }
 
 function updateRun(dt) {
+  if (G.hitStop > 0) {
+    G.hitStop = Math.max(0, G.hitStop - dt);
+    return;
+  }
   G.time += dt;
   if (G.limitSec > 0 && G.time >= G.limitSec) {
     winRun();
@@ -3514,6 +3875,7 @@ function updateRun(dt) {
   G.invulnT = Math.max(0, G.invulnT - dt);
   G.hurtT = Math.max(0, G.hurtT - dt);
   G.slowT = Math.max(0, G.slowT - dt);
+  G.overchargeT = Math.max(0, (G.overchargeT || 0) - dt);
   if (shieldMax() > 0 && G.shield.charges < shieldMax()) {
     G.shield.t -= dt;
     if (G.shield.t <= 0) {
@@ -3523,6 +3885,7 @@ function updateRun(dt) {
   }
   G.streakT = Math.max(0, G.streakT - dt);
   if (G.streakT <= 0 && G.streak > 0) G.streak = 0;
+  G.momentum = Math.max(0, (G.momentum || 0) - 0.4 * dt);
   G.surgeT = Math.max(0, G.surgeT - dt);
   G.frenzyT = Math.max(0, G.frenzyT - dt);
   G.alert = Math.max(0, G.alert - 0.35 * dt);
@@ -3588,6 +3951,10 @@ function updateRun(dt) {
   if (keys['s'] || keys['arrowdown']) my++;
   if (keys['a'] || keys['arrowleft']) mx--;
   if (keys['d'] || keys['arrowright']) mx++;
+  if (touchStick.active) {
+    mx += touchStick.vx;
+    my += touchStick.vy;
+  }
   let len = Math.hypot(mx, my);
   if (len > 0) {
     mx /= len;
@@ -3625,13 +3992,14 @@ function updateRun(dt) {
   G.player.x = fixed.x;
   G.player.y = fixed.y;
 
-  if (hazardAt(G.player.x, G.player.y) === 'embers') {
+  const standingHazard = HAZARDS[hazardAt(G.player.x, G.player.y)];
+  if (standingHazard && standingHazard.burn) {
     G.burnCd = (G.burnCd || 0) - dt;
     if (G.burnCd <= 0) {
       G.burnCd = 0.6;
-      G.hp = Math.max(0, G.hp - 5);
+      G.hp = Math.max(0, G.hp - standingHazard.burn);
       G.hurtT = 0.2;
-      spawnFloater(G.player.x, G.player.y - 20, 'BURN', '#ff8a5c', 11);
+      spawnFloater(G.player.x, G.player.y - 20, standingHazard.name === 'TOXIC GAS' ? 'POISON' : 'BURN', standingHazard.name === 'TOXIC GAS' ? '#9be59b' : '#ff8a5c', 11);
       if (G.hp <= 0) { gameOver(); return; }
     }
   }
@@ -3650,6 +4018,7 @@ function updateRun(dt) {
   updateGrenades(dt);
   updatePools(dt);
   updatePickups(dt);
+  updateInteracts(dt);
   updateParticles(dt);
   markExplored();
 
@@ -4046,6 +4415,115 @@ function drawDecals() {
   }
 }
 
+function drawInteracts() {
+  if (!G) return;
+  for (const obj of G.interact) {
+    if (obj.dead) continue;
+    const x = obj.x - G.cam.x;
+    const y = obj.y - G.cam.y;
+    ctx.save();
+    ctx.translate(x, y);
+    if (obj.kind === 'crate') {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(-13, -8, 26, 18);
+      ctx.fillStyle = '#b89a5a';
+      ctx.fillRect(-13, -10, 26, 16);
+      ctx.fillStyle = '#d8b877';
+      ctx.fillRect(-13, -10, 26, 4);
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-12.5, -9.5, 25, 15);
+      ctx.fillStyle = '#5a4a2a';
+      ctx.fillRect(-4, -4, 8, 8);
+    } else if (obj.kind === 'barrel') {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(-10, 2, 20, 6);
+      ctx.fillStyle = '#7a4a3a';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 11, 14, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,140,80,0.5)';
+      ctx.fillRect(-9, -2, 18, 3);
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 11, 14, 0, 0, TAU);
+      ctx.stroke();
+    } else if (obj.kind === 'stash') {
+      const pulse = 0.5 + 0.5 * Math.sin(uiT * 3);
+      ctx.fillStyle = 'rgba(100,220,200,' + (0.15 + 0.15 * pulse) + ')';
+      ctx.beginPath();
+      ctx.arc(0, 0, 18 + pulse * 4, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#3a6a6a';
+      ctx.fillRect(-12, -12, 24, 24);
+      ctx.fillStyle = '#63dcc0';
+      ctx.fillRect(-12, -12, 24, 4);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(-4, -4, 8, 8);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-12, -12, 24, 24);
+    }
+    ctx.restore();
+  }
+  if (G.bunker && !G.bunker.used) {
+    const x = G.bunker.x - G.cam.x;
+    const y = G.bunker.y - G.cam.y;
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 2);
+    ctx.save();
+    ctx.translate(x, y);
+    const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, 150);
+    glow.addColorStop(0, 'rgba(255,210,122,' + (0.18 + 0.12 * pulse) + ')');
+    glow.addColorStop(1, 'rgba(255,210,122,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-150, -150, 300, 300);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(-24, -14, 48, 30);
+    ctx.fillStyle = '#5a5a5a';
+    ctx.fillRect(-24, -18, 48, 6);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-14, -4, 28, 20);
+    ctx.fillStyle = '#ffd27a';
+    ctx.fillRect(-8, -1, 16, 4);
+    ctx.fillStyle = '#ff8a5c';
+    ctx.beginPath();
+    ctx.arc(0, -12, 3 + pulse * 2, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,210,122,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-24, -18, 48, 34);
+    ctx.restore();
+    const d = Math.hypot(G.player.x - G.bunker.x, G.player.y - G.bunker.y);
+    if (d < 60) {
+      ctx.save();
+      ctx.translate(x, y - 40);
+      ctx.fillStyle = 'rgba(10,12,14,0.85)';
+      ctx.fillRect(-78, -16, 156, 26);
+      ctx.fillStyle = '#ffd27a';
+      ctx.font = '700 10px Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('ENTER BUNKER · NUKE', 0, 2);
+      ctx.restore();
+    }
+  }
+  if (G.bunker && G.bunker.used) {
+    const x = G.bunker.x - G.cam.x;
+    const y = G.bunker.y - G.cam.y;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-24, -14, 48, 30);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-24, -18, 48, 6);
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(-14, -4, 28, 20);
+    ctx.fillStyle = '#63dcc0';
+    ctx.fillRect(-8, -1, 16, 4);
+    ctx.restore();
+  }
+}
+
 function drawProps(cam) {
   const palette = mapDef().props;
   const props = propsNear(cam.x + W / 2, cam.y + H / 2, Math.hypot(W, H) / 2 + 120);
@@ -4175,6 +4653,31 @@ function drawPickups() {
     ctx.fillStyle = 'rgba(99,220,192,0.8)';
     ctx.font = '700 9px Consolas, monospace';
     ctx.fillText('SALVAGE', s.x, s.y - 24);
+    ctx.textAlign = 'left';
+  }
+  for (const oc of G.overcharges) {
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 5 + oc.spin);
+    ctx.save();
+    ctx.translate(oc.x, oc.y);
+    ctx.globalAlpha = 0.25 + 0.2 * pulse;
+    ctx.fillStyle = '#9fd8ff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 20 + pulse * 4, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#1a2a3a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#9fd8ff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(159,216,255,0.85)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText('OVERCHARGE', oc.x, oc.y - 16);
     ctx.textAlign = 'left';
   }
   for (const gem of G.gems) {
@@ -5471,6 +5974,53 @@ function drawSkull(x, y, size, color) {
   ctx.restore();
 }
 
+function drawTouchControls() {
+  if (!G || (screen !== 'play' && screen !== 'paused')) return;
+  ctx.save();
+  ctx.globalAlpha = 0.32;
+  if (touchStick.active) {
+    ctx.strokeStyle = '#9fd8ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(touchStick.ox, touchStick.oy, 42, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(159,216,255,0.25)';
+    ctx.beginPath();
+    ctx.arc(touchStick.ox + touchStick.vx * 42, touchStick.oy + touchStick.vy * 42, 18, 0, TAU);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = 'rgba(159,216,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(90, H - 96, 46, 0, TAU);
+    ctx.stroke();
+  }
+  const bx = W - 86, by = H - 96;
+  const buttons = [
+    { x: bx, y: by, label: 'DASH', color: '#9fd8ff' },
+    { x: bx - 74, y: by, label: 'BOMB', color: '#ffcf5c' },
+    { x: bx - 148, y: by, label: 'OD', color: '#ff8a5c' }
+  ];
+  for (const b of buttons) {
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = 'rgba(20,24,28,0.8)';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 34, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 34, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = b.color;
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.label, b.x, b.y + 4);
+  }
+  ctx.restore();
+}
+
 function drawHUD() {
   const xpPct = clamp(G.xp / G.xpNext, 0, 1);
 
@@ -5533,9 +6083,7 @@ function drawHUD() {
   }
 
   const owned = SKILL_ORDER.filter((id) => G.skills[id] > 0);
-  const rowH = 19;
-  const sh = owned.length * rowH + 54;
-  panel(W - 214, 14, 200, sh);
+  panel(W - 214, 14, 200, 66);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
   ctx.font = '10px Consolas, monospace';
@@ -5549,26 +6097,13 @@ function drawHUD() {
   );
   ctx.fillStyle = G.relics.length ? '#63dcc0' : '#8f9ba4';
   ctx.fillText('RELICS ' + G.relics.length + ' / ' + RELICS.length, W - 200, 58);
-  owned.forEach((id, i) => {
-    const y = 74 + i * rowH;
-    ctx.fillStyle = SKILLS[id].color;
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(SKILLS[id].short, W - 200, y);
-    ctx.fillStyle = '#c9d4dc';
-    ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(SKILLS[id].name, W - 168, y);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#8f9ba4';
-    ctx.fillText('LV' + G.skills[id], W - 26, y);
-    ctx.textAlign = 'left';
-  });
 
   const combo = activeCombos();
   if (combo.length) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd27a';
     ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(combo.map((c) => c.name).join(' · '), W - 200, 14 + sh + 14);
+    ctx.fillText(combo.map((c) => c.name).join(' · '), W - 200, 14 + 66 + 14);
   }
 
   const boss = G.enemies.find((e) => e.boss && !e.dead);
@@ -5595,43 +6130,6 @@ function drawHUD() {
     ctx.textAlign = 'left';
   }
 
-  panel(14, H - 108, 260, 58);
-  ctx.fillStyle = '#9aa7ad';
-  ctx.font = '10px Consolas, monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('HEALTH', 28, H - 86);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = G.hp > 50 ? '#7fe0a0' : G.hp > 25 ? '#e0b13c' : '#e2563f';
-  ctx.font = '700 14px Consolas, monospace';
-  ctx.fillText(Math.ceil(G.hp) + ' / ' + G.maxHp, 260, H - 86);
-  ctx.fillStyle = '#232c33';
-  ctx.fillRect(28, H - 78, 232, 9);
-  ctx.fillStyle = G.hp > 50 ? '#58c46a' : G.hp > 25 ? '#e0b13c' : '#d34a4a';
-  ctx.fillRect(28, H - 78, 232 * clamp(G.hp / G.maxHp, 0, 1), 9);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#9aa7ad';
-  ctx.font = '10px Consolas, monospace';
-  ctx.fillText('SQUAD', 28, H - 60);
-  for (let i = 0; i < G.soldiers.length; i++) {
-    ctx.fillStyle = '#7fd0ff';
-    ctx.beginPath();
-    ctx.arc(80 + i * 16, H - 64, 5, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = '#123a52';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-  if (shieldMax() > 0) {
-    ctx.fillStyle = '#9aa7ad';
-    ctx.font = '10px Consolas, monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('SHIELD', 186, H - 60);
-    for (let i = 0; i < shieldMax(); i++) {
-      ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
-      ctx.fillRect(230 + i * 9, H - 68, 7, 8);
-    }
-  }
-
   const dw = 100;
   const gap = 8;
   const totalW = dw * 3 + gap * 2;
@@ -5639,28 +6137,87 @@ function drawHUD() {
   const dashReady = G.dash.cd <= 0;
   const bombReady = G.bomb.cd <= 0;
   const odOn = odActive();
-  panel(left, H - 40, dw, 26);
-  panel(left + dw + gap, H - 40, dw, 26);
-  panel(left + (dw + gap) * 2, H - 40, dw, 26);
+  panel(left, H - 84, dw, 26);
+  panel(left + dw + gap, H - 84, dw, 26);
+  panel(left + (dw + gap) * 2, H - 84, dw, 26);
   ctx.font = '700 10px Consolas, monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
-  ctx.fillText(dashReady ? 'SHIFT DASH' : 'DASH ' + G.dash.cd.toFixed(1), left + dw / 2, H - 35);
+  ctx.fillText(dashReady ? 'SHIFT DASH' : 'DASH ' + G.dash.cd.toFixed(1), left + dw / 2, H - 79);
   ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
-  ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, H - 35);
+  ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, H - 79);
   const odX = left + (dw + gap) * 2;
   ctx.fillStyle = odOn ? '#ff8a5c' : G.od.heat > 15 ? '#e0b13c' : 'rgba(255,138,92,0.35)';
-  ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, H - 35);
+  ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, H - 79);
   if (!dashReady) {
     ctx.fillStyle = 'rgba(159,216,255,0.3)';
-    ctx.fillRect(left + 2, H - 31, (dw - 4) * (1 - G.dash.cd / 1.5), 3);
+    ctx.fillRect(left + 2, H - 75, (dw - 4) * (1 - G.dash.cd / 1.5), 3);
   }
   if (!bombReady) {
     ctx.fillStyle = 'rgba(255,207,92,0.3)';
-    ctx.fillRect(left + dw + gap + 2, H - 31, (dw - 4) * (1 - G.bomb.cd / (G.bomb.max || 6)), 3);
+    ctx.fillRect(left + dw + gap + 2, H - 75, (dw - 4) * (1 - G.bomb.cd / (G.bomb.max || 6)), 3);
   }
   ctx.fillStyle = 'rgba(255,138,92,0.35)';
-  ctx.fillRect(odX + 2, H - 31, (dw - 4) * clamp(G.od.heat / 100, 0, 1), 3);
+  ctx.fillRect(odX + 2, H - 75, (dw - 4) * clamp(G.od.heat / 100, 0, 1), 3);
+
+  // combined skills + health strip, centered just above the xp bar
+  const chips = owned.slice(0, 12);
+  const chipW = 34;
+  const chipsW = chips.length * chipW + 8 + (owned.length > 12 ? 22 : 0);
+  const barW = 256;
+  const stripW = chipsW + 20 + barW;
+  const stripX = W / 2 - stripW / 2;
+  const stripY = H - 54;
+  panel(stripX, stripY, stripW, 34);
+  ctx.textAlign = 'center';
+  chips.forEach((id, i) => {
+    const cx = stripX + 8 + i * chipW + chipW / 2;
+    drawSkillGlyph(id, cx, stripY + 11, 10, SKILLS[id].color);
+    ctx.font = '700 8px Consolas, monospace';
+    ctx.fillStyle = SKILLS[id].color;
+    ctx.fillText(SKILLS[id].short, cx - 6, stripY + 29);
+    ctx.fillStyle = '#8f9ba4';
+    ctx.fillText(String(G.skills[id]), cx + 9, stripY + 29);
+  });
+  if (owned.length > 12) {
+    ctx.fillStyle = '#8f9ba4';
+    ctx.font = '700 8px Consolas, monospace';
+    ctx.fillText('+' + (owned.length - 12), stripX + 8 + 12 * chipW + 12, stripY + 26);
+  }
+  if (chips.length) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(stripX + chipsW + 10, stripY + 5);
+    ctx.lineTo(stripX + chipsW + 10, stripY + 29);
+    ctx.stroke();
+  }
+  const hx = stripX + chipsW + 20;
+  const hpCol = G.hp > 50 ? '#58c46a' : G.hp > 25 ? '#e0b13c' : '#d34a4a';
+  ctx.fillStyle = '#232c33';
+  ctx.fillRect(hx, stripY + 19, barW, 10);
+  ctx.fillStyle = hpCol;
+  ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 3);
+  ctx.fillStyle = hpCol;
+  ctx.font = '700 9px Consolas, monospace';
+  ctx.fillText(Math.ceil(G.hp) + ' / ' + G.maxHp, hx + barW / 2, stripY + 12);
+  for (let i = 0; i < G.soldiers.length; i++) {
+    ctx.fillStyle = '#7fd0ff';
+    ctx.beginPath();
+    ctx.arc(hx + 8 + i * 12, stripY + 13, 3.5, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#123a52';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  if (shieldMax() > 0) {
+    for (let i = 0; i < shieldMax(); i++) {
+      ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
+      ctx.fillRect(hx + barW - (shieldMax() - i) * 9, stripY + 9, 7, 8);
+    }
+  }
 
   ctx.fillStyle = 'rgba(8,11,14,0.92)';
   ctx.fillRect(0, H - 16, W, 16);
@@ -5890,7 +6447,7 @@ function drawMenuScreen() {
   drawButton('armory', 'ARMORY', W / 2 - 134, 302, 128, 40, 'SHARDS ' + save.shards);
   drawButton('daily', 'DAILY', W / 2 + 134, 302, 128, 40);
   drawButton('statistics', 'STATS', W / 2 - 134, 350, 128, 40);
-  drawButton('upgrades', 'UPGRADES', W / 2 + 134, 350, 128, 40);
+  drawButton('upgrades', 'SKILLS', W / 2 + 134, 350, 128, 40);
   drawButton('manual', 'MANUAL', W / 2 - 134, 398, 128, 40);
   drawButton('settings', 'SETTINGS', W / 2 + 134, 398, 128, 40);
   drawButton('help', 'HOW TO PLAY', W / 2, 446, 260, 40);
@@ -5945,38 +6502,38 @@ function drawSetupScreen() {
   MAP_ORDER.forEach((id, i) => {
     const m = MAPS[id];
     const chosen = setup.map === id;
-    const x = 92 + i * 196;
+    const x = 36 + i * 152;
     const y = 174;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 184, h: 54 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 54;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 142, h: 54 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 54;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, 184, 54, 7);
+    rr(x, y, 142, 54, 7);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.3 : 0.55;
     ctx.fillStyle = '#06080a';
-    rr(x, y, 184, 54, 7);
+    rr(x, y, 142, 54, 7);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, 184, 54, 7);
+    rr(x, y, 142, 54, 7);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
-    ctx.font = '700 13px Consolas, monospace';
-    ctx.fillText(m.name, x + 12, y + 23);
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(m.name, x + 10, y + 22);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
-    ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 12, y + 42);
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 10, y + 41);
     ctx.fillStyle = m.props.building;
-    ctx.fillRect(x + 138, y + 14, 9, 9);
+    ctx.fillRect(x + 104, y + 12, 9, 9);
     ctx.fillStyle = m.props.rock;
     ctx.beginPath();
-    ctx.arc(x + 156, y + 18, 4.5, 0, TAU);
+    ctx.arc(x + 118, y + 17, 4.5, 0, TAU);
     ctx.fill();
     ctx.fillStyle = m.props.tree;
     ctx.beginPath();
-    ctx.arc(x + 170, y + 18, 4, 0, TAU);
+    ctx.arc(x + 130, y + 17, 4, 0, TAU);
     ctx.fill();
   });
 
@@ -6521,11 +7078,11 @@ function drawHelpScreen() {
     ['BOMB', 'Press E to throw a bomb at the thickest part of the horde.'],
     ['OVERDRIVE', 'Press R to burn heat: +40% damage, +50% damage taken.'],
     ['FIGHT', 'Your weapon fires automatically at the nearest hostile.'],
-    ['LEVEL UP', 'Collect gems, then pick one of three upgrades every level.'],
+    ['LEVEL UP', 'Collect gems, then pick one of three skills every level.'],
     ['COMBOS', 'Some skill pairs unlock a bonus once both reach level 2.'],
     ['WAVES', 'Every 40s the horde grows. New enemy types join over time.'],
     ['BOSS', 'Bosses every 5th wave; every 4th boss is a MEGA boss.'],
-    ['EVOLVE', 'Max a weapon and take its partner to level 3 to evolve it.'],
+    ['EVOLVE', 'Max a skill at level 10 and take its partner to level 3 to evolve it.'],
     ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
     ['HAZARDS', 'Each map has a terrain hazard: quicksand, ice, embers or vines.'],
     ['MUTATORS', 'Take up to two run modifiers for extra shard loot.'],
@@ -6728,12 +7285,68 @@ function drawSkillGlyph(id, cx, cy, size, color) {
     ctx.lineTo(-s * 0.2, -s * 0.2);
     ctx.closePath();
     ctx.fill();
+  } else if (id === 'ricochet') {
+    ctx.lineWidth = Math.max(2, s * 0.12);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.82, s * 0.32);
+    ctx.lineTo(-s * 0.3, -s * 0.25);
+    ctx.lineTo(s * 0.18, s * 0.2);
+    ctx.lineTo(s * 0.68, -s * 0.38);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.68, -s * 0.38);
+    ctx.lineTo(s * 0.38, -s * 0.42);
+    ctx.moveTo(s * 0.68, -s * 0.38);
+    ctx.lineTo(s * 0.56, -s * 0.1);
+    ctx.stroke();
   } else {
     ctx.beginPath();
     ctx.arc(0, 0, s * 0.55, 0, TAU);
     ctx.stroke();
   }
   ctx.restore();
+}
+
+function drawEvolutionPage() {
+  const ids = Object.keys(EVOLUTIONS);
+  ids.forEach((id, i) => {
+    const evo = EVOLUTIONS[id];
+    const skill = SKILLS[id];
+    const partner = SKILLS[evo.needs];
+    const lvl = G ? G.skills[id] : 0;
+    const partnerLvl = G ? G.skills[evo.needs] : 0;
+    const evolved = G ? !!G.evolved[id] : false;
+    const ready = G && lvl >= SKILL_MAX && partnerLvl >= 3;
+    const x = 60 + (i % 2) * 430;
+    const y = 104 + Math.floor(i / 2) * 68;
+    ctx.fillStyle = 'rgba(14,18,22,0.88)';
+    ctx.strokeStyle = evolved ? '#7fe0a0' : ready ? '#ffd27a' : 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = evolved || ready ? 1.5 : 1;
+    rr(x, y, 400, 58, 7);
+    ctx.fill();
+    ctx.stroke();
+    drawSkillGlyph(id, x + 24, y + 29, 18, skill.color);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = skill.color;
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(skill.name, x + 48, y + 20);
+    ctx.fillStyle = evolved ? '#7fe0a0' : ready ? '#ffd27a' : 'rgba(180,175,155,0.6)';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(evolved ? 'EVOLVED · ' + evo.name : ready ? 'READY · ' + evo.name : 'EVOLVES → ' + evo.name, x + 48, y + 36);
+    ctx.fillStyle = 'rgba(200,195,180,0.62)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(
+      'SKILL ' + lvl + '/' + SKILL_MAX + ' · ' + partner.name.toUpperCase() + ' ' + partnerLvl + '/3',
+      x + 48,
+      y + 49
+    );
+    ctx.textAlign = 'right';
+    ctx.fillStyle = ready ? '#ffd27a' : evolved ? '#7fe0a0' : 'rgba(150,150,150,0.45)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText(ready ? 'READY' : evolved ? 'DONE' : 'LOCKED', x + 388, y + 20);
+    ctx.textAlign = 'left';
+  });
+  drawButton('back-upgrades', 'BACK', W / 2, 500, 180, 34);
 }
 
 function drawUpgradesScreen() {
@@ -6746,10 +7359,32 @@ function drawUpgradesScreen() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 28px Consolas, monospace';
-  ctx.fillText('UPGRADES', W / 2, 58);
+  ctx.fillText('SKILLS', W / 2, 58);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('EVERY SKILL CAPS AT LEVEL 5 · PICK THREE CARDS ON LEVEL UP', W / 2, 78);
+  ctx.fillText(
+    skillPage === 'grid'
+      ? 'EVERY SKILL CAPS AT LEVEL 10 · PICK THREE CARDS ON LEVEL UP'
+      : 'EVOLUTION SETTINGS · MAX A SKILL AT 10 AND ITS PARTNER AT 3',
+    W / 2,
+    78
+  );
+  ctx.fillStyle = 'rgba(190,185,170,0.55)';
+  ctx.font = '600 8px Consolas, monospace';
+  const ranks = skillRankTotal();
+  const evoCount = G ? Object.keys(G.evolved).length : 0;
+  ctx.fillText(
+    'OWNED ' + (G ? SKILL_ORDER.filter((id) => G.skills[id] > 0).length : 0) + ' · RANKS ' + ranks + ' / ' + (SKILL_ORDER.length * SKILL_MAX) +
+      ' · EVOLUTIONS ' + evoCount + ' / ' + Object.keys(EVOLUTIONS).length +
+      (G ? ' · SLOTS ' + slotsUsed('offense') + '/' + slotCap('offense') + ' OFF · ' + slotsUsed('passive') + '/' + slotCap('passive') + ' DEF' : ''),
+    W / 2,
+    92
+  );
+  drawButton('skills-page', skillPage === 'grid' ? 'EVOLUTIONS' : 'SKILLS', W - 80, 20, 140, 26);
+  if (skillPage === 'evolutions') {
+    drawEvolutionPage();
+    return;
+  }
 
   SKILL_ORDER.forEach((id, i) => {
     const col = i % 5;
@@ -6822,7 +7457,7 @@ function drawPauseScreen() {
   ctx.fillText('PAUSED', W / 2, 128);
   drawButton('resume', 'RESUME', W / 2, 154, 260, 46);
   drawButton('mapview-pause', 'MAP', W / 2, 210, 260, 40);
-  drawButton('upgrades-pause', 'UPGRADES', W / 2, 258, 260, 40);
+  drawButton('upgrades-pause', 'SKILLS', W / 2, 258, 260, 40);
   drawButton('settings-pause', 'SETTINGS', W / 2, 306, 260, 40);
   drawButton('restart', 'RESTART RUN', W / 2, 354, 260, 40);
   drawButton('menu-pause', 'MAIN MENU', W / 2, 402, 260, 40);
@@ -6831,15 +7466,39 @@ function drawPauseScreen() {
   ctx.fillText('ESC RESUMES', W / 2, 466);
 }
 
+function drawLevelUpCelebration() {
+  const pulse = 0.5 + 0.5 * Math.sin(uiT * 5);
+  const glow = ctx.createRadialGradient(W / 2, 96, 20, W / 2, 96, 360);
+  glow.addColorStop(0, 'rgba(255,210,122,' + (0.08 + 0.04 * pulse) + ')');
+  glow.addColorStop(1, 'rgba(255,210,122,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  const colors = ['#ffd27a', '#63dcc0', '#ff8ad8', '#9fd8ff'];
+  for (let i = 0; i < 26; i++) {
+    const x = (hash2(i, 31) * W + uiT * (10 + hash2(i, 37) * 18)) % W;
+    const y = (hash2(i, 41) * H + uiT * (16 + hash2(i, 43) * 26)) % H;
+    ctx.globalAlpha = 0.2 + hash2(i, 47) * 0.45;
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(x, y, 2, 3);
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(255,210,122,' + (0.07 + 0.06 * pulse) + ')';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(W / 2, 96, 82 + pulse * 10, 0, TAU);
+  ctx.stroke();
+}
+
 function drawLevelUpScreen() {
   overlay(0.74);
+  drawLevelUpCelebration();
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd27a';
   ctx.font = '700 32px Consolas, monospace';
   ctx.fillText('LEVEL ' + G.level, W / 2, 92);
   ctx.fillStyle = 'rgba(220,210,190,0.72)';
   ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('CHOOSE AN UPGRADE — PRESS 1, 2 OR 3   ·   R REROLLS', W / 2, 114);
+  ctx.fillText('CHOOSE A SKILL · PRESS 1, 2 OR 3   ·   R REROLLS', W / 2, 114);
 
   const startX = (W - (240 * 3 + 24 * 2)) / 2;
   const cardY = 142;
@@ -6897,6 +7556,25 @@ function drawLevelUpScreen() {
       }
     }
     if (line) ctx.fillText(line, x + w / 2, ly);
+    ctx.fillStyle = '#ffd27a';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(skillStatLine(id, lvl), x + w / 2, y + 180);
+    ctx.fillStyle = 'rgba(200,195,180,0.66)';
+    ctx.font = '600 9px Consolas, monospace';
+    const detailWords = (SKILL_DETAILS[id] || '').split(' ');
+    let detail = '';
+    let detailY = y + 198;
+    for (const word of detailWords) {
+      const next = detail ? detail + ' ' + word : word;
+      if (next.length > 34 && detail) {
+        ctx.fillText(detail, x + w / 2, detailY);
+        detailY += 11;
+        detail = word;
+      } else {
+        detail = next;
+      }
+    }
+    if (detail) ctx.fillText(detail, x + w / 2, detailY);
     if (evo) {
       ctx.fillStyle = G.evolved[id] ? '#7fe0a0' : 'rgba(255,210,122,0.62)';
       ctx.font = '600 10px Consolas, monospace';
@@ -7387,7 +8065,12 @@ function pressButton(id) {
   }
   if (id === 'upgrades' || id === 'upgrades-pause') {
     upgradesReturn = id === 'upgrades' ? 'menu' : 'paused';
+    skillPage = 'grid';
     screen = 'upgrades';
+    return;
+  }
+  if (id === 'skills-page') {
+    skillPage = skillPage === 'grid' ? 'evolutions' : 'grid';
     return;
   }
   if (id === 'help') {
@@ -7506,6 +8189,7 @@ function render() {
     drawDecor(G.cam);
     drawDecals();
     drawProps(G.cam);
+    drawInteracts();
     drawPools();
     drawPickups();
     drawGrenades();
@@ -7525,6 +8209,7 @@ function render() {
     drawAmbience();
     drawDanger();
     if (screen === 'play' || screen === 'paused') drawHUD();
+  if (touchMode) drawTouchControls();
     drawVignette();
     drawDangerBorder();
   }
@@ -7614,6 +8299,76 @@ function clickAt(x, y) {
   return false;
 }
 
+let touchStick = { active: false, id: null, ox: 0, oy: 0, vx: 0, vy: 0 };
+let touchMode = false;
+
+function canvasXY(t) {
+  const r = cv.getBoundingClientRect();
+  return { x: (t.clientX - r.left) * (W / r.width), y: (t.clientY - r.top) * (H / r.height) };
+}
+
+cv.addEventListener('touchstart', (e) => {
+  touchMode = true;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const p = canvasXY(t);
+    if (p.x < W * 0.42) {
+      touchStick.active = true;
+      touchStick.id = t.identifier;
+      touchStick.ox = p.x;
+      touchStick.oy = p.y;
+      touchStick.vx = 0;
+      touchStick.vy = 0;
+    } else {
+      const bx = W - 86;
+      const by = H - 96;
+      if (Math.hypot(p.x - bx, p.y - by) < 46) keys['shift'] = true;
+      else if (Math.hypot(p.x - (bx - 74), p.y - by) < 46) keys['e'] = true;
+      else if (Math.hypot(p.x - (bx - 148), p.y - by) < 46) keys['r'] = true;
+    }
+  }
+}, { passive: false });
+
+cv.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchStick.id) {
+      const p = canvasXY(t);
+      let dx = p.x - touchStick.ox;
+      let dy = p.y - touchStick.oy;
+      const d = Math.hypot(dx, dy);
+      if (d > 64) { dx = dx / d * 64; dy = dy / d * 64; }
+      touchStick.vx = dx / 64;
+      touchStick.vy = dy / 64;
+    }
+  }
+}, { passive: false });
+
+cv.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchStick.id) {
+      touchStick.active = false;
+      touchStick.id = null;
+      touchStick.vx = 0;
+      touchStick.vy = 0;
+    }
+  }
+  keys['shift'] = false;
+  keys['e'] = false;
+  keys['r'] = false;
+}, { passive: false });
+
+cv.addEventListener('touchcancel', (e) => {
+  touchStick.active = false;
+  touchStick.id = null;
+  touchStick.vx = 0;
+  touchStick.vy = 0;
+  keys['shift'] = false;
+  keys['e'] = false;
+  keys['r'] = false;
+}, { passive: false });
+
 cv.addEventListener('mousemove', setMouse);
 cv.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
@@ -7634,6 +8389,7 @@ window.Dustline = {
   snapshot() {
     const snap = {
       screen,
+      skillPage,
       settings: { ...settings },
       best: { ...best },
       save: {
@@ -7796,7 +8552,8 @@ window.Dustline = {
         chests: G.stats.chests || 0,
         shieldSaves: G.stats.shieldSaves || 0,
         banked: G.stats.banked,
-        lost: G.stats.lost
+        lost: G.stats.lost,
+        ricochets: G.stats.ricochets || 0
       };
       snap.bullets = G.bullets.map((b) => b.owner);
       snap.bulletColors = Array.from(new Set(G.bullets.map((b) => b.color)));
@@ -7817,6 +8574,9 @@ window.Dustline = {
       snap.relics = G.relics.slice();
       snap.relicOffers = G.relicOffers.slice();
       snap.salvage = G.salvage.length;
+  snap.interactables = G.interact.map((o) => ({ kind: o.kind, x: o.x, y: o.y }));
+  snap.bunker = G.bunker ? { x: G.bunker.x, y: G.bunker.y, used: G.bunker.used } : null;
+  snap.nuke = G.nuke ? { t: G.nuke.t, i: G.nuke.i, kills: G.nuke.kills, total: G.nuke.total } : null;
       snap.mods = {
         fireRate: fireRateMult(),
         crit: critChance(),
@@ -8011,6 +8771,18 @@ if (window.__DUSTLINE_TEST__) {
     if (!G) return false;
     G.salvage.push({ x: Number(x) || 0, y: Number(y) || 0, spin: 0, t: 40 });
     return true;
+  };
+  window.Dustline.spawnInteract = (kind, x, y) => {
+    if (!G) return false;
+    return spawnInteract(kind, Number(x), Number(y));
+  };
+  window.Dustline.spawnBunker = (x, y) => {
+    if (!G) return false;
+    return spawnBunker(Number(x), Number(y));
+  };
+  window.Dustline.triggerNuke = () => {
+    if (!G || !G.bunker) return false;
+    return triggerNuke(G.bunker);
   };
   window.Dustline.setDay = (day) => {
     dailyOverride = Number.isFinite(Number(day)) ? Number(day) : null;

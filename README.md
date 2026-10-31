@@ -2,7 +2,7 @@
 
 [![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
 
-Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, four maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 19 skills across 6 offense and 6 defense slots, boss salvage relics, achievements, risky extraction banking, sector events and a permanent out-of-run armory.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world, auto-firing weapons, six maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 20 skills across 6 offense and 6 defense slots with 10 ranks each, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker and a permanent out-of-run armory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -32,6 +32,7 @@ You only move; your weapon, your blades, your bombs and any recruited squadmates
 | `1` / `2` / `3` | Pick an upgrade card |
 | `Esc` | Pause menu (also pauses when the window loses focus) |
 | `Enter` | Deploy from menus / retry after a run |
+| Touch | Left half drags the move stick; DASH, BOMB and OD buttons sit bottom-right |
 
 ### Run setup
 
@@ -40,18 +41,18 @@ Before every run you pick:
 - **Weapon**: AK-47 (balanced), SMG-45 (fast spray), SPAS-12 (pellet spread), DMR-308 (slow, piercing) or RAILGUN (slow, punches through whole lines).
 - **Operator**: Ranger (baseline), Vanguard (+30 health, −10% damage taken), Marksman (+15% bullet speed, +8% crit), Engineer (turrets live 60% longer, +15% aura radius) or Scavenger (+20% shards, four relic picks instead of three).
 - **Mode**: Survivors (endless waves) or Boss Rush (eight bosses back to back, cleared in order with a 4-second intermission and a 30% heal between fights).
-- **Map**: Dust Basin, Whiteout Ridge, Ashfall or Greenfall. Each has its own palette and cover.
+- **Map**: Dust Basin, Whiteout Ridge, Ashfall, Greenfall, Crater Field or Dead Zone. Each has its own palette, cover and hazard.
 - **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
 - **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +35% loot) or Nightmare (+90% health, +50% spawns, +80% loot).
 - **Mutators**: pick up to two run modifiers — Glass Cannon, Swarm, Elite Hunt, Fog, Vampiric Horde or Bounty — each raising shard loot.
-- **Map hazard**: every map has terrain that changes the fight: quicksand slows you, ice speeds everyone up, ember vents burn, and vines slow the horde.
+- **Map hazard**: every map has terrain that changes the fight: quicksand slows you, ice speeds everyone up, ember vents burn, vines slow the horde, tar pits slow both sides and toxic gas burns.
 
 ### Modes and screens
 
 - **Main menu**: Deploy, Armory, Daily, Stats, Upgrades codex, Field Manual, Settings, How to play, plus lifetime progress.
-- **Armory**: spend shards earned in runs on permanent Ballistics, Plate Carrier, Running Shoes, Scavenger Kit, Power Magnet, Loaded Dice and Loadout Rig (extra offense and defense slots) ranks.
+- **Armory**: spend shards earned in runs on permanent Ballistics, Plate Carrier, Running Shoes, Scavenger Kit, Power Magnet, Loaded Dice, Loadout Rig (extra offense and defense slots), Hyper Velocity, Salvage Rig and Combat Stim ranks.
 - **Statistics**: runs, total kills, bosses slain, victories, best survival, most kills in a run, damage dealt, rush clears, best rush time, best wave and kills by mob type.
-- **Upgrades codex**: all 19 skills, their slot group, evolutions, and what activates the seven skill combos.
+- **Upgrades codex**: all 20 skills, their 10 ranks and per-level stat previews, their slot group, evolutions, and what activates the seven skill combos.
 - **Field Manual**: tabbed reference for all 19 hostiles (HP, speed, touch damage, XP, a behaviour tip and your lifetime kill count), all 8 bosses (base stats and how each fight works) and all 10 salvage relics.
 - **Daily Challenge**: one shared run per UTC day. The day picks the operator, weapon, map, difficulty, mode and mutator, and the seed is fixed, so every attempt plays the same run. The best attempt of the day is kept (wins beat losses, then fastest rush or most kills) for 30 days.
 - **Settings**: master volume (0-100%), screen shake and damage numbers, saved immediately.
@@ -66,7 +67,7 @@ Before every run you pick:
 - **Enemies**: Crawler (chase), Stalker (fast weave), Bulwark (armored), Hexer (ranged), Spitter (acid), Bomber (suicide blast), Swarmling (fast swarm), Warden (plated), Weaver (blinks), Splitter (splits into swarmlings), Leech (drains health and shards), Shielder (damage aura), Tunneler (burrows and ambushes), Screamer (enrages packs), Phantom (phases out of damage), Mortar (lobs telegraphed shells), Widower (webs slow you) and Husk (dies into an acid pool that also burns the horde). Health, touch damage and spawn rates scale with time and difficulty.
 - **Champions**: ~3% of mobs spawn as champions with a Volatile, Shielded or Swift affix, triple XP and a guaranteed supply cache.
 - **Supply caches**: elite drops and rare finds. The first ten grant a free field upgrade; after that they pay shards.
-- **Evolutions**: max a skill at level 5 and raise its partner to level 3 to evolve it. Weapons: Ripper (rifle), Storm (SMG), Breaker (SPAS), Reaper (DMR), Lancer (railgun). Actives: Tempest (blades), Cluster (grenades), Overwatch (turret), Solar Crown (aura).
+- **Evolutions**: max a skill at level 10 and raise its partner to level 3 to evolve it. Weapons: Ripper (rifle), Storm (SMG), Breaker (SPAS), Reaper (DMR), Lancer (railgun). Actives: Tempest (blades), Cluster (grenades), Overwatch (turret), Solar Crown (aura). Support: Carom (ricochet).
 - **Rerolls and banishes**: each run starts with 2 rerolls (more with Loaded Dice) and 1 banish, usable on the level-up screen.
 - **Waves**: every 40 seconds the horde grows and new mob types unlock.
 - **Bosses**: every fifth wave rotates between the Warlord (charge + fan fire), the Overseer (bullet spray, enraged below half health), the Bombardier (lobs bombs), the Hive (spawns broods, fires bullet rings) and the Sentinel (telegraphed lance beam). About a third of bosses arrive with a Frenzied, Shielded or Volatile affix. All have health bars, guaranteed loot and a salvage crate.
@@ -80,7 +81,9 @@ Before every run you pick:
 - **Sector events**: horde surges, supply drops, sandstorms, blackouts and bounty hunters fire on a seeded schedule and change visibility, speed and loot. A seeded market multiplier scales loot, and a news line reports the sector.
 - **Contracts**: three rotating run objectives (cull, survive, salvage, demolition, evasion, chain kills) pay risky shards when completed.
 - **Combo stake**: your kill streak multiplies XP and shard gain up to +50%, but taking a hit breaks it.
-- **Weapons and skills**: five auto-firing weapons plus orbiting blades, frag grenades, sentry turrets, an ember aura, squad recruiting, and passives for speed, health, a regenerating Aegis shield, magnets, damage, bullet speed, lifesteal, dash damage and crits. Everything caps at level 5.
+- **Weapons and skills**: five auto-firing weapons plus orbiting blades, frag grenades, sentry turrets, an ember aura, squad recruiting, and passives for speed, health, a regenerating Aegis shield, magnets, damage, bullet speed, lifesteal, dash damage, crits and ricochets. Everything caps at level 10.
+- **Interactables**: supply crates (repairs, chips, shards, traps or ambushes), hidden stashes (+40 shards), and volatile barrels that explode when shot. A rare nuclear bunker can be found once per run; touching it clears the map for bonus shards.
+- **Touch controls**: on touch devices the left half of the canvas becomes a virtual move stick and the bottom-right holds DASH, BOMB and OD buttons, drawn only when touch input is used.
 - **Loadout slots**: 6 offense slots (weapons and actives) and 6 defense slots (passives). Filling a group stops new picks of that kind, so level-ups become upgrades of what you own; the Loadout Rig armory upgrade adds a slot to both groups per rank. Slot usage is shown in the HUD and on level-up cards.
 - **Level-up offers**: three cards, weighted toward skills you already own so builds deepen instead of scattering.
 - **Combos**: raise both halves of a pair to level 2 to unlock Overclocked, Riposte, Vampire, Shrapnel, Demolition, Scavenger or Bastion.
