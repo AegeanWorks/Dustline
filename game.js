@@ -2124,6 +2124,7 @@ function recordRun(outcome) {
     save.bestWave = Math.max(save.bestWave || 1, G.wave);
   }
   if (G.score > (save.bestScore || 0)) save.bestScore = Math.round(G.score);
+  if (!Array.isArray(save.boardBests)) save.boardBests = [];
   G.boardRank = 1 + save.boardBests.filter((e) => e && e.s > Math.round(G.score || 0)).length;
   save.boardBests.unshift({
     s: Math.round(G.score || 0),
@@ -2133,6 +2134,7 @@ function recordRun(outcome) {
     win: outcome === 'win',
     d: G.daily == null ? 0 : G.daily
   });
+  save.boardBests = save.boardBests.slice(0, 25);
   save.boardBests = cleanBoardBests(save.boardBests);
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
