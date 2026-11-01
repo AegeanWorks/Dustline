@@ -1,212 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-33",
+    "task_id": "dustline-room-depth-audit",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793543472.362877,
-    "owner": "unidentified",
-    "started_by": "unidentified",
+    "updated_at": 1793559417.644468,
+    "owner": "copilot:vscode",
+    "started_by": "copilot:vscode",
     "continuations": [],
-    "completed_at": 1793543476.253876
+    "completed_at": 1793559421.9397995
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-28",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-28' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793492285.2143617,
-      "timestamp_str": "2026-11-01 03:18:05",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-29",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Plan: add hostile-outline and reduced-flash accessibility settings, route screen pulses through a guarded helper, extend the test recorder with stroke styles, and keep the settings screen within the canvas",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793493444.057337,
-      "timestamp_str": "2026-11-01 03:37:24",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "Target readability and flash comfort were not player-controlled; every milestone, last stand, reward and secret combo flashed the full canvas",
-        "benefits": "Players can opt into bright hostile rings and suppress full-screen pulses without changing simulation or balance",
-        "risks": "contract: settings gains two booleans and snapshot gains flashT; dependency: none; concurrency: ledger shared; state: additive save fields",
-        "mitigation": "Default outlines off and flashes on, load-guard both booleans, gate rendering as well as creation, and test rings, suppression and persistence"
-      }
-    },
-    {
-      "task_id": "dustline-v0-29",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Accessibility settings complete: outlines and flashes booleans with load guards; pale hostile ring (gold for bosses); flashScreen helper used by last stand, milestones, streak rewards and secret combos; hurt overlay, danger vignette and border pulses steadied when reduced; five-row settings layout; harness records stroke styles",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793493450.4395978,
-      "timestamp_str": "2026-11-01 03:37:30",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-29",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verification complete: 152/152 tests pass, 5/5 AIKit gates, browser check confirms five 60px settings rows with BACK at 470 and footer at 534, no text beyond x=838, both toggles persist, and outlines render on a glass run; README and package 0.27.0 updated, ADR-027 recorded; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793493466.2322094,
-      "timestamp_str": "2026-11-01 03:37:46",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-29",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-29' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793493470.4012456,
-      "timestamp_str": "2026-11-01 03:37:50",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-30",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Plan: pre-push audit of the four uncommitted passes - review the diff, fix the arcanist arc re-arm bug and the cosmetic RNG draw, restore the project metadata newline, and rerun the suite, gates and a settings/map soak before delivery",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793494712.1752572,
-      "timestamp_str": "2026-11-01 03:58:32",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The user asked to verify and analyze everything since the last push, fix defects and then push; review found that an enemy struck by an arc could never arc again and that the bolt visual consumed the seeded gameplay RNG",
-        "benefits": "Seeded runs stay reproducible when visuals change, arc chains keep working on later kills, and the delivered tree is clean and gate-verified",
-        "risks": "contract: none; dependency: none; concurrency: ledger shared; state: none",
-        "mitigation": "Reset arcSource after the arc damage resolves, derive the bolt jitter from world coordinates, add a regression assertion, and gate with tests plus all AIKit checks"
-      }
-    },
-    {
-      "task_id": "dustline-v0-30",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] Audit complete: reviewed the full uncommitted diff, fixed arc re-arming after a non-lethal arc hit, replaced the bolt's gameplay-RNG draw with a coordinate hash, restored the project metadata newline, and confirmed 152/152 tests, 5/5 gates, a 21-run settings/map soak and browser layout/hazard captures; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793494740.2486844,
-      "timestamp_str": "2026-11-01 03:59:00",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-30",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-30' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793494743.5021837,
-      "timestamp_str": "2026-11-01 03:59:03",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-31",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/2] Plan: close the delivery drift found by check --strict by listing the newly tracked assets/ folder in the README project tree, then re-run the delivery gate and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793495133.7491071,
-      "timestamp_str": "2026-11-01 04:05:33",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The strict knowledge-base gate correctly reported that README.md omitted the now-tracked assets directory",
-        "benefits": "Cold-start readers see the brand assets in the tree and the strict delivery gate can pass",
-        "risks": "contract: none; dependency: none; concurrency: ledger shared; state: none",
-        "mitigation": "Add the two asset entries, run check --strict, and commit only README plus the ledger"
-      }
-    },
-    {
-      "task_id": "dustline-v0-31",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] Verification complete: README tree now lists assets/logo.svg and assets/social-preview.svg; 5/5 gates pass in the strict run after the docs commit, media audit is clean, tests are 152/152; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793495153.3490257,
-      "timestamp_str": "2026-11-01 04:05:53",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-31",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-31' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793495153.7303548,
-      "timestamp_str": "2026-11-01 04:05:53",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-32",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Planning: UI decluttering and graphics overhaul across Loadout, HUD, Pause, and Menu screens",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793535673.4852293,
-      "timestamp_str": "2026-11-01 15:21:13",
-      "agent": "unidentified",
-      "impact_assessment": {
-        "why": "User reported UI is too crowded and unaesthetic; audit captures show 8 cramped rows on setup with clipped text, heavy opaque HUD slabs obstructing combat, colliding cooldown bars, and unstyled raw text blocks",
-        "benefits": "Clean visual hierarchy, fixed text clipping and prop collisions on map cards, sleek semi-transparent HUD, polished ability cooldown indicators, clean pause overlay, and visual verification via screenshots",
-        "risks": "contract: button IDs and layout tests must pass; dependency: none; concurrency: none; state: none",
-        "mitigation": "Preserve all existing button IDs, snapshot contracts, and layout guard invariants; verify every change with node --test and capture screenshot comparisons"
-      }
-    },
-    {
-      "task_id": "dustline-v0-32",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Implemented complete UI decluttering and graphics overhaul: Loadout layout, glassmorphic HUD, rank chevrons, Pause lore plaque, Help panels, Level Up stat pills and collision-free cards, Daily screen status banner, Settings aligned cards, Field Manual 3x3 lore grid, Map view sidebar console, Game Over AAR card, and rounded enemy health bars; 152/152 tests and 5/5 gates pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793537614.9251246,
-      "timestamp_str": "2026-11-01 15:53:34",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-v0-32",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verified all 152/152 tests and 5/5 gates pass; all visual changes verified via browser CDP screenshot captures; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793537623.5459616,
-      "timestamp_str": "2026-11-01 15:53:43",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-v0-32",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-32' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793537655.8175159,
-      "timestamp_str": "2026-11-01 15:54:15",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-v0-33",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "Auditing remaining UI and visual layers: Armory layout, Statistics dossier, Main Menu symmetry, Field Manual relics glyphs, and in-game Boss HUD and XP halos",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793542757.9152694,
-      "timestamp_str": "2026-11-01 17:19:17",
-      "agent": "unidentified"
-    },
     {
       "task_id": "dustline-v0-33",
       "phase": "phase 2",
@@ -255,6 +60,189 @@
       "timestamp": 1793543476.2538774,
       "timestamp_str": "2026-11-01 17:31:16",
       "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-visual-pass",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Implemented procedural insignia and player readability cues in the canvas renderer.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550275.6516073,
+      "timestamp_str": "2026-11-01 19:24:35",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-visual-pass",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Visual pass verified: checklists: passed. Regression, mechanics, hygiene, guidelines, and secrets gates all passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550367.975199,
+      "timestamp_str": "2026-11-01 19:26:07",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-visual-pass",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-visual-pass' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793550379.942726,
+      "timestamp_str": "2026-11-01 19:26:19",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-visual-continuation",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Baseline reviewed; broad visual pass targets map identity and combat threat readability while preserving existing uncommitted renderer work.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550519.9491873,
+      "timestamp_str": "2026-11-01 19:28:39",
+      "agent": "copilot:vscode",
+      "impact_assessment": {
+        "why": "Continue Dustline visual elevation after the prior insignia/player pass.",
+        "benefits": "Improve place recognition and reaction time without adding mechanics or dependencies.",
+        "risks": "contract: no gameplay contract change; dependency: none unless a local asset proves necessary; concurrency: shared canvas renderer; state: none",
+        "mitigation": "Use procedural cached drawing, preserve current geometry and validate full project gates."
+      }
+    },
+    {
+      "task_id": "dustline-visual-continuation",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Added procedural hazard signatures and clearer enemy bomb landing reticles; mechanics and controls unchanged.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550565.1396234,
+      "timestamp_str": "2026-11-01 19:29:25",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-visual-continuation",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verification complete: checklists: passed. Full regression suite passed 152/152 and all 5 Dustline project gates passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550683.6724896,
+      "timestamp_str": "2026-11-01 19:31:23",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-visual-continuation",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-visual-continuation' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793550690.2464352,
+      "timestamp_str": "2026-11-01 19:31:30",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-sprite-ui-pass",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/5] Added reusable enemy motion accents, map glyphs, and combat HUD grouping rails while preserving mechanics and hitboxes.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793551599.1304996,
+      "timestamp_str": "2026-11-01 19:46:39",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-sprite-ui-pass",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/5] Focused visual tests and full 152-test regression passed; live loadout preview confirms map glyph hierarchy.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793551754.22867,
+      "timestamp_str": "2026-11-01 19:49:14",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-sprite-ui-pass",
+      "phase": "phase 5",
+      "phase_num": 5,
+      "description": "[4/5] Final visual audit complete; checklists: passed. Full regression 152/152 and all 5 project gates passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793551814.567132,
+      "timestamp_str": "2026-11-01 19:50:14",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-sprite-ui-pass",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-sprite-ui-pass' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793551814.635779,
+      "timestamp_str": "2026-11-01 19:50:14",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-room-audit",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/5] Auditing deterministic room generation, prop collision, encounter hooks, sprite paths, animation state, and renderer constraints.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793552332.6382315,
+      "timestamp_str": "2026-11-01 19:58:52",
+      "agent": "copilot:vscode",
+      "impact_assessment": {
+        "why": "Open arenas and isolated props leave room-scale navigation and encounter identity underdeveloped.",
+        "benefits": "Seed-stable room landmarks, stronger spatial readability, reusable visual hooks, and testable encounter surfaces.",
+        "risks": "contract: room collision and encounter changes can affect movement; dependency: room data must integrate with existing props/hazards; concurrency: existing dirty AIKit files must remain untouched; state: save data must remain compatible.",
+        "mitigation": "Reuse deterministic hash generation, preserve existing prop APIs and save fields, gate new encounters behind room-local state, and add focused regression tests."
+      }
+    },
+    {
+      "task_id": "dustline-room-audit",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/5] Deterministic rooms, room collision, room encounters, room visuals, map-view outlines, README updates, and focused regression tests complete; checklists: passed. 152/152 tests and 5/5 project gates passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793552698.0151427,
+      "timestamp_str": "2026-11-01 20:04:58",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-room-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-room-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793552700.8010237,
+      "timestamp_str": "2026-11-01 20:05:00",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-room-depth-audit",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/5] Deep room lifecycle complete: three-stage objectives, deterministic bounded rewards, safe revisits, room-state map feedback, visual telegraphs, README and regression coverage. checklists: passed. 153/153 tests and 5/5 project gates passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793559417.644468,
+      "timestamp_str": "2026-11-01 21:56:57",
+      "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-room-depth-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-room-depth-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793559421.9398022,
+      "timestamp_str": "2026-11-01 21:57:01",
+      "agent": "copilot:vscode"
     }
   ]
 }

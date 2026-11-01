@@ -18,7 +18,7 @@ function makeStore(initial) {
 
 function boot(options) {
   const g = createGame(options);
-  g.steps(2);
+  g.steps(4);
   return g;
 }
 
@@ -277,7 +277,7 @@ test('every fifth wave brings a different boss, and bosses attack', () => {
   deploy(g);
   g.api.setInvulnerable(true);
   g.api.setTime(160);
-  g.steps(2);
+  g.steps(4);
   let s = g.api.snapshot();
   assert.strictEqual(s.wave, 5);
   assert.ok(s.boss);
@@ -2907,6 +2907,62 @@ test('open arenas stay clear of solid props and hazards', () => {
     g.fills.some((f) => String(f.fillStyle) === 'rgba(255,244,214,0.045)'),
     'the arena floor is drawn'
   );
+});
+
+test('procedural rooms are deterministic and map-aware', () => {
+  const a = boot({ seed: 9111 });
+  const b = boot({ seed: 9111 });
+  deploy(a);
+  deploy(b);
+  const roomsA = a.api.rooms(0, 0, 6000);
+  const roomsB = b.api.rooms(0, 0, 6000);
+  assert.ok(roomsA.length > 0, 'the seeded world contains room structures');
+  assert.strictEqual(JSON.stringify(roomsA), JSON.stringify(roomsB), 'room placement is seed-stable');
+  assert.ok(roomsA.every((room) => room.w >= 420 && room.h >= 320), 'rooms have readable scale');
+  assert.ok(roomsA.every((room) => room.entrance >= 0 && room.entrance <= 3), 'rooms expose one entrance');
+  const walls = a.api.props(roomsA[0].x, roomsA[0].y, 900).filter((prop) => prop.kind === 'room-wall');
+  assert.ok(walls.length >= 4, 'rooms contribute solid wall segments');
+  assert.strictEqual(a.api.hazardAtPoint(roomsA[0].x, roomsA[0].y), null, 'room interiors stay hazard-free');
+});
+
+test('entering a room starts a readable local encounter', () => {
+  const g = boot({ seed: 9113, record: true });
+  deploy(g);
+  const room = g.api.rooms(0, 0, 6000)[0];
+  assert.ok(room, 'room exists for encounter test');
+  g.api.setPlayer(room.x, room.y);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.roomFocus, room.id, 'player is inside the room');
+  assert.strictEqual(s.roomsVisited, 1, 'room visit is recorded once');
+  assert.ok(s.enemies.length >= 2, 'room encounter spawns a local group');
+  assert.strictEqual(s.rooms[0].state, 'active', 'room enters its active state');
+  assert.strictEqual(s.rooms[0].stage, 0, 'room starts at the first stage');
+  assert.ok(g.texts.some((t) => t.text === room.kind.toUpperCase() + ' ROOM'), 'room banner is readable');
+});
+
+test('room stages advance and rewards are paid once on clearance', () => {
+  const g = boot({ seed: 9115 });
+  deploy(g);
+  const room = g.api.rooms(0, 0, 6000)[0];
+  g.api.setPlayer(room.x, room.y);
+  g.steps(2);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const enemies = g.api.snapshot().enemies;
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      g.api.setGhost(i, false);
+      g.api.setBurrowed(i, false);
+      g.api.setEnemyHp(i, 1);
+      g.api.hitEnemy(i, 1000000);
+    }
+    g.steps(2);
+  }
+  const cleared = g.api.snapshot();
+  assert.strictEqual(cleared.rooms[0].state, 'cleared', 'room becomes cleared');
+  assert.ok(cleared.rooms[0].reward > 0, 'room pays a deterministic reward');
+  const earned = cleared.unbanked;
+  g.steps(12);
+  assert.strictEqual(g.api.snapshot().unbanked, earned, 'cleared rooms do not pay twice');
 });
 
 test('the arcanist fires arcane rounds and every fourth kill arcs', () => {

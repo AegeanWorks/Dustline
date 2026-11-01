@@ -5,30 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dustline: Survivors</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #07090b; }
+  html, body { margin: 0; height: 100%; }
   body {
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: Consolas, "Courier New", monospace; overflow: hidden;
-    padding-bottom: 30px; box-sizing: border-box;
+    padding-bottom: 30px; box-sizing: border-box; color: #e8dcc0;
+    background: radial-gradient(120% 90% at 50% 10%, #1a2027 0%, #0d1114 55%, #07090b 100%);
   }
-  #wrap { position: relative; width: min(96vw, calc((96vh - 40px) * 1.6)); }
+  #brand {
+    font-size: 12px; letter-spacing: 0.55em; text-indent: 0.55em; color: #e0b25c;
+    margin-bottom: 10px; user-select: none; opacity: 0.9;
+  }
+  #brand small { color: #63dcc0; letter-spacing: 0.35em; text-indent: 0.35em; }
+  #wrap { position: relative; width: min(96vw, calc((96vh - 90px) * 1.6)); }
+  #wrap::before {
+    content: ""; position: absolute; inset: -14px; border-radius: 14px; pointer-events: none;
+    background: radial-gradient(60% 60% at 50% 40%, rgba(224,178,92,0.10), rgba(224,178,92,0) 70%);
+  }
   canvas {
     width: 100%; height: auto; display: block; border-radius: 8px;
-    box-shadow: 0 0 0 1px #2a333a, 0 24px 70px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 1px #3a4450, 0 0 42px rgba(224,178,92,0.10), 0 24px 70px rgba(0, 0, 0, 0.7);
     cursor: pointer; background: #151d21;
   }
   #hint {
     position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
-    color: #5c6b74; font-size: 11px; white-space: nowrap;
+    color: #9fb0b8; font-size: 11px; white-space: nowrap;
     letter-spacing: 0.08em; user-select: none;
+    background: rgba(10,13,17,0.72); border: 1px solid rgba(224,178,92,0.25);
+    border-radius: 999px; padding: 5px 16px;
   }
+  #hint b { color: #ffd27a; font-weight: 700; }
 </style>
 </head>
 <body>
+  <div id="brand">DUSTLINE <small>SURVIVORS</small></div>
   <div id="wrap">
     <canvas id="game" width="960" height="600"></canvas>
   </div>
-  <div id="hint">WASD MOVE &middot; SHIFT DASH &middot; E BOMB &middot; R OVERDRIVE &middot; M MAP &middot; ESC PAUSE</div>
+  <div id="hint"><b>WASD</b> MOVE &middot; <b>SHIFT</b> DASH &middot; <b>E</b> BOMB &middot; <b>R</b> OVERDRIVE &middot; <b>M</b> MAP &middot; <b>ESC</b> PAUSE</div>
   <script src="game.js"></script>
 </body>
 </html>
