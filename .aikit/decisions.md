@@ -227,3 +227,22 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   9. Overhaul Game Over / Victory screen: introduce a central After-Action Report (AAR) Dossier card with 0.86 overlay dimming, 4 metric badges (Kills, Level, Squad, Bosses), gold score display, and structured run footer, eliminating underlying damage number bleeding.
   10. In-Game Map view & graphics: wrap contracts and field telemetry in a unified tactical sidebar console, and give damaged non-boss enemies dark-bordered rounded health bars.
 - **Consequences**: Every screen and HUD element across the game is now spacious, readable, and visually cohesive with zero text clipping or overlapping elements. All button IDs and layout test invariants are preserved, 152/152 tests pass, and all Phase 4 AIKit gates pass.
+
+### ADR-029: Menu, Armory, Statistics, and Combat visual elevation pass
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: Visual audit with image inspection following ADR-028 identified remaining unaesthetic visual and layout weaknesses:
+  1. Main Menu: Left and right button columns were separated by a hollow 140px void while outer margins were narrow, causing a disjointed gap between `DEPLOY` (260px wide) and the 2-column buttons (`W/2 - 134` and `W/2 + 134`), while career stats were raw unpaneled text lines.
+  2. Armory Screen: Upgrade cards were 500px wide and off-center (`x = 220`), with rank pips and buy buttons closely crowded (`486..560` and `576..658`), and the shards header was plain text.
+  3. Statistics Screen: The `KILLS BY TYPE` section at the bottom floated on raw ground without a container, looking unfinished compared to the 21 stat metrics above it.
+  4. Field Manual (Relics tab): Relic cards were plain text descriptions with no visual iconography or emblem art, making them bland compared to the rest of the codex.
+  5. Boss HUD Health Bar: In combat, active bosses had a raw rectangular health bar (`fillRect`) with a flat dark box, lacking segmentation, phase accents, and polish.
+  6. Pickups: Standard XP gems lacked ambient luminescence, blending into the floor terrain compared to high-tier chips and crates.
+- **Decision**:
+  1. Main Menu: Unified button rows into an aligned 280px-wide tactical column (spanning `340px..620px`), aligning the outer borders of the two-column buttons with `DEPLOY` and `HOW TO PLAY`, and wrapped career telemetry in a rounded dark tactical plaque.
+  2. Armory: Centered card column horizontally (`cardX = 240, cardW = 480`), right-aligned buy button with 12px margin, expanded pip-to-button separation by 27px, styled shards balance into an emerald badge pill (`◆ N SHARDS AVAILABLE`), and preserved all layout invariants (`need.y + 6 <= next.y - 17`).
+  3. Statistics: Enclosed `KILLS BY TYPE` in a dedicated tactical console panel (`panel(142, 386, 676, 92, 6)`) with amber border, dual headers, and colored enemy type dots, strictly preserving `kills.y > best.y + 16`.
+  4. Field Manual Relics: Centered two columns horizontally (`x = 114 + col * 376`), added procedural `drawRelicGlyph` emblems with halos to each card, added live run inventory status badges (`OWNED · ACTIVE`), and offset text cleanly.
+  5. Boss Combat HUD: Upgraded boss health bar to an 8px rounded glassmorphic frame with purple/crimson glow, trough background, top gloss highlight, 4-segment quarter division ticks, and distinct mega vs normal accents.
+  6. Pickups: Added soft ambient halos to all regular and tier-2 XP gems (`globalAlpha` 0.12 to 0.22).
+- **Consequences**: Screens throughout the entire game flow now have visual balance, cohesive tactical styling, and no awkward gaps or colliding elements. All 152 tests continue to pass with 0 regressions, and all visual changes were verified and inspected through CDP browser captures.

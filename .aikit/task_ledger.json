@@ -1,77 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-32",
+    "task_id": "dustline-v0-33",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793537623.5459616,
+    "updated_at": 1793543472.362877,
     "owner": "unidentified",
     "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793537655.8175144
+    "completed_at": 1793543476.253876
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-27",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verification complete: 150/150 tests pass, python aikit.py check dustline reports 5/5 gates, canvas inspection found no lore card width or height overflow, the pause note spans 430px and stays centered, README documents the setting and codex, package is 0.25.0, and ADR-025 records the pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793490495.0700731,
-      "timestamp_str": "2026-11-01 02:48:15",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-27",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-27' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793490508.0241609,
-      "timestamp_str": "2026-11-01 02:48:28",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-28",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Plan: add a seventh map, GLASS WASTES, with a shards hazard, palette, ambience, camouflage, field note and seven-card setup row, and refresh the stale hazard help text",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793491316.7240887,
-      "timestamp_str": "2026-11-01 03:01:56",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The map roster and hazard help have not changed since the original six maps, and playtesters want more biome variety; the help text still lists only four of the six existing hazards",
-        "benefits": "A new pale vitrified biome with a cut/slow hazard extends run variety, daily rotation and the field-notes codex, while the help screen finally documents tar, gas and the new shards",
-        "risks": "contract: MAP_ORDER, LORE and daily map rotation gain an entry; dependency: none; concurrency: ledger shared; state: none",
-        "mitigation": "Reuse the existing hazard and palette pipeline, keep the new hazard speed/burn values in the same range as gas, re-layout the map row responsively for seven cards, and add map, hazard, help and layout tests"
-      }
-    },
-    {
-      "task_id": "dustline-v0-28",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] GLASS WASTES complete: seventh map with pale vitrified palette, glass decor, camouflage and dust ambience; GLASS FALLOUT hazard at 0.72 speed and 3 CUT damage per 0.6s with generalized burn labels; ninth field note; seven-card map row at 124px cards; help screen now lists tar, gas, shards and arenas",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793492256.2970579,
-      "timestamp_str": "2026-11-01 03:17:36",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-28",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verification complete: 150/150 tests pass, 5/5 AIKit gates, browser check confirms seven non-overlapping map cards ending at x=932 with no label overflow, a glass deployment reports hazard shards, and a real hazard point damages the player; README and package 0.26.0 updated, ADR-026 recorded; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793492272.1071093,
-      "timestamp_str": "2026-11-01 03:17:52",
-      "agent": "kilo:continue"
-    },
     {
       "task_id": "dustline-v0-28",
       "phase": "completed",
@@ -254,6 +194,66 @@
       "status": "completed",
       "timestamp": 1793537655.8175159,
       "timestamp_str": "2026-11-01 15:54:15",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-33",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "Auditing remaining UI and visual layers: Armory layout, Statistics dossier, Main Menu symmetry, Field Manual relics glyphs, and in-game Boss HUD and XP halos",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793542757.9152694,
+      "timestamp_str": "2026-11-01 17:19:17",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-33",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Planning: UI and visual overhaul across Armory, Statistics, Main Menu, Field Manual Relics, and Combat Boss HUD",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793542772.6729455,
+      "timestamp_str": "2026-11-01 17:19:32",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "Visual audit revealed uncentered Armory rows with crammed buy buttons, unpaneled Kills-by-Type section on Stats, hollow 140px center hole on Main Menu buttons, missing relic glyphs in Manual, and raw unrounded rectangular Boss HUD bar",
+        "benefits": "Centered balanced Armory with currency badge, tactical Kills-by-Type panel, unified Main Menu column with career badge, illustrated relic codex, sleek tactical boss health bar, and luminous XP gems",
+        "risks": "contract: button IDs and layout tests for Armory and Stats must pass; dependency: none; concurrency: none; state: none",
+        "mitigation": "Preserve all existing button IDs, coordinate invariants (need.y + 6 <= next.y - 17, kills.y > best.y + 16), and verify with test suite and CDP screenshots"
+      }
+    },
+    {
+      "task_id": "dustline-v0-33",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Implementation: Centered Armory, unified Menu column, Statistics panel, Manual relic glyphs, Boss HUD bar, and XP gem halos",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793543463.3336444,
+      "timestamp_str": "2026-11-01 17:31:03",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-33",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verification: 152/152 unit tests pass, 5/5 AIKit gates pass, visual inspection via CDP screenshots verified; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793543472.362877,
+      "timestamp_str": "2026-11-01 17:31:12",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-33",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-33' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793543476.2538774,
+      "timestamp_str": "2026-11-01 17:31:16",
       "agent": "unidentified"
     }
   ]

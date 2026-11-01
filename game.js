@@ -5228,17 +5228,16 @@ function drawPickups() {
     ctx.translate(gem.x, gem.y);
     ctx.rotate(gem.spin);
     const jackpot = gem.tier === 1;
-    ctx.fillStyle = jackpot ? '#ffd27a' : gem.tier === 2 ? '#c9a8ff' : gem.value > 1 ? '#ffd27a' : '#7fe8c8';
+    const color = jackpot ? '#ffd27a' : gem.tier === 2 ? '#c9a8ff' : gem.value > 1 ? '#ffd27a' : '#7fe8c8';
+    ctx.fillStyle = color;
     ctx.strokeStyle = 'rgba(10,20,18,0.6)';
     ctx.lineWidth = 1.5;
     const s = jackpot ? 7.5 : gem.value > 1 ? 6 : 4.5;
-    if (jackpot) {
-      ctx.globalAlpha = 0.28;
-      ctx.beginPath();
-      ctx.arc(0, 0, 12, 0, TAU);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    ctx.globalAlpha = jackpot ? 0.3 : gem.tier === 2 ? 0.22 : 0.12;
+    ctx.beginPath();
+    ctx.arc(0, 0, jackpot ? 12 : s * 2, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.beginPath();
     ctx.moveTo(0, -s);
     ctx.lineTo(s, 0);
@@ -6764,17 +6763,46 @@ function drawHUD() {
 
   const boss = G.enemies.find((e) => e.boss && !e.dead);
   if (boss && screen === 'play') {
-    const bw = 400;
+    const bw = 420;
     const bx = W / 2 - bw / 2;
     const by = 96;
-    ctx.fillStyle = 'rgba(6,10,13,0.72)';
-    ctx.fillRect(bx - 6, by, bw + 12, 32);
-    ctx.fillStyle = '#2a1113';
-    ctx.fillRect(bx, by + 15, bw, 10);
-    ctx.fillStyle = boss.hp < boss.maxHp * 0.35 ? '#ff6a4a' : '#d24a3a';
-    ctx.fillRect(bx, by + 15, bw * clamp(boss.hp / boss.maxHp, 0, 1), 10);
+    const hpFrac = clamp(boss.hp / boss.maxHp, 0, 1);
+    const mega = !!boss.mega;
+    const critical = hpFrac < 0.35;
+
+    ctx.fillStyle = 'rgba(8,12,16,0.88)';
+    ctx.strokeStyle = mega ? 'rgba(180,140,255,0.65)' : critical ? 'rgba(255,106,74,0.75)' : 'rgba(255,80,60,0.45)';
+    ctx.lineWidth = mega ? 1.8 : 1.2;
+    rr(bx - 12, by - 2, bw + 24, 38, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(26,15,18,0.9)';
+    rr(bx, by + 16, bw, 12, 4);
+    ctx.fill();
+
+    if (hpFrac > 0) {
+      const fillW = Math.max(6, bw * hpFrac);
+      ctx.fillStyle = critical ? '#ff4d3d' : mega ? '#c042e6' : '#d24a3a';
+      rr(bx, by + 16, fillW, 12, 4);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.fillRect(bx + 2, by + 17, fillW - 4, 3);
+    }
+
+    ctx.strokeStyle = 'rgba(8,12,16,0.6)';
+    ctx.lineWidth = 1;
+    for (let s = 1; s <= 3; s++) {
+      const sx = bx + (bw * s) / 4;
+      ctx.beginPath();
+      ctx.moveTo(sx, by + 16);
+      ctx.lineTo(sx, by + 28);
+      ctx.stroke();
+    }
+
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffd0c0';
+    ctx.fillStyle = mega ? '#e8d2ff' : critical ? '#ffb4a6' : '#ffd0c0';
     ctx.font = '700 11px Consolas, monospace';
     ctx.fillText(
       (boss.mega ? 'MEGA · ' : '') + (boss.affix ? boss.affix.toUpperCase() + ' ' : '') + BOSS_TYPES[boss.type].name +
@@ -7132,35 +7160,38 @@ function drawMenuScreen() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('A I K I T   ·   B U I L T   F O R   T H E   H O R D E', W / 2, 104);
-  ctx.shadowColor = 'rgba(224, 178, 92, 0.4)';
+  ctx.fillText('A I K I T   ·   B U I L T   F O R   T H E   H O R D E', W / 2, 102);
+  ctx.shadowColor = 'rgba(224, 178, 92, 0.45)';
   ctx.shadowBlur = 18;
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 58px Consolas, monospace';
-  ctx.fillText('DUSTLINE', W / 2, 162);
+  ctx.fillText('DUSTLINE', W / 2, 160);
   ctx.fillStyle = '#ffd27a';
   ctx.font = '700 20px Consolas, monospace';
-  ctx.fillText('S U R V I V O R S', W / 2, 194);
+  ctx.fillText('S U R V I V O R S', W / 2, 192);
   ctx.shadowBlur = 0;
   ctx.fillStyle = 'rgba(210,200,175,0.7)';
   ctx.font = '600 12px Consolas, monospace';
-  ctx.fillText('You move. The squad shoots. The horde never ends.', W / 2, 224);
+  ctx.fillText('You move. The squad shoots. The horde never ends.', W / 2, 222);
 
-  drawButton('play', 'DEPLOY', W / 2, 246, 260, 48);
-  drawButton('armory', 'ARMORY', W / 2 - 134, 302, 128, 40, 'SHARDS ' + save.shards);
-  drawButton('daily', 'DAILY', W / 2 + 134, 302, 128, 40);
-  drawButton('statistics', 'STATS', W / 2 - 134, 350, 128, 40);
-  drawButton('upgrades', 'SKILLS', W / 2 + 134, 350, 128, 40);
-  drawButton('manual', 'MANUAL', W / 2 - 134, 398, 128, 40);
-  drawButton('settings', 'SETTINGS', W / 2 + 134, 398, 128, 40);
-  drawButton('help', 'HOW TO PLAY', W / 2, 446, 260, 40);
+  // Unified button column: total width 280 (340 to 620)
+  drawButton('play', 'DEPLOY', W / 2, 244, 280, 46);
+  drawButton('armory', 'ARMORY', 407, 298, 134, 40, 'SHARDS ' + save.shards);
+  drawButton('daily', 'DAILY', 553, 298, 134, 40);
+  drawButton('statistics', 'STATS', 407, 346, 134, 40);
+  drawButton('upgrades', 'SKILLS', 553, 346, 134, 40);
+  drawButton('manual', 'MANUAL', 407, 394, 134, 40);
+  drawButton('settings', 'SETTINGS', 553, 394, 134, 40);
+  drawButton('help', 'HOW TO PLAY', W / 2, 442, 280, 40);
 
-  ctx.fillStyle = 'rgba(220,205,175,0.6)';
-  ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('BEST SURVIVAL ' + fmtTime(best.time) + '   ·   ' + best.kills + ' KILLS   ·   ' + save.runs + ' RUNS', W / 2, 512);
-  ctx.fillStyle = 'rgba(200,190,165,0.45)';
-  ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins + '   ·   ACHIEVEMENTS ' + achievementUnlocked() + '/' + ACHIEVEMENTS.length, W / 2, 534);
+  // Career telemetry dossier badge
+  panel(W / 2 - 250, 494, 500, 46, 6);
+  ctx.fillStyle = '#63dcc0';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('BEST SURVIVAL ' + fmtTime(best.time) + '   ·   ' + best.kills + ' KILLS   ·   ' + save.runs + ' RUNS', W / 2, 513);
+  ctx.fillStyle = 'rgba(200,190,165,0.7)';
+  ctx.font = '600 9.5px Consolas, monospace';
+  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins + '   ·   ACHIEVEMENTS ' + achievementUnlocked() + '/' + ACHIEVEMENTS.length, W / 2, 529);
 }
 
 function drawSetupScreen() {
@@ -7400,53 +7431,59 @@ function drawSetupScreen() {
 
 function drawArmoryScreen() {
   drawMenuBackdrop();
-  overlay(0.3);
+  overlay(0.35);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 28px Consolas, monospace';
-  ctx.fillText('ARMORY', W / 2, 72);
+  ctx.fillText('ARMORY', W / 2, 66);
   ctx.fillStyle = 'rgba(200,190,165,0.7)';
   ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('PERMANENT UPGRADES · PAID WITH SHARDS FROM ANY RUN', W / 2, 94);
-  ctx.fillStyle = '#ffd27a';
-  ctx.font = '700 18px Consolas, monospace';
-  ctx.fillText('SHARDS ' + save.shards, W / 2, 124);
+  ctx.fillText('PERMANENT UPGRADES · PAID WITH SHARDS FROM ANY RUN', W / 2, 88);
 
+  const bW = 220;
+  panel(W / 2 - bW / 2, 104, bW, 26, 6);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#63dcc0';
+  ctx.font = '700 12px Consolas, monospace';
+  ctx.fillText('◆ ' + save.shards + ' SHARDS AVAILABLE', W / 2, 121);
+
+  const cardW = 480;
+  const cardX = W / 2 - cardW / 2;
   META_ORDER.forEach((id, i) => {
     const meta = META[id];
     const rank = metaRank(id);
     const maxed = rank >= meta.max;
     const cost = meta.cost(rank);
-    const y = 140 + i * 34;
+    const y = 138 + i * 34;
     ctx.fillStyle = 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = 'rgba(224,178,92,0.28)';
-    rr(300, y, 420, 30, 7);
+    rr(cardX, y, cardW, 30, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f2e6c8';
     ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(meta.name, 318, y + 13);
+    ctx.fillText(meta.name, cardX + 16, y + 13);
     ctx.fillStyle = 'rgba(200,195,180,0.7)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(meta.desc, 318, y + 25);
+    ctx.font = '600 8.5px Consolas, monospace';
+    ctx.fillText(meta.desc, cardX + 16, y + 24);
     for (let r = 0; r < meta.max; r++) {
       ctx.fillStyle = r < rank ? '#63dcc0' : 'rgba(255,255,255,0.12)';
-      ctx.fillRect(548 + r * 14, y + 10, 10, 4);
+      ctx.fillRect(538 + r * 13, y + 9, 9, 5);
     }
     const canBuy = !maxed && save.shards >= cost;
-    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', 636, y + 1, 76, 28);
+    drawButton('meta-' + id, maxed ? 'MAX' : cost + ' SH', cardX + cardW - 54, y + 1, 82, 28);
     if (!canBuy && !maxed) {
-      ctx.fillStyle = 'rgba(255,90,70,0.75)';
-      ctx.font = '700 8px Consolas, monospace';
+      ctx.fillStyle = 'rgba(255,90,70,0.85)';
+      ctx.font = '700 8.5px Consolas, monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('NEED ' + cost, 548, y + 23);
+      ctx.fillText('NEED ' + cost, 538, y + 23);
     }
     ctx.textAlign = 'left';
   });
 
   ctx.textAlign = 'center';
-  drawButton('back-armory', 'BACK', W / 2, 496, 180, 34);
+  drawButton('back-armory', 'BACK', W / 2, 492, 180, 34);
 }
 
 function drawStatisticsScreen() {
@@ -7503,30 +7540,37 @@ function drawStatisticsScreen() {
   });
 
   const types = Object.keys(save.killsByType);
-  ctx.fillStyle = 'rgba(180,175,155,0.7)';
-  ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('KILLS BY TYPE', 142, 394);
+  panel(142, 386, 676, 92, 6);
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('KILLS BY TYPE', 160, 404);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(180,175,155,0.6)';
+  ctx.font = '600 9px Consolas, monospace';
+  ctx.fillText('LIFETIME COMBAT CASUALTIES', 142 + 676 - 18, 404);
+  ctx.textAlign = 'left';
   if (!types.length) {
-    ctx.fillStyle = 'rgba(160,155,145,0.6)';
-    ctx.fillText('NO KILLS RECORDED YET', 142, 408);
+    ctx.fillStyle = 'rgba(160,155,145,0.65)';
+    ctx.font = '600 10px Consolas, monospace';
+    ctx.fillText('NO KILLS RECORDED YET', 160, 432);
   } else {
     types.sort((a, b) => save.killsByType[b] - save.killsByType[a]);
     types.slice(0, 12).forEach((type, i) => {
       const def = ENEMY_TYPES[type] || BOSS_TYPES[type];
-      const x = 142 + (i % 4) * 180;
-      const y = 412 + Math.floor(i / 4) * 26;
+      const x = 160 + (i % 4) * 162;
+      const y = 416 + Math.floor(i / 4) * 20;
       ctx.fillStyle = def ? def.color : '#888';
       ctx.beginPath();
-      ctx.arc(x + 5, y + 3, 4.5, 0, TAU);
+      ctx.arc(x + 5, y + 4, 4, 0, TAU);
       ctx.fill();
-      ctx.fillStyle = 'rgba(220,215,200,0.8)';
-      ctx.font = '600 10px Consolas, monospace';
-      ctx.fillText((def ? def.name : type) + '  ' + save.killsByType[type], x + 15, y + 7);
+      ctx.fillStyle = 'rgba(220,215,200,0.85)';
+      ctx.font = '600 9.5px Consolas, monospace';
+      ctx.fillText((def ? def.name : type) + '  ' + save.killsByType[type], x + 14, y + 7);
     });
   }
 
   ctx.textAlign = 'center';
-  drawButton('back-stats', 'BACK', W / 2, 500, 180, 40);
+  drawButton('back-stats', 'BACK', W / 2, 496, 180, 36);
 }
 
 function drawSettingsScreen() {
@@ -7787,29 +7831,46 @@ function drawManualScreen() {
     RELICS.forEach((relic, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
-      const x = 120 + col * 380;
+      const cardW = 356;
+      const cardH = 62;
+      const x = 114 + col * 376;
       const y = 132 + row * 70;
       const owned = live && G.relics.indexOf(relic.id) >= 0;
-      ctx.fillStyle = 'rgba(14,18,22,0.9)';
-      ctx.strokeStyle = owned ? relic.color : 'rgba(255,255,255,0.1)';
-      ctx.lineWidth = owned ? 2 : 1;
-      rr(x, y, 360, 60, 6);
+      ctx.fillStyle = owned ? 'rgba(18,24,30,0.94)' : 'rgba(12,16,20,0.88)';
+      ctx.strokeStyle = owned ? relic.color : 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = owned ? 1.8 : 1;
+      rr(x, y, cardW, cardH, 6);
       ctx.fill();
       ctx.stroke();
+
+      drawRelicGlyph(relic.id, x + 30, y + 31, 24, relic.color);
+
       ctx.textAlign = 'left';
       ctx.fillStyle = relic.color;
       ctx.font = '700 12px Consolas, monospace';
-      ctx.fillText(relic.name, x + 12, y + 20);
-      ctx.fillStyle = 'rgba(215,210,195,0.75)';
+      ctx.fillText(relic.name, x + 58, y + 20);
+      ctx.fillStyle = 'rgba(215,210,195,0.78)';
       ctx.font = '600 10px Consolas, monospace';
-      ctx.fillText(relic.desc, x + 12, y + 38);
-      ctx.fillStyle = 'rgba(150,145,130,0.55)';
-      ctx.font = '600 8px Consolas, monospace';
-      ctx.fillText('FROM BOSS SALVAGE', x + 12, y + 52);
+      ctx.fillText(relic.desc, x + 58, y + 37);
+
+      if (owned) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#7fe0a0';
+        ctx.font = '700 9px Consolas, monospace';
+        ctx.fillText('OWNED · ACTIVE', x + cardW - 12, y + 20);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(127,224,160,0.7)';
+        ctx.font = '600 8.5px Consolas, monospace';
+        ctx.fillText('IN RUN INVENTORY', x + 58, y + 51);
+      } else {
+        ctx.fillStyle = 'rgba(150,145,130,0.55)';
+        ctx.font = '600 8.5px Consolas, monospace';
+        ctx.fillText('FROM BOSS SALVAGE', x + 58, y + 51);
+      }
     });
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(190,185,170,0.55)';
-    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 9.5px Consolas, monospace';
     ctx.fillText('OWN ALL TEN AND CRATES PAY 30 SHARDS INSTEAD', W / 2, 496);
   } else {
     LORE.forEach((note, i) => {
