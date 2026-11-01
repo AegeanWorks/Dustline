@@ -123,6 +123,9 @@ Progress is stored in `localStorage` under `dustline.save` with an explicit sche
 dustline/
 ├── index.html                <- canvas shell, page styling and control hint
 ├── game.js                   <- world, combat, skills, bosses, HUD, screens, audio
+├── assets/
+│   ├── logo.svg              <- approved brand mark
+│   └── social-preview.svg    <- README banner
 ├── scripts/
 │   └── serve.js              <- zero-dependency static server for `npm start`
 ├── tests/

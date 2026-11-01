@@ -1,50 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-30",
+    "task_id": "dustline-v0-31",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793494740.2486844,
+    "updated_at": 1793495153.3490257,
     "owner": "kilo:continue",
     "started_by": "kilo:continue",
     "continuations": [],
-    "completed_at": 1793494743.5021825
+    "completed_at": 1793495153.7303534
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-26",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/4] Open arenas complete: deterministic 1100px hash grid with 72% arena cells of 300-450px plus a guaranteed 430px deploy arena; solid props and hazard pools are suppressed inside arenas, a worn low-alpha ellipse with a dashed map-accent ring and cardinal ticks is drawn under hazards, and snapshot.arena plus an arenaAt seam expose the state",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793488568.5156918,
-      "timestamp_str": "2026-11-01 02:16:08",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-26",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[3/4] Arcanist and balance complete: sixth operator with violet rounds, +1 pierce, a violet gun tip and rim, and an arc every fourth kill for 12 + 40% of max HP (capped 160) to the nearest hostile within 190px; contact damage now uses 1 + t/260 capped at 3.2x; setup row re-spaced for six cards; snapshot gains arena, enemy touch, bullet pierce and arc stats",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793488579.6185308,
-      "timestamp_str": "2026-11-01 02:16:19",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-26",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Verification complete: 149/149 tests pass (arena clearance and ring, arcane rounds and fourth-kill arc, capped contact damage, six-operator layout), python aikit.py check dustline reports 5/5 gates, README and package describe 0.24.0, and ADR-024 records the battlefield pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793488604.4953787,
-      "timestamp_str": "2026-11-01 02:16:44",
-      "agent": "kilo:continue"
-    },
     {
       "task_id": "dustline-v0-26",
       "phase": "phase 4",
@@ -249,6 +216,44 @@
       "status": "completed",
       "timestamp": 1793494743.5021837,
       "timestamp_str": "2026-11-01 03:59:03",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-31",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Plan: close the delivery drift found by check --strict by listing the newly tracked assets/ folder in the README project tree, then re-run the delivery gate and push",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793495133.7491071,
+      "timestamp_str": "2026-11-01 04:05:33",
+      "agent": "kilo:continue",
+      "impact_assessment": {
+        "why": "The strict knowledge-base gate correctly reported that README.md omitted the now-tracked assets directory",
+        "benefits": "Cold-start readers see the brand assets in the tree and the strict delivery gate can pass",
+        "risks": "contract: none; dependency: none; concurrency: ledger shared; state: none",
+        "mitigation": "Add the two asset entries, run check --strict, and commit only README plus the ledger"
+      }
+    },
+    {
+      "task_id": "dustline-v0-31",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] Verification complete: README tree now lists assets/logo.svg and assets/social-preview.svg; 5/5 gates pass in the strict run after the docs commit, media audit is clean, tests are 152/152; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793495153.3490257,
+      "timestamp_str": "2026-11-01 04:05:53",
+      "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-31",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-31' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793495153.7303548,
+      "timestamp_str": "2026-11-01 04:05:53",
       "agent": "kilo:continue"
     }
   ]
