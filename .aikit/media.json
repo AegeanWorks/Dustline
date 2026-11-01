@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "name": "dustline",
+  "repo": "Dustline",
+  "has_ui": true,
+  "ui_kind": "web",
+  "palette": [
+    "#071112",
+    "#121e30",
+    "#66d8f5",
+    "#b18ef5"
+  ],
+  "motif": "grid",
+  "layout": "terminal",
+  "assets": {
+    "logo": {
+      "path": "assets/logo.svg",
+      "status": "approved",
+      "commit": "",
+      "generated_at": "2026-10-31T21:18:55",
+      "review": {
+        "status": "approved",
+        "reviewer": "human:yunus",
+        "method": "structural",
+        "notes": "Valid grid mark SVG with proper AegeanWorks palette",
+        "score": 95,
+        "reviewed_at": "2026-10-31T21:19:04"
+      }
+    },
+    "social_preview": {
+      "path": "assets/social-preview.svg",
+      "status": "approved",
+      "commit": "",
+      "generated_at": "2026-10-31T21:18:55",
+      "review": {
+        "status": "approved",
+        "reviewer": "human:yunus",
+        "method": "structural",
+        "notes": "Valid social preview SVG",
+        "score": 95,
+        "reviewed_at": "2026-10-31T21:19:10"
+      }
+    }
+  },
+  "screenshots": []
+}

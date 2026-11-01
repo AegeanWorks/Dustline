@@ -17,12 +17,12 @@
   "ui_required": false,
   "created": "2026-10-28",
   "has_ui": true,
-  "ui_kind": "game",
+  "ui_kind": "web",
   "ui_evidence": [
     "index.html"
   ],
-  "ui_checked_at": "2026-10-29",
-  "ui_source": "manual",
+  "ui_checked_at": "2026-10-31",
+  "ui_source": "detected",
   "mechanics": {
     "core": [
       "game.js"

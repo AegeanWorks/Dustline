@@ -1,6 +1,10 @@
 # Dustline
 
-[![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
+<!-- aegean:media:start -->
+<p align="center"><img src="assets/social-preview.svg" alt="Dustline social preview" width="100%"></p>
+<p align="center"><a href="LICENSE"><img src="https://img.shields.io/badge/license-AGL--1.1-7048e8" alt="License"></a> <a href="https://github.com/AegeanWorks/AIKit"><img src="https://img.shields.io/badge/AIKit-integrated-6f42c1" alt="AIKit Integrated"></a></p>
+<!-- aegean:media:end -->
+
 
 Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world with open combat arenas, auto-firing weapons, seven maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 20 skills across 6 offense and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker, a permanent out-of-run armory and a nine-entry field-notes codex.
 
@@ -149,6 +153,12 @@ This is a single-canvas game: the entire user-visible surface is one `<canvas>`,
 ## 🧠 Behavioral Design Notes
 
 These systems are ported from CyberPulse's behavioral-psychology design review (ADR-002 there) and grounded in the same literature: variable-ratio reinforcement (Skinner), near-miss reward-pathway activation (Clark et al.), loss aversion and push-your-luck (Kahneman & Tversky), flow-channel risk (Csikszentmihalyi) and autonomy/competence (Ryan & Deci). They are implemented without paywalls or dark patterns; all rewards are earned in-run and all risk is opt-in.
+
+<!-- aegean:brand-assets:start -->
+## 🎨 Brand Assets
+
+> **AI-Generated Brand Artwork.** The banner and logo are **AI-generated brand assets**. They are illustrative and may not literally depict every feature or the full project scope.
+<!-- aegean:brand-assets:end -->
 
 ## 📜 License
 
