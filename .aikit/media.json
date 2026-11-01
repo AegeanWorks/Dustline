@@ -5,40 +5,40 @@
   "has_ui": true,
   "ui_kind": "web",
   "palette": [
-    "#071112",
-    "#121e30",
-    "#66d8f5",
-    "#b18ef5"
+    "#130907",
+    "#302512",
+    "#f38a5e",
+    "#c8f490"
   ],
-  "motif": "grid",
-  "layout": "terminal",
+  "motif": "dungeon",
+  "layout": "wave",
   "assets": {
     "logo": {
       "path": "assets/logo.svg",
       "status": "approved",
       "commit": "",
-      "generated_at": "2026-10-31T21:18:55",
+      "generated_at": "2026-11-02T00:53:39",
       "review": {
         "status": "approved",
-        "reviewer": "human:yunus",
+        "reviewer": "agent:kilo",
         "method": "structural",
-        "notes": "Valid grid mark SVG with proper AegeanWorks palette",
-        "score": 95,
-        "reviewed_at": "2026-10-31T21:19:04"
+        "notes": "Reseed dungeon identity: arch mark fits the arena shooter, DL monogram resolves the Dupefinder collision, valid SVG.",
+        "score": 89,
+        "reviewed_at": "2026-11-02T00:54:57"
       }
     },
     "social_preview": {
       "path": "assets/social-preview.svg",
       "status": "approved",
       "commit": "",
-      "generated_at": "2026-10-31T21:18:55",
+      "generated_at": "2026-11-02T00:53:39",
       "review": {
         "status": "approved",
-        "reviewer": "human:yunus",
+        "reviewer": "agent:kilo",
         "method": "structural",
-        "notes": "Valid social preview SVG",
-        "score": 95,
-        "reviewed_at": "2026-10-31T21:19:10"
+        "notes": "Wave card: Dustline title, GAME kicker, full catalog tagline with no truncation, correct URL.",
+        "score": 89,
+        "reviewed_at": "2026-11-02T00:54:57"
       }
     }
   },
