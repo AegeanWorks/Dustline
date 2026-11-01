@@ -2124,6 +2124,7 @@ function recordRun(outcome) {
     save.bestWave = Math.max(save.bestWave || 1, G.wave);
   }
   if (G.score > (save.bestScore || 0)) save.bestScore = Math.round(G.score);
+  G.boardRank = 1 + save.boardBests.filter((e) => e && e.s > Math.round(G.score || 0)).length;
   save.boardBests.unshift({
     s: Math.round(G.score || 0),
     k: G.kills,
@@ -9896,7 +9897,7 @@ function drawOverScreen() {
   ctx.fillStyle = record ? '#63dcc0' : 'rgba(200,190,165,0.7)';
   ctx.font = '600 10.5px Consolas, monospace';
   ctx.fillText(
-    (record ? '★ NEW PERSONAL BEST ★  ·  ' : '') + 'BEST SCORE ' + (save.bestScore || 0).toLocaleString('en-US') + '  ·  BEST TIME ' + fmtTime(best.time),
+    (record ? '★ NEW PERSONAL BEST ★  ·  ' : '') + 'BEST SCORE ' + (save.bestScore || 0).toLocaleString('en-US') + '  ·  BEST TIME ' + fmtTime(best.time) + (G.boardRank > 0 && G.boardRank <= 10 && G.score > 0 ? '  ·  BOARD #' + G.boardRank : ''),
     W / 2,
     panelY + 50
   );
@@ -10558,6 +10559,7 @@ window.Dustline = {
       snap.limitSec = G.limitSec;
       snap.victory = G.victory;
       snap.shardsEarned = G.shardsEarned || 0;
+      snap.boardRank = G.boardRank || 0;
       snap.bossKills = G.bossKills || 0;
       snap.megaKills = G.megaKills || 0;
       snap.streak = G.streak;

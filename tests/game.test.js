@@ -3103,3 +3103,23 @@ test('allies join the friends board by squad code', () => {
   g.steps(1);
   assert.strictEqual(g.api.snapshot().save.friends.length, 1, 'your own code is rejected');
 });
+
+test('the run-over screen calls out the device board rank', () => {
+  const g = boot({ seed: 9210, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 60, 0);
+  g.api.killEnemies();
+  g.steps(4);
+  assert.ok(g.api.snapshot().kills >= 1, 'the run scored');
+  g.api.setInvulnerable(false);
+  g.api.hurt(99999);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.ok(s.boardRank >= 1, 'the finished run is ranked');
+  assert.ok(
+    g.texts.some((t) => t.text.indexOf('BOARD #' + s.boardRank) >= 0),
+    'the rank renders on the report'
+  );
+});

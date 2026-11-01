@@ -112,7 +112,7 @@ Progress is stored in `localStorage` under `dustline.save` with an explicit sche
 
 ### Leaderboard
 
-The menu LEADERBOARD screen has GLOBAL, FRIENDS and TÜRKIYE tabs. Until the online backend lands (see `ANDROID.md` for the API contract), all three run on the device board: your ranked run history, plus allies you add by their 8-character squad code. Friend scores show AWAITING SYNC until the server fills them in.
+The menu LEADERBOARD screen has GLOBAL, FRIENDS and TÜRKIYE tabs. Until the online backend lands (see `ANDROID.md` for the API contract), all three run on the device board: your ranked run history, plus allies you add by their 8-character squad code. Friend scores show AWAITING SYNC until the server fills them in. The run-over report calls out your device board rank when a scoring run places in the top 10.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
