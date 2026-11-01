@@ -1,6 +1,6 @@
 {
   "name": "dustline",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "private": true,
   "description": "Dustline: Survivors — an endless horde survival shooter with open combat arenas, seven maps and eight-boss Boss Rush, six operators including the arcanist, 20 skills across offense and defense slots, 10-level skills, ricochet rounds, kill-streak milestones, score, LAST STAND, mutations, war chests, secret combos, destructible interactables, a nuclear bunker, touch controls, weapon and active-skill evolutions, run mutators, map hazards, champions, achievements, affixed bosses, three mega bosses, boss salvage relics, a nine-entry field-notes codex, hostile-outline and reduced-flash accessibility settings, a decluttered loadout and glassmorphic combat HUD, and a regenerating Aegis shield.",
   "license": "SEE LICENSE IN LICENSE",

@@ -389,11 +389,62 @@ function defaultSave() {
     shieldSaves: 0,
     dailyBest: {},
     achievements: {},
+    boardBests: [],
+    friends: [],
+    deviceId: newDeviceId(),
     lastSeed: 20261029,
     killsByType: {},
     meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0, velocity: 0, harvest: 0, resolve: 0 },
     unlocked: { weapons: ['ak'], maps: ['desert'] }
   };
+}
+
+let deviceSeq = 0;
+function newDeviceId() {
+  deviceSeq = (deviceSeq + 1) % 4294967295;
+  const raw = (Date.now() % 4294967295) ^ (deviceSeq * 2654435769);
+  return ('00000000' + (raw >>> 0).toString(16)).slice(-8);
+}
+
+function cleanBoardBests(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const e of raw) {
+    if (!e || typeof e !== 'object') continue;
+    const s = Math.round(Number(e.s));
+    const k = Math.max(0, Math.round(Number(e.k)));
+    const t = Math.max(0, Number(e.t));
+    if (!Number.isFinite(s) || s < 0 || !Number.isFinite(k) || !Number.isFinite(t)) continue;
+    out.push({
+      s,
+      k,
+      t,
+      m: typeof e.m === 'string' && e.m ? e.m.slice(0, 24) : 'desert',
+      win: !!e.win,
+      d: Math.max(0, Math.round(Number(e.d) || 0))
+    });
+  }
+  out.sort((a, b) => b.s - a.s);
+  return out.slice(0, 25);
+}
+
+function cleanFriends(raw, ownCode) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seen = Object.create(null);
+  for (const f of raw) {
+    if (!f || typeof f !== 'object') continue;
+    const code = String(f.code || '').toLowerCase();
+    if (!/^[0-9a-f]{8}$/.test(code) || code === ownCode || seen[code]) continue;
+    seen[code] = true;
+    out.push({
+      name: String(f.name || ('ALLY-' + code.slice(0, 4).toUpperCase())).slice(0, 16),
+      code,
+      best: Number.isFinite(Number(f.best)) && Number(f.best) >= 0 ? Math.round(Number(f.best)) : null,
+      ts: Math.max(0, Math.round(Number(f.ts) || 0))
+    });
+  }
+  return out.slice(0, 12);
 }
 
 function loadSave() {
@@ -443,6 +494,11 @@ function loadSave() {
     }
   }
   merged.dailyBest = cleanBest;
+  merged.deviceId = typeof raw.deviceId === 'string' && /^[0-9a-f]{8}$/i.test(raw.deviceId)
+    ? raw.deviceId.toLowerCase()
+    : newDeviceId();
+  merged.boardBests = cleanBoardBests(raw.boardBests);
+  merged.friends = cleanFriends(raw.friends, merged.deviceId);
   return merged;
 }
 
@@ -469,6 +525,10 @@ let statsReturn = 'menu';
 let mapReturn = 'paused';
 let manualTab = 'enemies';
 let skillPage = 'grid';
+let boardTab = 'global';
+let boardAddMode = false;
+let boardCode = '';
+let boardMsg = '';
 let dailyOverride = null;
 let uiButtons = [];
 let uiT = 0;
@@ -1832,6 +1892,8 @@ function findDifficulty(id) {
 }
 
 function startRun(options) {
+  for (const key in keys) delete keys[key];
+  touchStick.active = false;
   const opts = options || {};
   if (opts.weapon && WEAPONS[opts.weapon]) setup.weapon = opts.weapon;
   if (opts.map && MAPS[opts.map]) setup.map = opts.map;
@@ -2062,6 +2124,15 @@ function recordRun(outcome) {
     save.bestWave = Math.max(save.bestWave || 1, G.wave);
   }
   if (G.score > (save.bestScore || 0)) save.bestScore = Math.round(G.score);
+  save.boardBests.unshift({
+    s: Math.round(G.score || 0),
+    k: G.kills,
+    t: Math.round(G.time * 10) / 10,
+    m: G.map,
+    win: outcome === 'win',
+    d: G.daily == null ? 0 : G.daily
+  });
+  save.boardBests = cleanBoardBests(save.boardBests);
   if (G.time > save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
@@ -7750,7 +7821,8 @@ function drawMenuScreen() {
   drawButton('upgrades', 'SKILLS', 553, 346, 134, 40);
   drawButton('manual', 'MANUAL', 407, 394, 134, 40);
   drawButton('settings', 'SETTINGS', 553, 394, 134, 40);
-  drawButton('help', 'HOW TO PLAY', W / 2, 442, 280, 40);
+  drawButton('leaderboard', 'LEADERBOARD', 407, 442, 134, 40);
+  drawButton('help', 'HOW TO PLAY', 553, 442, 134, 40);
 
   // Career telemetry dossier badge
   panel(W / 2 - 250, 494, 500, 46, 6);
@@ -8303,6 +8375,72 @@ function drawSettingsScreen() {
   ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 484);
 }
 
+const BOARD_TABS = [
+  { id: 'global', name: 'GLOBAL' },
+  { id: 'friends', name: 'FRIENDS' },
+  { id: 'turkiye', name: 'TÜRKIYE' }
+];
+
+function ownBoardCode() {
+  return (save.deviceId || '').toUpperCase();
+}
+
+function boardEntries() {
+  const rows = [];
+  if (boardTab === 'friends') {
+    const best = save.boardBests[0];
+    rows.push({
+      name: 'YOU · ' + ownBoardCode().slice(0, 4),
+      code: ownBoardCode(),
+      score: best ? best.s : 0,
+      kills: best ? best.k : 0,
+      time: best ? best.t : 0,
+      you: true
+    });
+    for (const f of save.friends) {
+      rows.push({ name: f.name, code: f.code.toUpperCase(), score: f.best, kills: null, time: null, you: false });
+    }
+    rows.sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score));
+    return rows;
+  }
+  return save.boardBests.map((e) => ({
+    name: 'YOU · ' + ownBoardCode().slice(0, 4),
+    code: ownBoardCode(),
+    score: e.s,
+    kills: e.k,
+    time: e.t,
+    map: e.m,
+    win: e.win,
+    you: true
+  }));
+}
+
+function tryAddFriend() {
+  const code = boardCode.toLowerCase();
+  if (!/^[0-9a-f]{8}$/.test(code)) {
+    boardMsg = 'CODE NEEDS 8 HEX CHARS (0-9, A-F)';
+    return false;
+  }
+  if (code === save.deviceId) {
+    boardMsg = 'THAT IS YOUR OWN CODE';
+    return false;
+  }
+  if (save.friends.some((f) => f.code === code)) {
+    boardMsg = 'ALLY ALREADY ON THE BOARD';
+    return false;
+  }
+  if (save.friends.length >= 12) {
+    boardMsg = 'SQUAD IS FULL (12 ALLIES)';
+    return false;
+  }
+  save.friends.push({ name: 'ALLY-' + code.slice(0, 4).toUpperCase(), code, best: null, ts: 0 });
+  writeStore(SAVE_KEY, save);
+  boardAddMode = false;
+  boardCode = '';
+  boardMsg = 'ALLY ADDED · AWAITING THEIR SYNC';
+  return true;
+}
+
 function startDaily() {
   const rules = dailyRules(dailyDay());
   dailyOverride !== null ? null : null;
@@ -8388,6 +8526,133 @@ function drawDailyScreen() {
 
   drawButton('start-daily', 'START DAILY', W / 2, 432, 280, 42);
   drawButton('back-daily', 'BACK', W / 2, 488, 180, 32);
+}
+
+function drawLeaderboardScreen() {
+  drawMenuBackdrop();
+  overlay(0.42);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '700 28px Consolas, monospace';
+  ctx.fillText('LEADERBOARD', W / 2, 56);
+  ctx.fillStyle = 'rgba(200,190,165,0.7)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText(
+    boardTab === 'turkiye'
+      ? 'TÜRKIYE REGION · DEVICE BOARD · ONLINE SYNC ARRIVES WITH ANDROID'
+      : 'COMPETE WITH THE WORLD AND YOUR SQUAD · DEVICE BOARD FOR NOW',
+    W / 2,
+    76
+  );
+
+  const tabW = 200;
+  const tabGap = 8;
+  const tabStart = (W - (BOARD_TABS.length * tabW + (BOARD_TABS.length - 1) * tabGap)) / 2;
+  BOARD_TABS.forEach((tab, i) => {
+    const x = tabStart + i * (tabW + tabGap);
+    uiButtons.push({ id: 'board-' + tab.id, label: tab.name, x, y: 92, w: tabW, h: 28 });
+    const chosen = boardTab === tab.id;
+    const hover = mouse.x >= x && mouse.x <= x + tabW && mouse.y >= 92 && mouse.y <= 120;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.26)';
+    ctx.lineWidth = chosen ? 2 : 1;
+    rr(x, 92, tabW, 28, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(tab.name, x + tabW / 2, 111);
+  });
+
+  const entries = boardEntries();
+  const maxRows = boardTab === 'friends' ? 6 : 9;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(170,165,150,0.7)';
+  ctx.font = '600 9px Consolas, monospace';
+  ctx.fillText('#', 124, 140);
+  ctx.fillText(boardTab === 'friends' ? 'ALLY' : 'RUNNER', 160, 140);
+  ctx.textAlign = 'right';
+  ctx.fillText('SCORE', 560, 140);
+  ctx.fillText('KILLS', 660, 140);
+  ctx.fillText('TIME', 770, 140);
+  if (entries.length > maxRows) {
+    ctx.fillStyle = 'rgba(200,195,180,0.5)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText('+' + (entries.length - maxRows) + ' MORE', 850, 140);
+  }
+  ctx.textAlign = 'left';
+  if (!entries.length) {
+    ctx.fillStyle = 'rgba(200,195,180,0.6)';
+    ctx.font = '600 11px Consolas, monospace';
+    ctx.fillText(
+      boardTab === 'friends' ? 'NO ALLIES YET — ADD ONE BELOW BY CODE' : 'NO RUNS LOGGED YET — FINISH A RUN TO SEED THE BOARD',
+      160,
+      180
+    );
+  }
+  entries.slice(0, maxRows).forEach((row, i) => {
+    const y = 152 + i * 30;
+    ctx.fillStyle = row.you ? 'rgba(32,30,22,0.92)' : 'rgba(14,18,22,0.86)';
+    ctx.strokeStyle = row.you ? 'rgba(255,210,122,0.55)' : 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = row.you ? 1.5 : 1;
+    rr(110, y, 740, 26, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = i === 0 ? '#ffd27a' : 'rgba(200,195,180,0.75)';
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(String(i + 1), 124, y + 17);
+    ctx.fillStyle = row.you ? '#fff3d6' : '#e6efe9';
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(row.name, 160, y + 17);
+    ctx.textAlign = 'right';
+    if (row.score == null) {
+      ctx.fillStyle = 'rgba(160,155,145,0.65)';
+      ctx.font = '600 9.5px Consolas, monospace';
+      ctx.fillText('AWAITING SYNC', 560, y + 17);
+      ctx.fillText('—', 660, y + 17);
+      ctx.fillText('—', 770, y + 17);
+    } else {
+      ctx.fillStyle = '#63dcc0';
+      ctx.font = '700 11px Consolas, monospace';
+      ctx.fillText(String(row.score), 560, y + 17);
+      ctx.fillStyle = '#e6efe9';
+      ctx.fillText(String(row.kills), 660, y + 17);
+      ctx.fillText(fmtTime(row.time), 770, y + 17);
+    }
+    ctx.textAlign = 'left';
+  });
+
+  if (boardTab === 'friends') {
+    panel(230, 344, 500, 34, 6);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#63dcc0';
+    ctx.font = '700 11px Consolas, monospace';
+    const codeLine = boardAddMode
+      ? 'ADD: ' + (boardCode || '') + '_'
+      : 'MY CODE · ' + ownBoardCode();
+    ctx.fillText(codeLine, W / 2, 360);
+    ctx.fillStyle = /NEEDS|OWN CODE|FULL|ALREADY/.test(boardMsg)
+      ? '#ff8a7a'
+      : /ADDED/.test(boardMsg)
+        ? '#7fe0a0'
+        : 'rgba(200,195,180,0.65)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(boardMsg || 'SHARE YOUR CODE · ADD ALLIES BY THEIR CODE', W / 2, 374);
+    ctx.textAlign = 'center';
+    if (!boardAddMode) {
+      drawButton('friend-add', 'ADD FRIEND', W / 2, 392, 220, 32);
+    } else {
+      drawButton('friend-save', 'SAVE CODE', W / 2 - 116, 392, 200, 32);
+      drawButton('friend-cancel', 'CANCEL', W / 2 + 116, 392, 200, 32);
+    }
+  } else {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(200,195,180,0.6)';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText('DEVICE BOARD · ONLINE SYNC ARRIVES WITH THE ANDROID RELEASE', W / 2, 452);
+  }
+
+  drawButton('back-board', 'BACK', W / 2, 508, 180, 34);
 }
 
 function drawManualScreen() {
@@ -9700,6 +9965,7 @@ function drawScreens() {
   else if (screen === 'help') drawHelpScreen();
   else if (screen === 'manual') drawManualScreen();
   else if (screen === 'daily') drawDailyScreen();
+  else if (screen === 'leaderboard') drawLeaderboardScreen();
   else if (screen === 'upgrades') drawUpgradesScreen();
   else if (screen === 'paused') drawPauseScreen();
   else if (screen === 'mapview') drawMapView();
@@ -9830,6 +10096,42 @@ function pressButton(id) {
   }
   if (id === 'daily') {
     screen = 'daily';
+    return;
+  }
+  if (id === 'leaderboard') {
+    boardAddMode = false;
+    boardCode = '';
+    boardMsg = '';
+    screen = 'leaderboard';
+    return;
+  }
+  if (id === 'back-board') {
+    boardAddMode = false;
+    screen = 'menu';
+    return;
+  }
+  if (id.indexOf('board-') === 0) {
+    const tab = id.slice(6);
+    if (BOARD_TABS.some((t) => t.id === tab)) {
+      boardTab = tab;
+      boardMsg = '';
+    }
+    return;
+  }
+  if (id === 'friend-add') {
+    boardAddMode = true;
+    boardCode = '';
+    boardMsg = 'TYPE THE 8-CHAR ALLY CODE';
+    return;
+  }
+  if (id === 'friend-save') {
+    tryAddFriend();
+    return;
+  }
+  if (id === 'friend-cancel') {
+    boardAddMode = false;
+    boardCode = '';
+    boardMsg = '';
     return;
   }
   if (id === 'back-daily') {
@@ -10021,6 +10323,29 @@ function onKeyDown(e) {
       screen = 'menu';
     } else if (screen === 'mapview') {
       screen = mapReturn;
+    } else if (screen === 'leaderboard') {
+      if (boardAddMode) {
+        boardAddMode = false;
+        boardCode = '';
+        boardMsg = '';
+      } else {
+        screen = 'menu';
+      }
+    }
+  }
+  if (screen === 'leaderboard' && boardAddMode) {
+    delete keys[k];
+    if (/^[0-9a-f]$/.test(k)) {
+      if (boardCode.length < 8) boardCode = (boardCode + k).toUpperCase();
+      return;
+    }
+    if (k === 'backspace') {
+      boardCode = boardCode.slice(0, -1);
+      return;
+    }
+    if (k === 'enter') {
+      tryAddFriend();
+      return;
     }
   }
   if (screen === 'levelup' && (k === '1' || k === '2' || k === '3')) {
@@ -10187,9 +10512,13 @@ window.Dustline = {
         achievements: Object.assign({}, save.achievements || {}),
         achievementCount: achievementUnlocked(),
         killsByType: { ...save.killsByType },
-        meta: { ...save.meta }
+        meta: { ...save.meta },
+        boardBests: save.boardBests.map((e) => ({ ...e })),
+        friends: save.friends.map((f) => ({ ...f })),
+        deviceCode: ownBoardCode()
       },
       setup: { ...setup, mutators: setup.mutators.slice() },
+      boardTab,
       daily: dailyInfo(),
       manual: {
         tab: manualTab,

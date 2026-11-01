@@ -46,7 +46,7 @@ test('boots to the main menu with the full navigation', () => {
   assert.strictEqual(s.screen, 'menu');
   assert.strictEqual(
     JSON.stringify(s.buttons.map((b) => b.id)),
-    JSON.stringify(['play', 'armory', 'daily', 'statistics', 'upgrades', 'manual', 'settings', 'help'])
+    JSON.stringify(['play', 'armory', 'daily', 'statistics', 'upgrades', 'manual', 'settings', 'leaderboard', 'help'])
   );
   assert.strictEqual(s.settings.volume, 70);
   assert.strictEqual(s.save.shards, 0);
@@ -3023,4 +3023,83 @@ test('contact damage scales slower and caps at 3.2x', () => {
   g.api.setTime(5000);
   g.api.spawnEnemy('tank', 400, 0);
   assert.ok(Math.abs(g.api.snapshot().enemies[2].touch - 57.6) < 0.001, 'caps at 3.2x');
+});
+
+test('the leaderboard opens with three tabs and a stable device code', () => {
+  const g = boot({ seed: 9201 });
+  assert.ok(g.api.clickButton('leaderboard'), 'leaderboard button exists');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'leaderboard');
+  assert.strictEqual(s.boardTab, 'global');
+  assert.ok(/^[0-9a-f]{8}$/i.test(s.save.deviceCode), 'device code is 8 hex chars, saw ' + s.save.deviceCode);
+  const ids = s.buttons.map((b) => b.id);
+  for (const id of ['board-global', 'board-friends', 'board-turkiye', 'back-board']) assert.ok(ids.includes(id), id);
+  assert.ok(g.api.clickButton('board-friends'), 'friends tab opens');
+  g.steps(1);
+  s = g.api.snapshot();
+  assert.strictEqual(s.boardTab, 'friends');
+  assert.ok(g.api.clickButton('board-turkiye'), 'turkiye tab opens');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().boardTab, 'turkiye');
+  g.key('escape');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'menu', 'escape leaves the board');
+});
+
+test('finished runs seed the device leaderboard', () => {
+  const g = boot({ seed: 9203, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(95);
+  g.steps(2);
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('menu-pause'), 'abandon from pause');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'menu');
+  assert.strictEqual(s.save.boardBests.length, 1, 'the abandoned run is logged');
+  const entry = s.save.boardBests[0];
+  assert.strictEqual(entry.m, 'desert');
+  assert.strictEqual(entry.win, false);
+  assert.ok(entry.t >= 95, 'run time is recorded');
+  assert.ok(g.api.clickButton('leaderboard'), 'leaderboard button exists');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().boardTab, 'global');
+  assert.ok(g.texts.some((t) => t.text === 'YOU · ' + s.save.deviceCode.slice(0, 4).toUpperCase()), 'the device entry renders');
+});
+
+test('allies join the friends board by squad code', () => {
+  const g = boot({ seed: 9205, record: true });
+  g.api.clickButton('leaderboard');
+  g.steps(1);
+  g.api.clickButton('board-friends');
+  g.steps(1);
+  g.api.clickButton('friend-add');
+  g.steps(1);
+  for (const ch of 'ab1299cc') g.key(ch);
+  assert.ok(g.api.clickButton('friend-save'), 'save button exists');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.save.friends.length, 1, 'the ally is stored');
+  assert.strictEqual(s.save.friends[0].code, 'ab1299cc');
+  assert.strictEqual(s.save.friends[0].name, 'ALLY-AB12');
+  assert.strictEqual(s.save.friends[0].best, null, 'no score until sync');
+  assert.ok(g.texts.some((t) => t.text.indexOf('ALLY-AB12') >= 0), 'the ally row renders');
+  g.api.clickButton('friend-add');
+  g.steps(1);
+  for (const ch of 'ab12') g.key(ch);
+  g.api.clickButton('friend-save');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().save.friends.length, 1, 'short codes are rejected');
+  const own = g.api.snapshot().save.deviceCode;
+  g.api.clickButton('friend-cancel');
+  g.steps(1);
+  g.api.clickButton('friend-add');
+  g.steps(1);
+  for (const ch of own.toLowerCase()) g.key(ch);
+  g.api.clickButton('friend-save');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().save.friends.length, 1, 'your own code is rejected');
 });

@@ -108,7 +108,11 @@ Before every run you pick:
 
 ### Progression saving
 
-Progress is stored in `localStorage` under `dustline.save` with an explicit schema version. The loader refuses unknown versions without touching the file, migrates version 1, and clamps every field. Shards, lifetime kills, boss kills, best run, kills by mob type, armory ranks and the deterministic run seed persist across sessions.
+Progress is stored in `localStorage` under `dustline.save` with an explicit schema version. The loader refuses unknown versions without touching the file, migrates version 1, and clamps every field. Shards, lifetime kills, boss kills, best run, kills by mob type, armory ranks, the top-25 run board, ally codes and the deterministic run seed persist across sessions. Each device also carries a stable 8-hex squad code (`deviceId`) that friends use to link up on the leaderboard.
+
+### Leaderboard
+
+The menu LEADERBOARD screen has GLOBAL, FRIENDS and TÜRKIYE tabs. Until the online backend lands (see `ANDROID.md` for the API contract), all three run on the device board: your ranked run history, plus allies you add by their 8-character squad code. Friend scores show AWAITING SYNC until the server fills them in.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -124,11 +128,18 @@ Progress is stored in `localStorage` under `dustline.save` with an explicit sche
 dustline/
 ├── index.html                <- canvas shell, page styling and control hint
 ├── game.js                   <- world, combat, skills, bosses, HUD, screens, audio
+├── manifest.webmanifest      <- PWA identity for Android install
+├── sw.js                     <- offline cache for the Android shell
+├── ANDROID.md                <- Play Store (TWA) runbook + leaderboard API contract
 ├── assets/
 │   ├── logo.svg              <- approved brand mark
-│   └── social-preview.svg    <- README banner
+│   ├── social-preview.svg    <- README banner
+│   ├── icon-192.png          <- PWA launcher icon (procedural, see make_icons.ps1)
+│   ├── icon-512.png          <- PWA launcher icon (procedural, see make_icons.ps1)
+│   └── icon-maskable-512.png <- PWA maskable icon (procedural)
 ├── scripts/
-│   └── serve.js              <- zero-dependency static server for `npm start`
+│   ├── serve.js              <- zero-dependency static server for `npm start`
+│   └── make_icons.ps1        <- regenerates the PWA icons with System.Drawing
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens

@@ -25,6 +25,30 @@ test('serves the game shell and script with the right MIME type', async (t) => {
   assert.ok((await script.text()).length > 1000);
 });
 
+test('serves the PWA shell with the right MIME types', async (t) => {
+  const base = await boot(t);
+  const manifest = await fetch(base + '/manifest.webmanifest');
+  assert.strictEqual(manifest.status, 200);
+  assert.match(manifest.headers.get('content-type'), /manifest\+json/);
+  const body = await manifest.json();
+  assert.strictEqual(body.short_name, 'Dustline');
+  assert.ok(Array.isArray(body.icons) && body.icons.length >= 2, 'manifest lists icons');
+
+  const worker = await fetch(base + '/sw.js');
+  assert.strictEqual(worker.status, 200);
+  assert.match(worker.headers.get('content-type'), /javascript/);
+
+  for (const icon of ['/assets/icon-192.png', '/assets/icon-512.png', '/assets/icon-maskable-512.png']) {
+    const res = await fetch(base + icon);
+    assert.strictEqual(res.status, 200, icon + ' must be served');
+    assert.match(res.headers.get('content-type'), /image\/png/);
+  }
+
+  const page = await fetch(base + '/');
+  const html = await page.text();
+  assert.ok(html.includes('manifest.webmanifest'), 'shell links the manifest');
+});
+
 test('refuses dot-directories, missing files and non-GET methods', async (t) => {
   const base = await boot(t);
   for (const path of ['/.git/config', '/.aikit/task_ledger.json', '/.gitignore']) {
