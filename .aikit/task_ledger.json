@@ -1,66 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-v0-31",
+    "task_id": "dustline-v0-32",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793495153.3490257,
-    "owner": "kilo:continue",
-    "started_by": "kilo:continue",
+    "updated_at": 1793537623.5459616,
+    "owner": "unidentified",
+    "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793495153.7303534
+    "completed_at": 1793537655.8175144
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-26",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Visual QA added: browser capture on the real canvas confirmed the six-operator row keeps every label inside its 138px card (engineer blurb tightened), the 430px deploy arena draws its fill, dashed accent ring, inner ellipse and four cardinal ticks with no solid prop or hazard inside, and the arcanist's violet rounds and jagged 0.28s bolt render; 149/149 tests and 5/5 gates still pass; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793489555.6874487,
-      "timestamp_str": "2026-11-01 02:32:35",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-26",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-26' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793489747.3379548,
-      "timestamp_str": "2026-11-01 02:35:47",
-      "agent": "kilo:continue"
-    },
-    {
-      "task_id": "dustline-v0-27",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Plan: add a Field Notes lore codex to the manual plus a per-map story line on the pause screen, closing the last open playtest note without touching mechanics",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793489758.959481,
-      "timestamp_str": "2026-11-01 02:35:58",
-      "agent": "kilo:continue",
-      "impact_assessment": {
-        "why": "The playtest backlog asked for expanded story; the world has maps, factions and bosses but no readable narrative surface",
-        "benefits": "Players get eight concise setting entries and a map-specific note during play, making the quarantine and NetWatch premise legible without cutscenes",
-        "risks": "contract: manual gains a fourth tab and snapshot.manual.lore; dependency: none; concurrency: ledger shared; state: none",
-        "mitigation": "Keep lore as static testable data, re-layout the manual tab row for four tabs, render notes in 2x4 cards with guarded wrapping, and add snapshot, tab and layout tests"
-      }
-    },
-    {
-      "task_id": "dustline-v0-27",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Field Notes complete: eight-entry LORE table (Dustline setting, six map notes, NetWatch signal), fourth NOTES tab in the manual with a re-spaced four-tab row, 2x4 wrapped cards, a current-map note on the pause screen, and snapshot.manual.lore; tests cover tab navigation, counts, rendered titles, tab spacing and the pause note",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793490486.951621,
-      "timestamp_str": "2026-11-01 02:48:06",
-      "agent": "kilo:continue"
-    },
     {
       "task_id": "dustline-v0-27",
       "phase": "phase 4",
@@ -255,6 +206,55 @@
       "timestamp": 1793495153.7303548,
       "timestamp_str": "2026-11-01 04:05:53",
       "agent": "kilo:continue"
+    },
+    {
+      "task_id": "dustline-v0-32",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Planning: UI decluttering and graphics overhaul across Loadout, HUD, Pause, and Menu screens",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793535673.4852293,
+      "timestamp_str": "2026-11-01 15:21:13",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "User reported UI is too crowded and unaesthetic; audit captures show 8 cramped rows on setup with clipped text, heavy opaque HUD slabs obstructing combat, colliding cooldown bars, and unstyled raw text blocks",
+        "benefits": "Clean visual hierarchy, fixed text clipping and prop collisions on map cards, sleek semi-transparent HUD, polished ability cooldown indicators, clean pause overlay, and visual verification via screenshots",
+        "risks": "contract: button IDs and layout tests must pass; dependency: none; concurrency: none; state: none",
+        "mitigation": "Preserve all existing button IDs, snapshot contracts, and layout guard invariants; verify every change with node --test and capture screenshot comparisons"
+      }
+    },
+    {
+      "task_id": "dustline-v0-32",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Implemented complete UI decluttering and graphics overhaul: Loadout layout, glassmorphic HUD, rank chevrons, Pause lore plaque, Help panels, Level Up stat pills and collision-free cards, Daily screen status banner, Settings aligned cards, Field Manual 3x3 lore grid, Map view sidebar console, Game Over AAR card, and rounded enemy health bars; 152/152 tests and 5/5 gates pass",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793537614.9251246,
+      "timestamp_str": "2026-11-01 15:53:34",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-32",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified all 152/152 tests and 5/5 gates pass; all visual changes verified via browser CDP screenshot captures; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793537623.5459616,
+      "timestamp_str": "2026-11-01 15:53:43",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-v0-32",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-v0-32' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793537655.8175159,
+      "timestamp_str": "2026-11-01 15:54:15",
+      "agent": "unidentified"
     }
   ]
 }

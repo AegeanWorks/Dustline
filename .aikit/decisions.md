@@ -200,3 +200,30 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The settings screen only controlled volume, shake and damage numbers. Players who need stronger target separation or are sensitive to full-screen pulses had no option, and every milestone, last-stand, reward and secret-combo event flashed the whole canvas.
 - **Decision**: (1) Add `outlines` (default off) and `flashes` (default on) to DEFAULT_SETTINGS with boolean load guards, so existing saves migrate cleanly. (2) Draw a 1.25px pale ring at `e.r + 3` around every visible hostile, or a 2.5px gold ring around bosses, when outlines are on. (3) Route every screen flash through `flashScreen(color, time)`, which does nothing when flashes are off; also suppress the hurt overlay and steady the low-health vignette/border pulses. (4) Compact the settings screen to five 60px rows with BACK at 470 and the footer at 534. (5) Record stroke styles in the test harness and add tests for outline rings, suppressed milestone flashes and persisted toggles. (6) Document the options and bump the package to 0.27.0.
 - **Consequences**: Target readability and flash comfort are now player-controlled without affecting simulation or balance, and the settings save schema only gains optional booleans. The suite grows from 150 to 152 tests. No gameplay snapshot field or seeded stream changed; `flashT` is exposed read-only for tests.
+
+### ADR-028: UI decluttering and layout overhaul pass
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: A comprehensive visual audit via headless browser screenshot captures revealed widespread UI crowding, unaesthetic density, and critical text collision bugs:
+  1. The Loadout screen squeezed 8 vertical rows into 600px, clipping "WHITEOUT RIDGE" under prop swatches and rendering mutator/mutation cards with unreadable 7px text.
+  2. The in-game HUD featured heavy opaque corner slabs obstructing combat, ability cooldown trays collided directly with keybind text, and a raw permanent 'RECRUIT' text string hovered over the player sprite.
+  3. The pause screen kept bottom ability trays and health bars visible, colliding with the map field note.
+  4. The Help screen jammed 22 raw unstyled lines touching the Back button.
+  5. The Level Up screen suffered from an unreadable text collision on cards with longer descriptions (e.g. DMR-308) where the description detail collided directly with `EVOLVES · ...` ("EVOLVES ReapBlood Leech"), while banish buttons were unstyled text.
+  6. The Daily Challenge screen rendered "NO ATTEMPT YET TODAY" / "TODAY BEST" directly inside the 8th row card ("SEED"), creating an awkward overlapping text collision.
+  7. The Settings screen had misaligned volume control buttons floating without container cards.
+  8. The Field Manual Notes (Lore) tab used a 2-column layout for 9 notes where the 9th note ("THE SIGNAL") overflowed below the 600px canvas and was sliced in half by the BACK button.
+  9. The Game Over / Victory screen lacked background backing, allowing fatal hit damage floaters (e.g., `-999`, `-14`) to bleed directly through floating unpaneled stat text.
+  10. Non-boss enemy health bars were raw unbordered flat rectangles.
+- **Decision**:
+  1. Overhaul Loadout screen: pair Mode and Time Limit onto a single balanced row, position map prop swatches on the bottom right of each map card to eliminate text collision, increase mutator/mutation card heights to 26px with legible fonts, and expand bottom breathing room.
+  2. Streamline HUD: replace solid black boxes with glassmorphic panels, integrate the alert bar cleanly into the timer header capsule, give ability trays dedicated vertical separation between keybind text and cooldown progress bars with ready border glow, hide combat trays during pause, and replace floating overhead recruit text with tactical rank chevrons for evolved tiers.
+  3. Polish Pause screen: render the map field note in a dedicated tactical lore plaque free of combat HUD overlap.
+  4. Redesign Help screen: replace the 22-line list with two balanced categorical panels and key pill badges.
+  5. Fix Level Up cards: space vertical contents with card height 302px, introduce a tinted stat progression pill badge, eliminate detail/evolution collisions, provide a sleek hoverable banish mini-badge, and enlarge slot numbers.
+  6. Fix Daily screen: re-layout the 8 parameter rows into compact 27px cards and provide a dedicated styled status plaque for the daily result, eliminating all collisions.
+  7. Polish Settings screen: wrap each option in a sleek card panel and align volume controls flush with toggle buttons.
+  8. Fix Field Manual Lore tab: convert 2x5 overflowing layout to a balanced 3x3 card grid (all 9 notes fit comfortably on screen with 40px clearance above the Back button).
+  9. Overhaul Game Over / Victory screen: introduce a central After-Action Report (AAR) Dossier card with 0.86 overlay dimming, 4 metric badges (Kills, Level, Squad, Bosses), gold score display, and structured run footer, eliminating underlying damage number bleeding.
+  10. In-Game Map view & graphics: wrap contracts and field telemetry in a unified tactical sidebar console, and give damaged non-boss enemies dark-bordered rounded health bars.
+- **Consequences**: Every screen and HUD element across the game is now spacious, readable, and visually cohesive with zero text clipping or overlapping elements. All button IDs and layout test invariants are preserved, 152/152 tests pass, and all Phase 4 AIKit gates pass.

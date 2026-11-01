@@ -4574,7 +4574,8 @@ function drawButton(id, label, cx, y, w, h, sub) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = hover ? '#fff3d6' : '#e8dcc0';
-  ctx.font = '700 ' + (sub ? 16 : 18) + 'px Consolas, monospace';
+  const fontSize = h <= 24 ? 12 : h <= 30 ? 13 : h <= 36 ? 15 : sub ? 16 : 18;
+  ctx.font = '700 ' + fontSize + 'px Consolas, monospace';
   ctx.fillText(label, cx, y + (sub ? h / 2 - 7 : h / 2));
   if (sub) {
     ctx.fillStyle = 'rgba(200,190,165,0.65)';
@@ -6045,11 +6046,21 @@ function drawEnemies() {
     }
     ctx.restore();
     if (!e.boss && e.hp < e.maxHp) {
-      const w = e.r * 2;
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 10, w, 4);
-      ctx.fillStyle = e.type === 'tank' ? '#e0a13c' : '#d3563f';
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 10, w * clamp(e.hp / e.maxHp, 0, 1), 4);
+      const w = Math.max(16, e.r * 1.8);
+      const bx = e.x - w / 2;
+      const by = e.y - e.r - 9;
+      ctx.fillStyle = 'rgba(6,10,14,0.75)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1;
+      rr(bx - 1, by - 1, w + 2, 5, 2);
+      ctx.fill();
+      ctx.stroke();
+      const fillW = w * clamp(e.hp / e.maxHp, 0, 1);
+      if (fillW > 0) {
+        ctx.fillStyle = e.type === 'tank' ? '#e0a13c' : '#d3563f';
+        rr(bx, by, fillW, 3, 1.5);
+        ctx.fill();
+      }
     }
   }
   for (const e of G.enemies) {
@@ -6385,11 +6396,19 @@ function drawPlayer() {
     ctx.stroke();
   }
 
-  ctx.fillStyle = 'rgba(240,230,205,0.75)';
-  ctx.font = '700 9px Consolas, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(['RECRUIT', 'VETERAN', 'ELITE', 'LEGEND'][tier], p.x, p.y - 24 * scale - 4);
-  ctx.textAlign = 'left';
+  if (tier > 0) {
+    ctx.strokeStyle = tier >= 3 ? '#ffd27a' : tier === 2 ? '#ff9e66' : '#7fe0a0';
+    ctx.lineWidth = 1.5;
+    const cy = p.y - 20 * scale - 4;
+    for (let c = 0; c < tier; c++) {
+      const oy = cy - c * 3.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x - 5, oy + 2.5);
+      ctx.lineTo(p.x, oy);
+      ctx.lineTo(p.x + 5, oy + 2.5);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawBombArc(x0, y0, tx, ty, t, max, color) {
@@ -6654,28 +6673,28 @@ function drawTouchControls() {
 function drawHUD() {
   const xpPct = clamp(G.xp / G.xpNext, 0, 1);
 
-  panel(14, 14, 250, 92);
-  drawSkull(42, 42, 13, '#e8dcc0');
+  panel(14, 14, 250, 86, 8);
+  drawSkull(38, 38, 12, '#e8dcc0');
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
   ctx.font = '10px Consolas, monospace';
-  ctx.fillText('KILLS', 64, 32);
+  ctx.fillText('KILLS', 58, 30);
   ctx.fillStyle = '#f4efe2';
-  ctx.font = '700 24px Consolas, monospace';
-  ctx.fillText(String(G.kills), 64, 56);
+  ctx.font = '700 22px Consolas, monospace';
+  ctx.fillText(String(G.kills), 58, 52);
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,210,122,0.72)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('BEST ' + save.bestKills + '  ·  ' + fmtTime(best.time), 252, 32);
+  ctx.fillText('BEST ' + save.bestKills + '  ·  ' + fmtTime(best.time), 250, 30);
   ctx.fillStyle = G.streak >= 10 ? '#ffd27a' : 'rgba(180,175,155,0.6)';
-  ctx.fillText('STREAK ' + G.streak + '  x' + streakMult().toFixed(2), 252, 50);
+  ctx.fillText('STREAK ' + G.streak + '  x' + streakMult().toFixed(2), 250, 46);
   ctx.fillStyle = '#63dcc0';
-  ctx.fillText('UNBANKED ' + Math.floor(G.unbanked) + '  ·  SEC ' + Math.floor(G.banked), 252, 66);
+  ctx.fillText('UNBANKED ' + Math.floor(G.unbanked) + '  ·  SEC ' + Math.floor(G.banked), 250, 60);
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(190,185,165,0.55)';
-  ctx.font = '600 9px Consolas, monospace';
+  ctx.font = '600 8.5px Consolas, monospace';
   const news = G.news.length > 44 ? G.news.slice(0, 42) + '...' : G.news;
-  ctx.fillText(news, 26, 86);
+  ctx.fillText(news, 22, 78);
   const tags = [];
   if (G.mutators && G.mutators.length) tags.push('MUTATORS · ' + G.mutators.map((id) => (mutatorDef(id) || {}).name || id).join(' + '));
   if (G.mutation && G.mutation !== 'none') {
@@ -6686,62 +6705,61 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e8a87c';
     ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText(tags.join('  ·  '), 26, 100);
+    ctx.fillText(tags.join('  ·  '), 22, 94);
   }
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(6,10,13,0.62)';
-  ctx.fillRect(W / 2 - 104, 14, 208, 76);
+  panel(W / 2 - 106, 12, 212, 78, 8);
   ctx.fillStyle = '#f2e6c8';
-  ctx.font = '700 30px Consolas, monospace';
-  ctx.fillText(fmtTime(G.time), W / 2, 42);
+  ctx.font = '700 28px Consolas, monospace';
+  ctx.fillText(fmtTime(G.time), W / 2, 38);
   ctx.fillStyle = '#b9ac92';
-  ctx.font = '600 11px Consolas, monospace';
+  ctx.font = '600 10.5px Consolas, monospace';
   const limitText = G.limitSec > 0 ? '  ·  LEFT ' + fmtTime(Math.max(0, G.limitSec - G.time)) : '';
   const runText =
     G.mode === 'bossrush'
       ? 'BOSS ' + Math.min(G.rush.index + 1, G.rush.target) + ' / ' + G.rush.target + ' · L' + G.level + limitText
       : 'W' + G.wave + ' · L' + G.level + ' · ' + (G.diff ? G.diff.name : 'NORMAL') + limitText;
-  ctx.fillText((G.daily != null ? 'DAILY · ' : '') + runText, W / 2, 62);
+  ctx.fillText((G.daily != null ? 'DAILY · ' : '') + runText, W / 2, 56);
 
   if (screen === 'play') {
     const alertColor = G.alert > 80 ? '#e2563f' : G.alert > 55 ? '#e0b13c' : '#63dcc0';
-    ctx.fillStyle = '#1d2a28';
-    ctx.fillRect(W / 2 - 104, 84, 208, 6);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(W / 2 - 96, 76, 192, 5);
     ctx.fillStyle = alertColor;
-    ctx.fillRect(W / 2 - 104, 84, 208 * clamp(G.alert / 100, 0, 1), 6);
+    ctx.fillRect(W / 2 - 96, 76, 192 * clamp(G.alert / 100, 0, 1), 5);
     ctx.fillStyle = alertColor;
     ctx.font = '600 9px Consolas, monospace';
     const eventText = G.event ? '  ·  ' + G.event.name + ' ' + Math.ceil(G.eventT) + 's' : '';
     ctx.textAlign = 'left';
-    ctx.fillText('ALERT ' + Math.round(G.alert) + '%' + eventText, W / 2 - 104, 80);
+    ctx.fillText('ALERT ' + Math.round(G.alert) + '%' + eventText, W / 2 - 96, 72);
     ctx.textAlign = 'center';
   }
 
   const owned = SKILL_ORDER.filter((id) => G.skills[id] > 0);
-  panel(W - 214, 14, 200, 66);
+  panel(W - 214, 14, 200, 78, 8);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9aa7ad';
   ctx.font = '10px Consolas, monospace';
-  ctx.fillText('LOADOUT · ' + operatorDef().name, W - 200, 32);
+  ctx.fillText('LOADOUT · ' + operatorDef().name, W - 200, 30);
   ctx.fillStyle = '#8f9ba4';
   ctx.font = '600 9px Consolas, monospace';
   ctx.fillText(
     'OFF ' + slotsUsed('offense') + '/' + slotCap('offense') + '  ·  DEF ' + slotsUsed('passive') + '/' + slotCap('passive'),
     W - 200,
-    45
+    44
   );
   ctx.fillStyle = G.relics.length ? '#63dcc0' : '#8f9ba4';
   ctx.fillText('RELICS ' + G.relics.length + ' / ' + RELICS.length, W - 200, 58);
   ctx.fillStyle = G.lastStand ? '#ff6a4a' : '#8f9ba4';
-  ctx.fillText(G.lastStand ? 'LAST STAND · +50% DMG' : 'SCORE ' + Math.round(G.score).toLocaleString('en-US'), W - 200, 71);
+  ctx.fillText(G.lastStand ? 'LAST STAND · +50% DMG' : 'SCORE ' + Math.round(G.score).toLocaleString('en-US'), W - 200, 72);
 
   const combo = activeCombos();
   if (combo.length) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd27a';
     ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(combo.map((c) => c.name).join(' · '), W - 200, 14 + 66 + 14);
+    ctx.fillText(combo.map((c) => c.name).join(' · '), W - 200, 14 + 78 + 14);
   }
 
   const boss = G.enemies.find((e) => e.boss && !e.dead);
@@ -6768,92 +6786,109 @@ function drawHUD() {
     ctx.textAlign = 'left';
   }
 
-  const dw = 100;
-  const gap = 8;
-  const totalW = dw * 3 + gap * 2;
-  const left = W / 2 - totalW / 2;
-  const dashReady = G.dash.cd <= 0;
-  const bombReady = G.bomb.cd <= 0;
-  const odOn = odActive();
-  panel(left, H - 84, dw, 26);
-  panel(left + dw + gap, H - 84, dw, 26);
-  panel(left + (dw + gap) * 2, H - 84, dw, 26);
-  ctx.font = '700 10px Consolas, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
-  ctx.fillText(dashReady ? 'SHIFT DASH' : 'DASH ' + G.dash.cd.toFixed(1), left + dw / 2, H - 79);
-  ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
-  ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, H - 79);
-  const odX = left + (dw + gap) * 2;
-  ctx.fillStyle = odOn ? '#ff8a5c' : G.od.heat > 15 ? '#e0b13c' : 'rgba(255,138,92,0.35)';
-  ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, H - 79);
-  if (!dashReady) {
-    ctx.fillStyle = 'rgba(159,216,255,0.3)';
-    ctx.fillRect(left + 2, H - 75, (dw - 4) * (1 - G.dash.cd / 1.5), 3);
-  }
-  if (!bombReady) {
-    ctx.fillStyle = 'rgba(255,207,92,0.3)';
-    ctx.fillRect(left + dw + gap + 2, H - 75, (dw - 4) * (1 - G.bomb.cd / (G.bomb.max || 6)), 3);
-  }
-  ctx.fillStyle = 'rgba(255,138,92,0.35)';
-  ctx.fillRect(odX + 2, H - 75, (dw - 4) * clamp(G.od.heat / 100, 0, 1), 3);
+  if (screen === 'play') {
+    const dw = 104;
+    const gap = 8;
+    const totalW = dw * 3 + gap * 2;
+    const left = W / 2 - totalW / 2;
+    const dashReady = G.dash.cd <= 0;
+    const bombReady = G.bomb.cd <= 0;
+    const odOn = odActive();
+    const by = H - 90;
+    const bh = 30;
+    panel(left, by, dw, bh, 6);
+    panel(left + dw + gap, by, dw, bh, 6);
+    panel(left + (dw + gap) * 2, by, dw, bh, 6);
+    ctx.font = '700 10.5px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
+    ctx.fillText(dashReady ? 'SHIFT DASH' : 'DASH ' + G.dash.cd.toFixed(1), left + dw / 2, by + 13);
+    ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
+    ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
+    const odX = left + (dw + gap) * 2;
+    ctx.fillStyle = odOn ? '#ff8a5c' : G.od.heat > 15 ? '#e0b13c' : 'rgba(255,138,92,0.35)';
+    ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, by + 13);
 
-  // combined skills + health strip, centered just above the xp bar
-  const chips = owned.slice(0, 12);
-  const chipW = 34;
-  const chipsW = chips.length * chipW + 8 + (owned.length > 12 ? 22 : 0);
-  const barW = 256;
-  const stripW = chipsW + 20 + barW;
-  const stripX = W / 2 - stripW / 2;
-  const stripY = H - 54;
-  panel(stripX, stripY, stripW, 34);
-  ctx.textAlign = 'center';
-  chips.forEach((id, i) => {
-    const cx = stripX + 8 + i * chipW + chipW / 2;
-    drawSkillGlyph(id, cx, stripY + 11, 10, SKILLS[id].color);
-    ctx.font = '700 8px Consolas, monospace';
-    ctx.fillStyle = SKILLS[id].color;
-    ctx.fillText(SKILLS[id].short, cx - 6, stripY + 29);
-    ctx.fillStyle = '#8f9ba4';
-    ctx.fillText(String(G.skills[id]), cx + 9, stripY + 29);
-  });
-  if (owned.length > 12) {
-    ctx.fillStyle = '#8f9ba4';
-    ctx.font = '700 8px Consolas, monospace';
-    ctx.fillText('+' + (owned.length - 12), stripX + 8 + 12 * chipW + 12, stripY + 26);
-  }
-  if (chips.length) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(stripX + chipsW + 10, stripY + 5);
-    ctx.lineTo(stripX + chipsW + 10, stripY + 29);
-    ctx.stroke();
-  }
-  const hx = stripX + chipsW + 20;
-  const hpCol = G.hp > 50 ? '#58c46a' : G.hp > 25 ? '#e0b13c' : '#d34a4a';
-  ctx.fillStyle = '#232c33';
-  ctx.fillRect(hx, stripY + 19, barW, 10);
-  ctx.fillStyle = hpCol;
-  ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 10);
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 3);
-  ctx.fillStyle = hpCol;
-  ctx.font = '700 9px Consolas, monospace';
-  ctx.fillText(Math.ceil(G.hp) + ' / ' + G.maxHp, hx + barW / 2, stripY + 12);
-  for (let i = 0; i < G.soldiers.length; i++) {
-    ctx.fillStyle = '#7fd0ff';
-    ctx.beginPath();
-    ctx.arc(hx + 8 + i * 12, stripY + 13, 3.5, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = '#123a52';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-  if (shieldMax() > 0) {
-    for (let i = 0; i < shieldMax(); i++) {
-      ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
-      ctx.fillRect(hx + barW - (shieldMax() - i) * 9, stripY + 9, 7, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(left + 6, by + 22, dw - 12, 3);
+    if (!dashReady) {
+      ctx.fillStyle = '#9fd8ff';
+      ctx.fillRect(left + 6, by + 22, (dw - 12) * (1 - G.dash.cd / 1.5), 3);
+    } else {
+      ctx.fillStyle = 'rgba(159,216,255,0.45)';
+      ctx.fillRect(left + 6, by + 22, dw - 12, 3);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(left + dw + gap + 6, by + 22, dw - 12, 3);
+    if (!bombReady) {
+      ctx.fillStyle = '#ffcf5c';
+      ctx.fillRect(left + dw + gap + 6, by + 22, (dw - 12) * (1 - G.bomb.cd / (G.bomb.max || 6)), 3);
+    } else {
+      ctx.fillStyle = 'rgba(255,207,92,0.45)';
+      ctx.fillRect(left + dw + gap + 6, by + 22, dw - 12, 3);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(odX + 6, by + 22, dw - 12, 3);
+    ctx.fillStyle = odOn ? '#ff8a5c' : '#e0b13c';
+    ctx.fillRect(odX + 6, by + 22, (dw - 12) * clamp(G.od.heat / 100, 0, 1), 3);
+
+    // combined skills + health strip, centered just above the xp bar
+    const chips = owned.slice(0, 12);
+    const chipW = 34;
+    const chipsW = chips.length * chipW + 8 + (owned.length > 12 ? 22 : 0);
+    const barW = 256;
+    const stripW = chipsW + 20 + barW;
+    const stripX = W / 2 - stripW / 2;
+    const stripY = H - 54;
+    panel(stripX, stripY, stripW, 34);
+    ctx.textAlign = 'center';
+    chips.forEach((id, i) => {
+      const cx = stripX + 8 + i * chipW + chipW / 2;
+      drawSkillGlyph(id, cx, stripY + 11, 10, SKILLS[id].color);
+      ctx.font = '700 8px Consolas, monospace';
+      ctx.fillStyle = SKILLS[id].color;
+      ctx.fillText(SKILLS[id].short, cx - 6, stripY + 29);
+      ctx.fillStyle = '#8f9ba4';
+      ctx.fillText(String(G.skills[id]), cx + 9, stripY + 29);
+    });
+    if (owned.length > 12) {
+      ctx.fillStyle = '#8f9ba4';
+      ctx.font = '700 8px Consolas, monospace';
+      ctx.fillText('+' + (owned.length - 12), stripX + 8 + 12 * chipW + 12, stripY + 26);
+    }
+    if (chips.length) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(stripX + chipsW + 10, stripY + 5);
+      ctx.lineTo(stripX + chipsW + 10, stripY + 29);
+      ctx.stroke();
+    }
+    const hx = stripX + chipsW + 20;
+    const hpCol = G.hp > 50 ? '#58c46a' : G.hp > 25 ? '#e0b13c' : '#d34a4a';
+    ctx.fillStyle = '#232c33';
+    ctx.fillRect(hx, stripY + 19, barW, 10);
+    ctx.fillStyle = hpCol;
+    ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 10);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(hx, stripY + 19, barW * clamp(G.hp / G.maxHp, 0, 1), 3);
+    ctx.fillStyle = hpCol;
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText(Math.ceil(G.hp) + ' / ' + G.maxHp, hx + barW / 2, stripY + 12);
+    for (let i = 0; i < G.soldiers.length; i++) {
+      ctx.fillStyle = '#7fd0ff';
+      ctx.beginPath();
+      ctx.arc(hx + 8 + i * 12, stripY + 13, 3.5, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#123a52';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    if (shieldMax() > 0) {
+      for (let i = 0; i < shieldMax(); i++) {
+        ctx.fillStyle = i < G.shield.charges ? '#9fd8ff' : 'rgba(159,216,255,0.16)';
+        ctx.fillRect(hx + barW - (shieldMax() - i) * 9, stripY + 9, 7, 8);
+      }
     }
   }
 
@@ -7098,12 +7133,15 @@ function drawMenuScreen() {
   ctx.fillStyle = '#e0b25c';
   ctx.font = '600 11px Consolas, monospace';
   ctx.fillText('A I K I T   ·   B U I L T   F O R   T H E   H O R D E', W / 2, 104);
+  ctx.shadowColor = 'rgba(224, 178, 92, 0.4)';
+  ctx.shadowBlur = 18;
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 58px Consolas, monospace';
   ctx.fillText('DUSTLINE', W / 2, 162);
   ctx.fillStyle = '#ffd27a';
   ctx.font = '700 20px Consolas, monospace';
   ctx.fillText('S U R V I V O R S', W / 2, 194);
+  ctx.shadowBlur = 0;
   ctx.fillStyle = 'rgba(210,200,175,0.7)';
   ctx.font = '600 12px Consolas, monospace';
   ctx.fillText('You move. The squad shoots. The horde never ends.', W / 2, 224);
@@ -7130,40 +7168,40 @@ function drawSetupScreen() {
   overlay(0.35);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
-  ctx.font = '700 26px Consolas, monospace';
-  ctx.fillText('LOADOUT', W / 2, 46);
+  ctx.font = '700 24px Consolas, monospace';
+  ctx.fillText('LOADOUT', W / 2, 38);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('WEAPON · MAP · TIME LIMIT · DIFFICULTY · ' + slotCap('offense') + ' OFF / ' + slotCap('passive') + ' DEF SLOTS', W / 2, 64);
+  ctx.fillText('WEAPON · MAP · OPERATOR · MODE · DIFFICULTY · ' + slotCap('offense') + ' OFF / ' + slotCap('passive') + ' DEF SLOTS', W / 2, 53);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('WEAPON', 92, 84);
+  ctx.fillText('WEAPON', 36, 68);
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
-    const x = 92 + i * 166;
-    const y = 92;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 158, h: 58 });
-    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 54;
+    const x = 36 + i * 178;
+    const y = 74;
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 170, h: 48 });
+    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 158, 54, 7);
+    rr(x, y, 170, 48, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = w.color;
-    ctx.font = '700 15px Consolas, monospace';
-    ctx.fillText(w.name, x + 12, y + 26);
+    ctx.font = '700 14px Consolas, monospace';
+    ctx.fillText(w.name, x + 12, y + 21);
     ctx.fillStyle = 'rgba(210,205,190,0.72)';
-    ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(w.blurb, x + 12, y + 46);
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(w.blurb, x + 12, y + 37);
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MAP', 92, 166);
+  ctx.fillText('MAP', 36, 134);
   const mapW = 124;
   const mapGap = 6;
   const mapStart = (W - (MAP_ORDER.length * mapW + (MAP_ORDER.length - 1) * mapGap)) / 2;
@@ -7171,194 +7209,193 @@ function drawSetupScreen() {
     const m = MAPS[id];
     const chosen = setup.map === id;
     const x = mapStart + i * (mapW + mapGap);
-    const y = 174;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: mapW, h: 54 });
-    const hover = mouse.x >= x && mouse.x <= x + mapW && mouse.y >= y && mouse.y <= y + 54;
+    const y = 140;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: mapW, h: 48 });
+    const hover = mouse.x >= x && mouse.x <= x + mapW && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, mapW, 54, 7);
+    rr(x, y, mapW, 48, 6);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.3 : 0.55;
     ctx.fillStyle = '#06080a';
-    rr(x, y, mapW, 54, 7);
+    rr(x, y, mapW, 48, 6);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, mapW, 54, 7);
+    rr(x, y, mapW, 48, 6);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
-    ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(m.name, x + 8, y + 22);
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(m.name, x + 8, y + 18);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 8, y + 41);
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 8, y + 36);
     ctx.fillStyle = m.props.building;
-    ctx.fillRect(x + mapW - 38, y + 12, 9, 9);
+    ctx.fillRect(x + mapW - 32, y + 29, 7, 7);
     ctx.fillStyle = m.props.rock;
     ctx.beginPath();
-    ctx.arc(x + mapW - 24, y + 17, 4.5, 0, TAU);
+    ctx.arc(x + mapW - 20, y + 32.5, 3.5, 0, TAU);
     ctx.fill();
     ctx.fillStyle = m.props.tree;
     ctx.beginPath();
-    ctx.arc(x + mapW - 12, y + 17, 4, 0, TAU);
+    ctx.arc(x + mapW - 10, y + 32.5, 3.5, 0, TAU);
     ctx.fill();
-  });
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('TIME LIMIT', 92, 246);
-  TIME_LIMITS.forEach((lim, i) => {
-    const chosen = setup.limit === lim.id;
-    const x = 92 + i * 196;
-    const y = 254;
-    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 184, h: 28 });
-    const hover = mouse.x >= x && mouse.x <= x + 184 && mouse.y >= y && mouse.y <= y + 28;
-    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
-    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    rr(x, y, 184, 28, 6);
-    ctx.fill();
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
-    ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(lim.label, x + 92, y + 19);
-    ctx.textAlign = 'left';
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('DIFFICULTY', 92, 300);
-  DIFFICULTY_ORDER.forEach((id, i) => {
-    const diff = findDifficulty(id);
-    const chosen = setup.difficulty === id;
-    const x = 92 + i * 260;
-    const y = 308;
-    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 248, h: 40 });
-    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 40;
-    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
-    ctx.strokeStyle = chosen ? diff.color : 'rgba(224,178,92,0.25)';
-    rr(x, y, 248, 40, 6);
-    ctx.fill();
-    ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = chosen ? diff.color : '#d8d0bd';
-    ctx.font = '700 13px Consolas, monospace';
-    ctx.fillText(diff.name, x + 12, y + 17);
-    ctx.fillStyle = 'rgba(200,195,180,0.65)';
-    ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 31);
-  });
-
-  ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MODE', 92, 358);
-  MODES.forEach((mode, i) => {
-    const chosen = setup.mode === mode.id;
-    const x = 92 + i * 260;
-    const y = 364;
-    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 248, h: 26 });
-    const hover = mouse.x >= x && mouse.x <= x + 248 && mouse.y >= y && mouse.y <= y + 26;
-    ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
-    ctx.strokeStyle = chosen ? '#63dcc0' : 'rgba(224,178,92,0.22)';
-    rr(x, y, 248, 26, 5);
-    ctx.fill();
-    ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = chosen ? '#63dcc0' : '#cfc6ad';
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(mode.name, x + 10, y + 12);
-    ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(mode.blurb, x + 10, y + 22);
-  });
-
-  ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('OPERATOR', 92, 404);
+  ctx.fillText('OPERATOR', 36, 198);
   OPERATOR_ORDER.forEach((id, i) => {
     const op = OPERATORS.find((o) => o.id === id);
     const chosen = setup.operator === id;
-    const x = 36 + i * 146;
-    const y = 408;
-    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 138, h: 24 });
-    const hover = mouse.x >= x && mouse.x <= x + 138 && mouse.y >= y && mouse.y <= y + 24;
+    const x = 36 + i * 148;
+    const y = 204;
+    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 142, h: 32 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 32;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? op.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 138, 24, 5);
+    rr(x, y, 142, 32, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? op.color : '#cfc6ad';
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(op.name, x + 9, y + 11);
+    ctx.font = '700 10.5px Consolas, monospace';
+    ctx.fillText(op.name, x + 9, y + 14);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(op.blurb, x + 9, y + 21);
+    ctx.fillText(op.blurb, x + 9, y + 26);
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 36, 446);
+  ctx.fillText('MODE', 36, 246);
+  MODES.forEach((mode, i) => {
+    const chosen = setup.mode === mode.id;
+    const x = 36 + i * 174;
+    const y = 252;
+    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 168, h: 30 });
+    const hover = mouse.x >= x && mouse.x <= x + 168 && mouse.y >= y && mouse.y <= y + 30;
+    ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#63dcc0' : 'rgba(224,178,92,0.22)';
+    rr(x, y, 168, 30, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? '#63dcc0' : '#cfc6ad';
+    ctx.font = '700 10.5px Consolas, monospace';
+    ctx.fillText(mode.name, x + 10, y + 13);
+    ctx.fillStyle = 'rgba(190,185,170,0.6)';
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(mode.blurb, x + 10, y + 23);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('TIME LIMIT', 400, 246);
+  TIME_LIMITS.forEach((lim, i) => {
+    const chosen = setup.limit === lim.id;
+    const x = 400 + i * 130;
+    const y = 252;
+    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 124, h: 30 });
+    const hover = mouse.x >= x && mouse.x <= x + 124 && mouse.y >= y && mouse.y <= y + 30;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
+    rr(x, y, 124, 30, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(lim.label, x + 62, y + 19);
+    ctx.textAlign = 'left';
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('DIFFICULTY', 36, 292);
+  DIFFICULTY_ORDER.forEach((id, i) => {
+    const diff = findDifficulty(id);
+    const chosen = setup.difficulty === id;
+    const x = 36 + i * 296;
+    const y = 298;
+    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 288, h: 34 });
+    const hover = mouse.x >= x && mouse.x <= x + 288 && mouse.y >= y && mouse.y <= y + 34;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? diff.color : 'rgba(224,178,92,0.25)';
+    rr(x, y, 288, 34, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = chosen ? diff.color : '#d8d0bd';
+    ctx.font = '700 12.5px Consolas, monospace';
+    ctx.fillText(diff.name, x + 12, y + 16);
+    ctx.fillStyle = 'rgba(200,195,180,0.65)';
+    ctx.font = '600 8.5px Consolas, monospace';
+    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 28);
+  });
+
+  ctx.fillStyle = '#e0b25c';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 36, 342);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
-    const x = 36 + i * 152;
-    const y = 450;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 20 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 20;
+    const x = 36 + i * 148;
+    const y = 348;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 26 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 26;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 142, 20, 5);
+    rr(x, y, 142, 26, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
-    ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 10);
+    ctx.font = '700 9.5px Consolas, monospace';
+    ctx.fillText(def.name, x + 7, y + 11);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 7px Consolas, monospace';
-    ctx.fillText('LOOT x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 18);
+    ctx.font = '600 7.5px Consolas, monospace';
+    ctx.fillText('LOOT x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 20);
   });
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATION · A RUN-LONG TWIST', 36, 482);
+  ctx.fillText('MUTATION · A RUN-LONG TWIST', 36, 384);
   MUTATION_ORDER.forEach((id, i) => {
     const def = MUTATIONS.find((m) => m.id === id);
     if (!def) return;
     const chosen = setup.mutation === id;
-    const x = 36 + i * 180;
-    const y = 486;
-    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 170, h: 20 });
-    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 20;
+    const x = 36 + i * 178;
+    const y = 390;
+    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 172, h: 26 });
+    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 26;
     ctx.fillStyle = chosen ? 'rgba(255,138,92,0.18)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 170, 20, 5);
+    rr(x, y, 172, 26, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
-    ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 9);
+    ctx.font = '700 9.5px Consolas, monospace';
+    ctx.fillText(def.name, x + 7, y + 11);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 7px Consolas, monospace';
-    ctx.fillText(def.blurb, x + 7, y + 17);
+    ctx.font = '600 7.5px Consolas, monospace';
+    ctx.fillText(def.blurb, x + 7, y + 20);
   });
 
   drawButton(
     'setup-start',
     'DEPLOY',
     W / 2,
-    526,
-    380,
-    34,
+    432,
+    420,
+    40,
     WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
       findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
       operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
   );
-  drawButton('back-setup', 'BACK', W / 2, 564, 180, 24);
+  drawButton('back-setup', 'BACK', W / 2, 484, 180, 28);
 }
 
 function drawArmoryScreen() {
@@ -7494,54 +7531,57 @@ function drawStatisticsScreen() {
 
 function drawSettingsScreen() {
   if (G) {
-    overlay(0.78);
+    overlay(0.82);
   } else {
     drawMenuBackdrop();
-    overlay(0.35);
+    overlay(0.4);
   }
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
   ctx.font = '700 30px Consolas, monospace';
-  ctx.fillText('SETTINGS', W / 2, 96);
+  ctx.fillText('SETTINGS', W / 2, 86);
 
-  const rowLabel = (label, y, note) => {
+  const cardW = 540;
+  const cardX = W / 2 - cardW / 2;
+  const rowCard = (label, note, y) => {
+    panel(cardX, y, cardW, 46, 6);
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#cbbf9f';
-    ctx.font = '600 15px Consolas, monospace';
-    ctx.fillText(label, 246, y);
+    ctx.fillStyle = '#f0e5cb';
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(label, cardX + 18, y + 20);
     if (note) {
-      ctx.fillStyle = 'rgba(180,175,155,0.6)';
-      ctx.font = '600 10px Consolas, monospace';
-      ctx.fillText(note, 246, y + 16);
+      ctx.fillStyle = 'rgba(180,175,155,0.65)';
+      ctx.font = '600 9.5px Consolas, monospace';
+      ctx.fillText(note, cardX + 18, y + 34);
     }
     ctx.textAlign = 'center';
   };
 
-  rowLabel('MASTER VOLUME', 176, 'All game audio');
-  drawButton('volume-down', '-', 636, 152, 46, 34);
+  rowCard('MASTER VOLUME', 'All game audio', 126);
+  drawButton('volume-down', '-', 630, 133, 40, 32);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e7eef3';
-  ctx.font = '700 18px Consolas, monospace';
-  ctx.fillText(settings.volume + '%', 690, 174);
-  drawButton('volume-up', '+', 744, 152, 46, 34);
+  ctx.font = '700 16px Consolas, monospace';
+  ctx.fillText(settings.volume + '%', 668, 153);
+  drawButton('volume-up', '+', 706, 133, 40, 32);
 
-  rowLabel('SCREEN SHAKE', 236, 'Camera kick on hits and blasts');
-  drawButton('shake', settings.shake ? 'ON' : 'OFF', 744, 212, 110, 34);
+  rowCard('SCREEN SHAKE', 'Camera kick on hits and blasts', 180);
+  drawButton('shake', settings.shake ? 'ON' : 'OFF', 668, 187, 116, 32);
 
-  rowLabel('DAMAGE NUMBERS', 296, 'Floating hit values');
-  drawButton('damage-numbers', settings.damageNumbers ? 'ON' : 'OFF', 744, 272, 110, 34);
+  rowCard('DAMAGE NUMBERS', 'Floating hit values', 234);
+  drawButton('damage-numbers', settings.damageNumbers ? 'ON' : 'OFF', 668, 241, 116, 32);
 
-  rowLabel('HOSTILE OUTLINES', 356, 'Bright ring around every hostile');
-  drawButton('outlines', settings.outlines ? 'ON' : 'OFF', 744, 332, 110, 34);
+  rowCard('HOSTILE OUTLINES', 'Bright ring around every hostile', 288);
+  drawButton('outlines', settings.outlines ? 'ON' : 'OFF', 668, 295, 116, 32);
 
-  rowLabel('REDUCED FLASH', 416, 'Fewer full-screen pulses');
-  drawButton('flashes', settings.flashes ? 'ON' : 'OFF', 744, 392, 110, 34);
+  rowCard('REDUCED FLASH', 'Fewer full-screen pulses', 342);
+  drawButton('flashes', settings.flashes ? 'ON' : 'OFF', 668, 349, 116, 32);
 
-  drawButton('back-settings', 'BACK', W / 2, 470, 180, 44);
+  drawButton('back-settings', 'BACK', W / 2, 424, 180, 38);
   ctx.fillStyle = 'rgba(190,180,155,0.55)';
   ctx.font = '600 10px Consolas, monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 534);
+  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 484);
 }
 
 function startDaily() {
@@ -7566,16 +7606,16 @@ function startDaily() {
 
 function drawDailyScreen() {
   drawMenuBackdrop();
-  overlay(0.34);
+  overlay(0.42);
   const info = dailyInfo();
   const r = info.rules;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#63dcc0';
   ctx.font = '700 30px Consolas, monospace';
-  ctx.fillText('DAILY CHALLENGE', W / 2, 78);
+  ctx.fillText('DAILY CHALLENGE', W / 2, 66);
   ctx.fillStyle = 'rgba(200,190,165,0.7)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('ONE SEED SHARED BY EVERYONE · BEST RUN OF THE DAY IS KEPT', W / 2, 100);
+  ctx.fillText('ONE SEED SHARED BY EVERYONE · BEST RUN OF THE DAY IS KEPT', W / 2, 86);
 
   const rows = [
     ['OPERATOR', OPERATORS.find((o) => o.id === r.operator).name],
@@ -7587,41 +7627,46 @@ function drawDailyScreen() {
     ['MUTATORS', r.mutators.length ? r.mutators.map((id) => mutatorDef(id).name).join(' + ') : 'NONE'],
     ['SEED', String(r.seed)]
   ];
+  const dW = 500;
+  const dX = W / 2 - dW / 2;
   rows.forEach((row, i) => {
-    const x = 240;
-    const y = 132 + i * 40;
+    const y = 108 + i * 33;
     ctx.fillStyle = 'rgba(16,20,24,0.9)';
-    rr(x, y, 480, 32, 6);
+    rr(dX, y, dW, 27, 5);
     ctx.fill();
     ctx.strokeStyle = 'rgba(99,220,192,0.18)';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(170,165,150,0.75)';
-    ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText(row[0], x + 14, y + 20);
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText(row[0], dX + 14, y + 17);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#e6efe9';
-    ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(row[1], x + 466, y + 20);
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(row[1], dX + dW - 14, y + 17);
   });
 
+  const bestY = 380;
+  panel(dX, bestY, dW, 30, 6);
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(200,195,180,0.65)';
-  ctx.font = '600 10px Consolas, monospace';
   if (info.best) {
     const b = info.best;
+    ctx.fillStyle = '#63dcc0';
+    ctx.font = '700 11px Consolas, monospace';
     ctx.fillText(
       'TODAY BEST · ' + (b.win ? 'WIN' : 'LOSS') + ' · ' + b.kills + ' KILLS · ' + fmtTime(b.time),
       W / 2,
-      432
+      bestY + 19
     );
   } else {
-    ctx.fillText('NO ATTEMPT YET TODAY', W / 2, 432);
+    ctx.fillStyle = 'rgba(200,195,180,0.65)';
+    ctx.font = '600 10.5px Consolas, monospace';
+    ctx.fillText('NO ATTEMPT YET TODAY', W / 2, bestY + 19);
   }
 
-  drawButton('start-daily', 'START DAILY', W / 2, 458, 300, 44);
-  drawButton('back-daily', 'BACK', W / 2, 512, 180, 32);
+  drawButton('start-daily', 'START DAILY', W / 2, 432, 280, 42);
+  drawButton('back-daily', 'BACK', W / 2, 488, 180, 32);
 }
 
 function drawManualScreen() {
@@ -7768,91 +7813,124 @@ function drawManualScreen() {
     ctx.fillText('OWN ALL TEN AND CRATES PAY 30 SHARDS INSTEAD', W / 2, 496);
   } else {
     LORE.forEach((note, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = 36 + col * 452;
-      const y = 128 + row * 100;
-      ctx.fillStyle = 'rgba(14,18,22,0.9)';
-      ctx.strokeStyle = 'rgba(224,178,92,0.22)';
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const cardW = 292;
+      const cardH = 116;
+      const x = 28 + col * 306;
+      const y = 126 + row * 124;
+      ctx.fillStyle = 'rgba(14,18,22,0.92)';
+      ctx.strokeStyle = 'rgba(224,178,92,0.25)';
       ctx.lineWidth = 1;
-      rr(x, y, 440, 92, 7);
+      rr(x, y, cardW, cardH, 6);
       ctx.fill();
       ctx.stroke();
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#e0b25c';
-      ctx.font = '700 12px Consolas, monospace';
-      ctx.fillText(note.title, x + 12, y + 18);
+      ctx.fillStyle = '#ffd27a';
+      ctx.font = '700 11.5px Consolas, monospace';
+      ctx.fillText(note.title, x + 10, y + 18);
       ctx.textAlign = 'right';
-      ctx.fillStyle = 'rgba(150,145,130,0.6)';
-      ctx.font = '600 8px Consolas, monospace';
-      ctx.fillText(note.tag, x + 428, y + 18);
+      ctx.fillStyle = 'rgba(150,145,130,0.7)';
+      ctx.font = '600 8.5px Consolas, monospace';
+      ctx.fillText(note.tag, x + cardW - 10, y + 18);
       ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(215,210,195,0.78)';
-      ctx.font = '600 9px Consolas, monospace';
+      ctx.font = '600 8.5px Consolas, monospace';
       const words = note.text.split(' ');
       let line = '';
       let ly = y + 36;
       for (const word of words) {
         const next = line ? line + ' ' + word : word;
-        if (next.length > 68 && line) {
-          ctx.fillText(line, x + 12, ly);
+        if (next.length > 40 && line) {
+          ctx.fillText(line, x + 10, ly);
           ly += 12;
           line = word;
         } else {
           line = next;
         }
       }
-      if (line) ctx.fillText(line, x + 12, ly);
+      if (line) ctx.fillText(line, x + 10, ly);
     });
   }
 
   ctx.textAlign = 'center';
-  drawButton('back-manual', 'BACK', W / 2, 540, 180, 32);
+  drawButton('back-manual', 'BACK', W / 2, 532, 180, 34);
 }
 
 function drawHelpScreen() {
   drawMenuBackdrop();
-  overlay(0.3);
+  overlay(0.35);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
-  ctx.font = '700 30px Consolas, monospace';
-  ctx.fillText('HOW TO PLAY', W / 2, 82);
-  const lines = [
-    ['MOVE', 'WASD or arrows. The map is infinite and dotted with cover.'],
-    ['DASH', 'Shift or Space bursts forward with brief invulnerability.'],
-    ['BOMB', 'Press E to throw a bomb at the thickest part of the horde.'],
-    ['OVERDRIVE', 'Press R to burn heat: +40% damage, +50% damage taken.'],
-    ['FIGHT', 'Your weapon fires automatically at the nearest hostile.'],
-    ['LEVEL UP', 'Collect gems, then pick one of three skills every level.'],
-    ['COMBOS', 'Some skill pairs unlock a bonus once both reach level 2.'],
-    ['WAVES', 'Every 40s the horde grows. New enemy types join over time.'],
-    ['BOSS', 'Bosses every 5th wave; every 4th boss is a MEGA boss.'],
-    ['EVOLVE', 'Max a skill at level 10 and take its partner to level 3 to evolve it.'],
-    ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
-    ['HAZARDS', 'Each map has a hazard: quicksand, ice, embers, vines, tar, gas or glass.'],
-    ['MUTATORS', 'Take up to two run modifiers, plus one run-long mutation.'],
-    ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 fire callouts.'],
-    ['LAST STAND', 'Under 10% health: +50% damage, no extra safety. Recover to escape.'],
-    ['WAR CHEST', 'From wave 3, a hidden cache needs kills before it opens.'],
-    ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
-    ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
-    ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
-    ['ARENAS', 'Worn rings mark prop-free clearings: use them to kite the horde.'],
-    ['DAILY', 'One seeded run per day with a fixed loadout. Beat your best.'],
-    ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
+  ctx.font = '700 28px Consolas, monospace';
+  ctx.fillText('HOW TO PLAY', W / 2, 54);
+  ctx.fillStyle = 'rgba(200,190,165,0.65)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText('SURVIVE THE HORDE · MASTER YOUR LOADOUT · EXTRACT YOUR SHARDS', W / 2, 74);
+
+  const col1 = [
+    ['MOVE', 'WASD or arrows. Infinite map dotted with cover.'],
+    ['DASH', 'Shift or Space bursts forward with invulnerability.'],
+    ['BOMB', 'Press E to throw bombs at the thickest horde.'],
+    ['OVERDRIVE', 'Press R to burn heat: +40% dmg, +50% dmg taken.'],
+    ['FIGHT', 'Weapons auto-fire at the nearest hostile.'],
+    ['LEVEL UP', 'Collect gems to pick one of 3 skills each level.'],
+    ['COMBOS', 'Some skill pairs unlock a bonus when both reach L2.'],
+    ['WAVES', 'Every 40s horde grows; new enemy types appear.'],
+    ['BOSS', 'Bosses every 5th wave; every 4th is a MEGA boss.'],
+    ['EVOLVE', 'Max a skill at 10 and partner at 3 to evolve it.'],
+    ['ARENAS', 'Worn rings mark prop-free clearings: use to kite.']
   ];
-  let y = 100;
-  for (const line of lines) {
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#e0b25c';
-    ctx.font = '700 11px Consolas, monospace';
-    ctx.fillText(line[0], 146, y);
-    ctx.fillStyle = 'rgba(225,215,195,0.82)';
-    ctx.font = '600 12px Consolas, monospace';
-    ctx.fillText(line[1], 270, y);
-    y += 20;
-  }
-  drawButton('back-help', 'BACK', W / 2, 532, 180, 30);
+  const col2 = [
+    ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more.'],
+    ['HAZARDS', 'Each map has a hazard: quicksand, ice, embers, vines, tar, gas or glass.'],
+    ['MUTATORS', 'Take up to two run modifiers, plus one mutation.'],
+    ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 callouts.'],
+    ['LAST STAND', 'Under 10% health: +50% dmg, no extra safety.'],
+    ['WAR CHEST', 'From wave 3, a hidden cache needs kills to open.'],
+    ['EXTRACT', 'Bosses drop beacons: bank shards or risk losing half.'],
+    ['EVENTS', 'Horde surges, supply drops and hunters hit the sector.'],
+    ['MAP', 'Press M to see live contracts, alerts and beacons.'],
+    ['DAILY', 'One seeded run per day with a fixed loadout.'],
+    ['PAUSE', 'Esc opens the pause menu with settings and map.']
+  ];
+
+  panel(36, 92, 436, 396, 8);
+  panel(488, 92, 436, 396, 8);
+
+  ctx.textAlign = 'left';
+  col1.forEach((item, i) => {
+    const y = 118 + i * 34;
+    ctx.fillStyle = 'rgba(224,178,92,0.14)';
+    ctx.strokeStyle = 'rgba(224,178,92,0.3)';
+    rr(48, y - 12, 84, 22, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffd27a';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(item[0], 54, y + 2);
+    ctx.fillStyle = 'rgba(235,225,205,0.85)';
+    ctx.font = '600 10.5px Consolas, monospace';
+    ctx.fillText(item[1], 140, y + 2);
+  });
+
+  col2.forEach((item, i) => {
+    const y = 118 + i * 34;
+    ctx.fillStyle = 'rgba(224,178,92,0.14)';
+    ctx.strokeStyle = 'rgba(224,178,92,0.3)';
+    rr(500, y - 12, 88, 22, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffd27a';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText(item[0], 506, y + 2);
+    ctx.fillStyle = 'rgba(235,225,205,0.85)';
+    ctx.font = '600 10.5px Consolas, monospace';
+    const text = item[1].length > 46 ? item[1].slice(0, 44) + '..' : item[1];
+    ctx.fillText(item[1], 596, y + 2);
+  });
+
+  drawButton('back-help', 'BACK', W / 2, 510, 180, 32);
 }
 
 function drawSkillGlyph(id, cx, cy, size, color) {
@@ -8186,38 +8264,44 @@ function drawUpgradesScreen() {
     const y = 404 + Math.floor(i / 4) * 30;
     const active = G ? combo.needs.every((s) => G.skills[s] >= 2) : false;
     const known = !combo.secret || (save.secrets || []).indexOf(combo.id) >= 0;
+    ctx.fillStyle = active ? 'rgba(255,210,122,0.12)' : 'rgba(14,18,22,0.65)';
+    ctx.strokeStyle = active ? combo.color : 'rgba(255,255,255,0.06)';
+    rr(x - 4, y - 8, 224, 28, 4);
+    ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = !known ? 'rgba(120,115,105,0.4)' : active ? combo.color : 'rgba(200,195,180,0.45)';
     ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText((active ? '● ' : '○ ') + (known ? combo.name : '???'), x, y);
+    ctx.fillText((active ? '● ' : '○ ') + (known ? combo.name : '???'), x + 4, y + 2);
     ctx.fillStyle = 'rgba(190,185,170,0.55)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(known ? combo.needs.map((s) => SKILLS[s].short).join(' + ') : 'SECRET · UNDISCOVERED', x, y + 10);
-    ctx.fillText(known ? combo.desc : 'Find the hidden pair.', x, y + 19);
+    ctx.fillText(known ? combo.needs.map((s) => SKILLS[s].short).join(' + ') : 'SECRET · UNDISCOVERED', x + 4, y + 10);
+    ctx.fillText(known ? combo.desc : 'Find the hidden pair.', x + 4, y + 19);
   });
 
   drawButton('back-upgrades', 'BACK', W / 2, 512, 180, 34);
 }
 
 function drawPauseScreen() {
-  overlay(0.68);
+  overlay(0.75);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f2e6c8';
-  ctx.font = '700 38px Consolas, monospace';
+  ctx.font = '700 36px Consolas, monospace';
   ctx.fillText('PAUSED', W / 2, 128);
-  drawButton('resume', 'RESUME', W / 2, 154, 260, 46);
-  drawButton('mapview-pause', 'MAP', W / 2, 210, 260, 40);
-  drawButton('upgrades-pause', 'SKILLS', W / 2, 258, 260, 40);
-  drawButton('settings-pause', 'SETTINGS', W / 2, 306, 260, 40);
-  drawButton('restart', 'RESTART RUN', W / 2, 354, 260, 40);
-  drawButton('menu-pause', 'MAIN MENU', W / 2, 402, 260, 40);
+  drawButton('resume', 'RESUME', W / 2, 154, 260, 44);
+  drawButton('mapview-pause', 'MAP', W / 2, 204, 260, 38);
+  drawButton('upgrades-pause', 'SKILLS', W / 2, 248, 260, 38);
+  drawButton('settings-pause', 'SETTINGS', W / 2, 292, 260, 38);
+  drawButton('restart', 'RESTART RUN', W / 2, 336, 260, 38);
+  drawButton('menu-pause', 'MAIN MENU', W / 2, 380, 260, 38);
   ctx.fillStyle = 'rgba(200,190,165,0.55)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('ESC RESUMES', W / 2, 466);
+  ctx.fillText('ESC RESUMES', W / 2, 432);
   const fieldNote = G && LORE.find((note) => note.map === G.map);
   if (fieldNote) {
-    ctx.fillStyle = 'rgba(224,178,92,0.55)';
-    ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText('FIELD NOTE · ' + fieldNote.note, W / 2, 494);
+    panel(W / 2 - 270, 456, 540, 32, 6);
+    ctx.fillStyle = '#ffd27a';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText('FIELD NOTE · ' + fieldNote.note, W / 2, 476);
   }
 }
 
@@ -8245,18 +8329,19 @@ function drawLevelUpCelebration() {
 }
 
 function drawLevelUpScreen() {
-  overlay(0.74);
+  overlay(0.78);
   drawLevelUpCelebration();
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd27a';
   ctx.font = '700 32px Consolas, monospace';
-  ctx.fillText('LEVEL ' + G.level, W / 2, 92);
+  ctx.fillText('LEVEL ' + G.level, W / 2, 82);
   ctx.fillStyle = 'rgba(220,210,190,0.72)';
   ctx.font = '600 11px Consolas, monospace';
-  ctx.fillText('CHOOSE A SKILL · PRESS 1, 2 OR 3   ·   R REROLLS', W / 2, 114);
+  ctx.fillText('CHOOSE A SKILL · PRESS 1, 2 OR 3   ·   R REROLLS', W / 2, 104);
 
   const startX = (W - (240 * 3 + 24 * 2)) / 2;
-  const cardY = 142;
+  const cardY = 126;
+  const cardH = 302;
   G.offers.forEach((id, i) => {
     const x = startX + i * 264;
     uiButtons.push({ id: 'banish-' + i, label: 'BANISH', x: x + 240 - 30, y: cardY + 8, w: 22, h: 22 });
@@ -8269,82 +8354,106 @@ function drawLevelUpScreen() {
     const x = startX + i * 264;
     const y = cardY;
     const w = 240;
-    const h = 286;
+    const h = cardH;
     uiButtons.push({ id: 'upgrade-' + i, label: skill.name, x, y, w, h });
     const hover = mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
-    ctx.fillStyle = hover ? 'rgba(36,40,44,0.98)' : 'rgba(18,22,26,0.94)';
-    ctx.strokeStyle = hover ? skill.color : 'rgba(224,178,92,0.4)';
+    ctx.fillStyle = hover ? 'rgba(32,36,42,0.98)' : 'rgba(16,20,24,0.94)';
+    ctx.strokeStyle = hover ? skill.color : 'rgba(224,178,92,0.38)';
+    ctx.lineWidth = hover ? 1.5 : 1;
     rr(x, y, w, h, 8);
     ctx.fill();
     ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(180,175,155,0.55)';
-    ctx.font = '700 14px Consolas, monospace';
-    ctx.fillText('×', x + w - 21, y + 24);
+
+    const banishHover = mouse.x >= x + w - 28 && mouse.x <= x + w - 6 && mouse.y >= y + 8 && mouse.y <= y + 30;
+    ctx.fillStyle = banishHover ? 'rgba(255,107,82,0.25)' : 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = banishHover ? '#ff6b52' : 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    rr(x + w - 28, y + 8, 22, 22, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = banishHover ? '#ff6b52' : 'rgba(180,175,155,0.6)';
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText('×', x + w - 17, y + 23);
+
     ctx.textAlign = 'center';
     ctx.fillStyle = skill.color;
     ctx.font = '700 17px Consolas, monospace';
-    ctx.fillText(skill.name, x + w / 2, y + 50);
+    ctx.fillText(skill.name, x + w / 2, y + 36);
+
     ctx.fillStyle = 'rgba(190,185,165,0.65)';
-    ctx.font = '600 11px Consolas, monospace';
+    ctx.font = '600 10.5px Consolas, monospace';
     const group = skillGroup(id);
     const tag = group === 'passive' ? 'DEF' : 'OFF';
     ctx.fillText(
       lvl === 0 ? 'NEW · ' + tag + ' ' + slotsUsed(group) + '/' + slotCap(group) : 'LEVEL ' + lvl + ' → ' + (lvl + 1),
       x + w / 2,
-      y + 74
+      y + 54
     );
-    drawSkillGlyph(id, x + w / 2, y + 100, 24, skill.color);
-    ctx.fillStyle = 'rgba(220,215,200,0.85)';
-    ctx.font = '600 12px Consolas, monospace';
+
+    drawSkillGlyph(id, x + w / 2, y + 80, 22, skill.color);
+
+    ctx.fillStyle = 'rgba(220,215,200,0.88)';
+    ctx.font = '600 11.5px Consolas, monospace';
     const words = skill.desc.split(' ');
     let line = '';
-    let ly = y + 122;
+    let ly = y + 104;
     for (const word of words) {
       const next = line ? line + ' ' + word : word;
       if (next.length > 26 && line) {
         ctx.fillText(line, x + w / 2, ly);
-        ly += 18;
+        ly += 15;
         line = word;
       } else {
         line = next;
       }
     }
     if (line) ctx.fillText(line, x + w / 2, ly);
+
+    const statY = y + 148;
+    ctx.fillStyle = 'rgba(255,210,122,0.08)';
+    ctx.strokeStyle = 'rgba(255,210,122,0.22)';
+    ctx.lineWidth = 1;
+    rr(x + 12, statY, w - 24, 20, 4);
+    ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = '#ffd27a';
-    ctx.font = '700 10px Consolas, monospace';
-    ctx.fillText(skillStatLine(id, lvl), x + w / 2, y + 180);
-    ctx.fillStyle = 'rgba(200,195,180,0.66)';
+    ctx.font = '700 9.5px Consolas, monospace';
+    ctx.fillText(skillStatLine(id, lvl), x + w / 2, statY + 14);
+
+    ctx.fillStyle = 'rgba(200,195,180,0.65)';
     ctx.font = '600 9px Consolas, monospace';
     const detailWords = (SKILL_DETAILS[id] || '').split(' ');
     let detail = '';
-    let detailY = y + 198;
+    let detailY = statY + 30;
     for (const word of detailWords) {
       const next = detail ? detail + ' ' + word : word;
       if (next.length > 34 && detail) {
         ctx.fillText(detail, x + w / 2, detailY);
-        detailY += 11;
+        detailY += 12;
         detail = word;
       } else {
         detail = next;
       }
     }
     if (detail) ctx.fillText(detail, x + w / 2, detailY);
+
     if (evo) {
-      ctx.fillStyle = G.evolved[id] ? '#7fe0a0' : 'rgba(255,210,122,0.62)';
-      ctx.font = '600 10px Consolas, monospace';
+      ctx.fillStyle = G.evolved[id] ? '#7fe0a0' : 'rgba(255,210,122,0.85)';
+      ctx.font = '700 10px Consolas, monospace';
       ctx.fillText(
-        G.evolved[id] ? 'EVOLVED · ' + evo.name : 'EVOLVES · ' + SKILLS[evo.needs].name,
+        G.evolved[id] ? '⚡ EVOLVED · ' + evo.name : '⚡ EVOLVES · ' + SKILLS[evo.needs].name,
         x + w / 2,
-        y + h - 52
+        y + h - 46
       );
     }
+
     ctx.fillStyle = skill.color;
-    ctx.font = '700 40px Consolas, monospace';
-    ctx.fillText(String(i + 1), x + w / 2, y + h - 22);
+    ctx.font = '700 34px Consolas, monospace';
+    ctx.fillText(String(i + 1), x + w / 2, y + h - 14);
   });
 
-  drawButton('reroll', 'REROLL (' + G.rerolls + ')', W / 2 - 120, 446, 170, 38);
+  drawButton('reroll', 'REROLL (' + G.rerolls + ')', W / 2 - 120, 448, 170, 36);
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(190,185,170,0.55)';
   ctx.font = '600 10px Consolas, monospace';
@@ -8625,90 +8734,155 @@ function drawMapView() {
   ctx.fillText('BLUE YOU   ·   RED HOSTILES   ·   TAN BUILDINGS   ·   GREEN TREES', left, top + view + 18);
 
   const cx0 = left + view + 16;
+  const sideW = 200;
+  const sideX = cx0 - 8;
+  panel(sideX, top, sideW, view, 6);
   ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(200,195,180,0.75)';
-  ctx.font = '700 10px Consolas, monospace';
-  ctx.fillText('CONTRACTS', cx0, top + 18);
+  ctx.fillStyle = '#f0d8a8';
+  ctx.font = '700 11px Consolas, monospace';
+  ctx.fillText('CONTRACTS', cx0 + 6, top + 22);
   G.contracts.forEach((c, i) => {
     const def = CONTRACTS.find((d) => d.id === c.id);
     const progress = def ? Math.min(c.target, def.goal(G)) : 0;
-    ctx.fillStyle = c.done ? '#63dcc0' : 'rgba(200,195,180,0.65)';
+    const cy = top + 42 + i * 36;
+    ctx.fillStyle = 'rgba(20,24,30,0.6)';
+    rr(cx0 + 2, cy - 10, sideW - 20, 30, 4);
+    ctx.fill();
+    ctx.fillStyle = c.done ? '#63dcc0' : '#e0dbcd';
+    ctx.font = '700 9.5px Consolas, monospace';
+    ctx.fillText((c.done ? '✓ ' : '○ ') + c.name, cx0 + 8, cy + 4);
+    ctx.fillStyle = c.done ? 'rgba(99,220,192,0.85)' : 'rgba(180,175,155,0.7)';
     ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText((c.done ? '[x] ' : '[ ] ') + c.name, cx0, top + 40 + i * 30);
-    ctx.fillStyle = c.done ? 'rgba(99,220,192,0.7)' : 'rgba(170,165,150,0.6)';
-    ctx.fillText((c.done ? 'DONE' : progress + ' / ' + c.target) + '   +' + c.reward + ' SH', cx0 + 12, top + 51 + i * 30);
+    ctx.fillText((c.done ? 'COMPLETE' : progress + ' / ' + c.target) + '  (+' + c.reward + ' SH)', cx0 + 10, cy + 16);
   });
-  ctx.fillStyle = 'rgba(255,210,122,0.8)';
-  ctx.font = '700 10px Consolas, monospace';
-  ctx.fillText('UNBANKED ' + Math.floor(G.unbanked), cx0, top + 150);
-  ctx.fillStyle = '#63dcc0';
-  ctx.fillText('SECURED ' + Math.floor(G.banked), cx0, top + 166);
-  ctx.fillStyle = G.alert > 55 ? '#e0b13c' : 'rgba(200,195,180,0.7)';
-  ctx.fillText('ALERT ' + Math.round(G.alert) + '%', cx0, top + 182);
-  ctx.fillStyle = 'rgba(190,185,170,0.6)';
-  ctx.font = '600 9px Consolas, monospace';
-  ctx.fillText('MARKET x' + G.market.toFixed(2), cx0, top + 198);
+
+  const telY = top + 172;
+  ctx.fillStyle = 'rgba(255,210,122,0.25)';
+  ctx.fillRect(cx0 + 4, telY - 14, sideW - 24, 1);
+  ctx.fillStyle = '#f0d8a8';
+  ctx.font = '700 10.5px Consolas, monospace';
+  ctx.fillText('FIELD TELEMETRY', cx0 + 6, telY);
+
+  const telRows = [
+    ['UNBANKED', Math.floor(G.unbanked) + ' SH', '#ffd27a'],
+    ['SECURED', Math.floor(G.banked) + ' SH', '#63dcc0'],
+    ['ALERT LEVEL', Math.round(G.alert) + '%', G.alert > 55 ? '#ff6b52' : '#e0dbcd'],
+    ['MARKET RATE', 'x' + G.market.toFixed(2), '#ffd27a']
+  ];
+  telRows.forEach((r, idx) => {
+    const ry = telY + 22 + idx * 24;
+    ctx.fillStyle = 'rgba(180,175,155,0.65)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(r[0], cx0 + 6, ry);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = r[2];
+    ctx.font = '700 10.5px Consolas, monospace';
+    ctx.fillText(r[1], cx0 + sideW - 18, ry);
+    ctx.textAlign = 'left';
+  });
 
   ctx.textAlign = 'center';
   drawButton('map-close', 'CLOSE', W / 2, 532, 180, 38);
 }
 
 function drawOverScreen() {
-  overlay(0.78);
+  overlay(0.86);
   ctx.textAlign = 'center';
-  if (G.victory) {
+  const victory = G.victory;
+  if (victory) {
     ctx.fillStyle = '#ffd27a';
-    ctx.font = '700 44px Consolas, monospace';
-    ctx.fillText(G.mode === 'bossrush' ? 'BOSS RUSH CLEARED' : 'SURVIVED THE LIMIT', W / 2, 126);
+    ctx.font = '700 40px Consolas, monospace';
+    ctx.fillText(G.mode === 'bossrush' ? 'BOSS RUSH CLEARED' : 'SURVIVED THE LIMIT', W / 2, 88);
     ctx.fillStyle = '#e7eef3';
-    ctx.font = '700 26px Consolas, monospace';
-    ctx.fillText(fmtTime(G.time) + ' ON ' + MAPS[G.map].name, W / 2, 166);
+    ctx.font = '700 22px Consolas, monospace';
+    ctx.fillText(fmtTime(G.time) + ' ON ' + MAPS[G.map].name, W / 2, 120);
   } else {
     ctx.fillStyle = '#ff6b52';
-    ctx.font = '700 44px Consolas, monospace';
-    ctx.fillText('THE HORDE WINS', W / 2, 126);
+    ctx.font = '700 40px Consolas, monospace';
+    ctx.fillText('THE HORDE WINS', W / 2, 88);
     ctx.fillStyle = '#e7eef3';
-    ctx.font = '700 26px Consolas, monospace';
-    ctx.fillText('SURVIVED ' + fmtTime(G.time), W / 2, 166);
+    ctx.font = '700 22px Consolas, monospace';
+    ctx.fillText('SURVIVED ' + fmtTime(G.time), W / 2, 120);
   }
-  ctx.fillStyle = 'rgba(215,205,185,0.8)';
-  ctx.font = '600 13px Consolas, monospace';
-  ctx.fillText(G.kills + ' KILLS   ·   LEVEL ' + G.level + '   ·   SQUAD ' + G.soldiers.length + '   ·   BOSSES ' + (G.bossKills || 0), W / 2, 192);
+
+  // After-Action Report (AAR) Card
+  const panelW = 580;
+  const panelH = 204;
+  const panelX = W / 2 - panelW / 2;
+  const panelY = 142;
+  ctx.fillStyle = 'rgba(14,18,24,0.96)';
+  ctx.strokeStyle = victory ? 'rgba(255,210,122,0.45)' : 'rgba(255,107,82,0.45)';
+  ctx.lineWidth = 1.5;
+  rr(panelX, panelY, panelW, panelH, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Score headline
   ctx.fillStyle = '#ffd27a';
-  ctx.font = '700 18px Consolas, monospace';
-  ctx.fillText('SCORE ' + Math.round(G.score).toLocaleString('en-US'), W / 2, 216);
-  ctx.fillStyle = 'rgba(255,210,122,0.6)';
-  ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('BEST SCORE ' + (save.bestScore || 0).toLocaleString('en-US'), W / 2, 232);
+  ctx.font = '700 22px Consolas, monospace';
+  ctx.fillText('SCORE ' + Math.round(G.score).toLocaleString('en-US'), W / 2, panelY + 32);
   const record = G.time > best.time - 0.001 && G.time > 0;
-  ctx.fillStyle = record ? '#ffd27a' : 'rgba(200,190,165,0.6)';
-  ctx.font = '600 12px Consolas, monospace';
-  ctx.fillText(record ? 'NEW PERSONAL BEST' : 'BEST ' + fmtTime(best.time), W / 2, 250);
+  ctx.fillStyle = record ? '#63dcc0' : 'rgba(200,190,165,0.7)';
+  ctx.font = '600 10.5px Consolas, monospace';
+  ctx.fillText(
+    (record ? '★ NEW PERSONAL BEST ★  ·  ' : '') + 'BEST SCORE ' + (save.bestScore || 0).toLocaleString('en-US') + '  ·  BEST TIME ' + fmtTime(best.time),
+    W / 2,
+    panelY + 50
+  );
+
+  // 4 metric badges: KILLS, LEVEL, SQUAD, BOSSES
+  const stats = [
+    ['KILLS', String(G.kills)],
+    ['LEVEL', String(G.level)],
+    ['SQUAD', String(G.soldiers.length)],
+    ['BOSSES', String(G.bossKills || 0)]
+  ];
+  const bW = 120;
+  const bH = 42;
+  const bGap = 16;
+  const bStartX = panelX + (panelW - (4 * bW + 3 * bGap)) / 2;
+  stats.forEach((st, idx) => {
+    const bx = bStartX + idx * (bW + bGap);
+    const by = panelY + 66;
+    ctx.fillStyle = 'rgba(22,28,34,0.85)';
+    ctx.strokeStyle = 'rgba(255,210,122,0.2)';
+    ctx.lineWidth = 1;
+    rr(bx, by, bW, bH, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(180,175,155,0.65)';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText(st[0], bx + bW / 2, by + 15);
+    ctx.fillStyle = '#e7eef3';
+    ctx.font = '700 16px Consolas, monospace';
+    ctx.fillText(st[1], bx + bW / 2, by + 34);
+  });
+
+  // Rewards line
   ctx.fillStyle = '#63dcc0';
-  ctx.font = '700 16px Consolas, monospace';
-  ctx.fillText('+' + (G.shardsEarned || 0) + ' SHARDS   ·   ' + save.shards + ' TOTAL', W / 2, 274);
-  ctx.fillStyle = 'rgba(190,185,165,0.65)';
-  ctx.font = '600 10px Consolas, monospace';
+  ctx.font = '700 14px Consolas, monospace';
+  ctx.fillText('+' + (G.shardsEarned || 0) + ' SHARDS   ·   ' + save.shards + ' TOTAL BANKED', W / 2, panelY + 134);
+
+  // Run summary footer
   const modeLine =
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
       : 'SURVIVORS · WAVE ' + G.wave;
   const mut = MUTATIONS.find((m) => m.id === G.mutation);
-  ctx.fillText(operatorDef().name + ' · ' + modeLine + (mut && mut.id !== 'none' ? '   ·   ' + mut.name : '') + (G.relics.length ? '   ·   RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, 292);
-  if (G.relics.length) {
-    const names = G.relics.map((id) => RELICS.find((r) => r.id === id).name).join(' · ');
-    ctx.fillStyle = 'rgba(99,220,192,0.75)';
-    ctx.fillText(names, W / 2, 306);
-  }
+  ctx.fillStyle = 'rgba(190,185,165,0.7)';
+  ctx.font = '600 10px Consolas, monospace';
+  ctx.fillText(operatorDef().name + ' · ' + modeLine + (mut && mut.id !== 'none' ? ' · ' + mut.name : '') + (G.relics.length ? ' · RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, panelY + 158);
+
   const combo = activeCombos();
   if (combo.length) {
-    ctx.fillStyle = 'rgba(255,210,122,0.8)';
+    ctx.fillStyle = 'rgba(255,210,122,0.85)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, 320);
+    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, panelY + 178);
   }
-  drawButton('retry', 'REDEPLOY', W / 2 - 130, 336, 240, 46);
-  drawButton('menu-over', 'MAIN MENU', W / 2 + 130, 336, 240, 46);
-  drawButton('stats-over', 'STATISTICS', W / 2, 394, 240, 38);
+
+  drawButton('retry', 'REDEPLOY', W / 2 - 130, 368, 240, 44);
+  drawButton('menu-over', 'MAIN MENU', W / 2 + 130, 368, 240, 44);
+  drawButton('stats-over', 'STATISTICS', W / 2, 426, 240, 36);
 }
 
 function drawScreens() {
