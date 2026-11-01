@@ -58,7 +58,13 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   enterSetup(g);
   const ids = g.api.snapshot().buttons.map((b) => b.id);
   for (const weapon of ['ak', 'smg', 'spas', 'dmr']) assert.ok(ids.includes('weapon-' + weapon), weapon);
-  for (const map of ['desert', 'frost', 'ash', 'jungle']) assert.ok(ids.includes('map-' + map), map);
+  for (const map of ['desert', 'frost', 'ash', 'jungle', 'crater', 'toxic', 'glass']) assert.ok(ids.includes('map-' + map), map);
+  const mapButtons = g.api.snapshot().buttons.filter((b) => b.id.indexOf('map-') === 0);
+  assert.strictEqual(mapButtons.length, 7, 'seven maps');
+  for (let i = 0; i < mapButtons.length - 1; i++) {
+    assert.ok(mapButtons[i].x + mapButtons[i].w <= mapButtons[i + 1].x, 'map cards do not overlap');
+  }
+  assert.ok(mapButtons[mapButtons.length - 1].x + mapButtons[mapButtons.length - 1].w <= 960, 'the seventh map stays on screen');
   for (const limit of ['endless', '5', '10', '15']) assert.ok(ids.includes('limit-' + limit), limit);
 
   g.api.clickButton('weapon-dmr');
@@ -437,11 +443,15 @@ test('settings persist and apply from both menu and pause', () => {
   assert.ok(g.api.clickButton('volume-up'));
   assert.ok(g.api.clickButton('shake'));
   assert.ok(g.api.clickButton('damage-numbers'));
+  assert.ok(g.api.clickButton('outlines'));
+  assert.ok(g.api.clickButton('flashes'));
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.settings.volume, 90);
   assert.strictEqual(s.settings.shake, false);
   assert.strictEqual(s.settings.damageNumbers, false);
+  assert.strictEqual(s.settings.outlines, true);
+  assert.strictEqual(s.settings.flashes, false);
   assert.ok(g.api.clickButton('back-settings'));
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'menu');
@@ -458,6 +468,48 @@ test('settings persist and apply from both menu and pause', () => {
   assert.ok(g2.api.clickButton('back-settings'));
   g2.steps(1);
   assert.strictEqual(g2.api.snapshot().screen, 'paused');
+});
+
+test('hostile outlines add a readable ring around enemies', () => {
+  const plain = boot({ seed: 81, record: true });
+  deploy(plain);
+  plain.api.spawnEnemy('grunt', 220, 0);
+  plain.steps(1);
+  const ring = (g) => g.strokes.filter((s) => s.strokeStyle === 'rgba(255,250,235,0.6)' && s.lineWidth === 1.25);
+  assert.strictEqual(ring(plain).length, 0, 'outlines are off by default');
+
+  const marked = boot({ seed: 81, record: true });
+  assert.ok(marked.api.clickButton('settings'));
+  marked.steps(1);
+  assert.ok(marked.api.clickButton('outlines'));
+  marked.steps(1);
+  assert.ok(marked.api.clickButton('back-settings'));
+  marked.steps(1);
+  deploy(marked);
+  marked.api.spawnEnemy('grunt', 220, 0);
+  marked.steps(1);
+  assert.ok(ring(marked).length >= 1, 'the hostile ring draws when enabled');
+});
+
+test('reduced flash suppresses milestone screen pulses', () => {
+  const bright = boot({ seed: 85 });
+  deploy(bright);
+  bright.api.setKills(10);
+  bright.steps(1);
+  assert.ok(bright.api.snapshot().flashT > 0, 'the milestone pulses by default');
+
+  const calm = boot({ seed: 85 });
+  assert.ok(calm.api.clickButton('settings'));
+  calm.steps(1);
+  assert.ok(calm.api.clickButton('flashes'));
+  calm.steps(1);
+  assert.ok(calm.api.clickButton('back-settings'));
+  calm.steps(1);
+  deploy(calm);
+  calm.api.setKills(10);
+  calm.steps(1);
+  assert.strictEqual(calm.api.snapshot().settings.flashes, false);
+  assert.strictEqual(calm.api.snapshot().flashT, 0, 'the pulse is suppressed');
 });
 
 test('pause freezes the run and restart resets it', () => {
@@ -599,7 +651,7 @@ function evolutionTierFor(level) {
 }
 
 test('upgrades and help screens are reachable from the menu', () => {
-  const g = boot({ seed: 113 });
+  const g = boot({ seed: 113, record: true });
   assert.ok(g.api.clickButton('upgrades'));
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'upgrades');
@@ -609,6 +661,9 @@ test('upgrades and help screens are reachable from the menu', () => {
   assert.ok(g.api.clickButton('help'));
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'help');
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.some((t) => t.indexOf('quicksand') >= 0 && t.indexOf('glass') >= 0), 'the hazard line lists every hazard');
+  assert.ok(labels.some((t) => t.indexOf('prop-free') >= 0), 'the help explains arenas');
   assert.ok(g.api.clickButton('back-help'));
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'menu');
@@ -1825,11 +1880,14 @@ test('best wave persists for survivors runs and legacy saves default cleanly', (
   assert.strictEqual(s.save.rushClears, 0, 'survivors runs do not count as rush clears');
 });
 
-test('the setup screen offers five operators and applies the chosen one', () => {
+test('the setup screen offers six operators and applies the chosen one', () => {
   const g = boot({ seed: 1001 });
   enterSetup(g);
-  const ids = g.api.snapshot().buttons.map((b) => b.id);
-  for (const op of ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger']) assert.ok(ids.includes('operator-' + op), op);
+  const buttons = g.api.snapshot().buttons;
+  const ids = buttons.map((b) => b.id);
+  for (const op of ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger', 'arcanist']) assert.ok(ids.includes('operator-' + op), op);
+  const lastOperator = buttons.find((b) => b.id === 'operator-arcanist');
+  assert.ok(lastOperator.x + lastOperator.w <= 960, 'the sixth operator stays on screen');
   assert.strictEqual(g.api.snapshot().setup.operator, 'ranger');
   g.api.clickButton('operator-vanguard');
   g.steps(1);
@@ -1927,8 +1985,8 @@ test('scavenger earns twenty percent more unbanked shards', () => {
   assert.ok(Math.abs(scav / ranger - 1.2) < 0.02, 'ratio was ' + (scav / ranger).toFixed(3));
 });
 
-test('the field manual documents every mob, boss and relic', () => {
-  const g = boot({ seed: 1101 });
+test('the field manual documents every mob, boss, relic and field note', () => {
+  const g = boot({ seed: 1101, record: true });
   assert.ok(g.api.snapshot().buttons.some((b) => b.id === 'manual'));
   g.api.clickButton('manual');
   g.steps(1);
@@ -1936,10 +1994,17 @@ test('the field manual documents every mob, boss and relic', () => {
   assert.strictEqual(s.screen, 'manual');
   assert.strictEqual(s.manual.tab, 'enemies');
   const ids = s.buttons.map((b) => b.id);
-  for (const id of ['manual-enemies', 'manual-bosses', 'manual-relics', 'back-manual']) assert.ok(ids.includes(id), id);
+  for (const id of ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore', 'back-manual']) assert.ok(ids.includes(id), id);
+  const allTabs = s.buttons.filter((b) => ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore'].includes(b.id));
+  assert.strictEqual(allTabs.length, 4);
+  for (let i = 0; i < allTabs.length - 1; i++) {
+    assert.ok(allTabs[i].x + allTabs[i].w <= allTabs[i + 1].x, 'manual tabs do not overlap');
+  }
+  assert.ok(allTabs[allTabs.length - 1].x + allTabs[allTabs.length - 1].w <= 960, 'the last tab stays on screen');
   assert.strictEqual(s.manual.enemies, 19, 'every enemy type including the hunter');
   assert.strictEqual(s.manual.bosses, 8);
   assert.strictEqual(s.manual.relics, 10);
+  assert.strictEqual(s.manual.lore, 9, 'nine field notes');
   assert.strictEqual(s.manual.enemyTips, s.manual.enemies, 'every enemy has a tip');
   assert.strictEqual(s.manual.bossTips, s.manual.bosses, 'every boss has a tip');
   g.api.clickButton('manual-bosses');
@@ -1948,10 +2013,29 @@ test('the field manual documents every mob, boss and relic', () => {
   g.api.clickButton('manual-relics');
   g.steps(1);
   assert.strictEqual(g.api.snapshot().manual.tab, 'relics');
+  g.api.clickButton('manual-lore');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().manual.tab, 'lore');
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('THE DUSTLINE'), 'the setting note renders');
+  assert.ok(labels.includes('THE SIGNAL'), 'the NetWatch note renders');
+  assert.ok(labels.includes('DEAD ZONE'), 'every map note renders');
+  assert.ok(labels.includes('GLASS WASTES'), 'the new map note renders');
   g.steps(2);
   g.api.clickButton('back-manual');
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'menu');
+});
+
+test('the pause screen shows the current map field note', () => {
+  const g = boot({ seed: 1102, record: true });
+  deploy(g, { map: 'desert' });
+  g.key('escape');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'paused');
+  const notes = g.texts.filter((t) => t.text.indexOf('FIELD NOTE · ') === 0);
+  assert.strictEqual(notes.length, 1, 'one map note');
+  assert.ok(notes[0].text.indexOf('first quarantine line') > 0, 'the desert note is shown');
 });
 
 test('the manual shows a behavior tip for every documented enemy', () => {
@@ -2374,8 +2458,8 @@ test('explosions leave fading scorch decals within a cap', () => {
 
 
 
-test('crater and dead-zone maps expose tar and gas hazards', () => {
-  const expectations = { crater: 'tar', toxic: 'gas' };
+test('crater, dead-zone and glass maps expose tar, gas and shard hazards', () => {
+  const expectations = { crater: 'tar', toxic: 'gas', glass: 'shards' };
   for (const map of Object.keys(expectations)) {
     const g = boot({ seed: 3000 + map.length });
     g.api.startRun({ map });
@@ -2392,12 +2476,13 @@ test('crater and dead-zone maps expose tar and gas hazards', () => {
     }
     assert.ok(found, map + ' exposes a hazard');
     assert.strictEqual(found.hz, expectations[map]);
-    if (map === 'toxic') {
+    assert.strictEqual(g.api.snapshot().hazard, expectations[map]);
+    if (map === 'toxic' || map === 'glass') {
       g.api.setInvulnerable(false);
       g.api.setPlayer(found.x, found.y);
       const before = g.api.snapshot().hp;
       g.steps(80);
-      assert.ok(g.api.snapshot().hp < before, 'toxic gas burns the player');
+      assert.ok(g.api.snapshot().hp < before, map + ' hazard damages the player');
     }
   }
 });
@@ -2805,4 +2890,81 @@ test('world interactables render with a single camera offset', () => {
   assert.ok(box, 'the stash body draws');
   assert.ok(Math.abs(box.sx - (2040 - 12 - s.cam.x)) < 1, 'x uses one camera offset, got ' + box.sx);
   assert.ok(Math.abs(box.sy - (3000 - 12 - s.cam.y)) < 1, 'y uses one camera offset, got ' + box.sy);
+});
+
+test('open arenas stay clear of solid props and hazards', () => {
+  const g = boot({ seed: 9101, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  const home = g.api.arenaAt(0, 0);
+  assert.ok(home, 'the deploy zone is an arena');
+  assert.ok(home.r >= 400, 'the deploy arena is large enough to kite in');
+  const props = g.api.props(0, 0, 2500);
+  assert.ok(props.length > 0, 'the world still has cover');
+  assert.ok(props.every((p) => !g.api.arenaAt(p.x, p.y)), 'no solid prop sits inside an arena');
+  assert.strictEqual(g.api.hazardAtPoint(0, 0), null, 'the deploy arena is hazard-free');
+  assert.ok(
+    g.fills.some((f) => String(f.fillStyle) === 'rgba(255,244,214,0.045)'),
+    'the arena floor is drawn'
+  );
+});
+
+test('the arcanist fires arcane rounds and every fourth kill arcs', () => {
+  const g = boot({ seed: 9103 });
+  enterSetup(g);
+  g.api.clickButton('operator-arcanist');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().operator, 'arcanist');
+
+  g.api.spawnEnemy('grunt', 300, 0);
+  let shot = null;
+  for (let i = 0; i < 80 && !shot; i++) {
+    g.steps(1);
+    const s = g.api.snapshot();
+    if (s.bullets.indexOf('p') >= 0) shot = s;
+  }
+  assert.ok(shot, 'the arcanist fires');
+  assert.ok(shot.bulletColors.indexOf('#c39bff') >= 0, 'arcanist rounds are violet');
+  assert.ok(shot.bulletPierce.some((p) => p >= 1), 'arcanist rounds pierce');
+
+  const k = boot({ seed: 9103 });
+  enterSetup(k);
+  k.api.clickButton('operator-arcanist');
+  k.steps(1);
+  k.api.clickButton('setup-start');
+  k.steps(1);
+  k.api.setInvulnerable(true);
+  k.api.spawnEnemy('grunt', 120, 0);
+  k.api.spawnEnemy('tank', 150, 0);
+  k.api.spawnEnemy('grunt', 220, 0);
+  k.api.setKills(3);
+  k.api.setEnemyHp(0, 1);
+  k.api.hitEnemy(0, 50);
+  const after = k.api.snapshot();
+  assert.strictEqual(after.stats.arcs, 1, 'the fourth kill arcs');
+  assert.strictEqual(after.zaps, 1, 'the bolt is visible');
+  const tank = after.enemies.find((e) => e.type === 'tank');
+  assert.ok(tank && tank.hp < tank.maxHp, 'the arc damages a nearby hostile');
+  k.steps(25);
+  assert.strictEqual(k.api.snapshot().zaps, 0, 'the bolt fades');
+
+  k.api.setKills(7);
+  k.api.setEnemyHp(1, 1);
+  k.api.hitEnemy(1, 50);
+  assert.strictEqual(k.api.snapshot().stats.arcs, 2, 'a hostile struck by an arc can arc again later');
+});
+
+test('contact damage scales slower and caps at 3.2x', () => {
+  const g = boot({ seed: 9105 });
+  deploy(g);
+  g.api.spawnEnemy('tank', 240, 0);
+  assert.ok(Math.abs(g.api.snapshot().enemies[0].touch - 18) < 0.01, 'the base touch value is unchanged');
+  g.api.setTime(260);
+  g.api.spawnEnemy('tank', 320, 0);
+  assert.ok(Math.abs(g.api.snapshot().enemies[1].touch - 36) < 0.001, 'doubles at 260 seconds');
+  g.api.setTime(5000);
+  g.api.spawnEnemy('tank', 400, 0);
+  assert.ok(Math.abs(g.api.snapshot().enemies[2].touch - 57.6) < 0.001, 'caps at 3.2x');
 });

@@ -72,7 +72,7 @@ function hash2(x, y) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true };
+const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true, outlines: false, flashes: true };
 const SETTINGS_KEY = 'dustline.settings';
 const SAVE_KEY = 'dustline.save';
 const SAVE_VERSION = 2;
@@ -98,10 +98,11 @@ function writeStore(key, value) {
 const HAZARDS = {
   quicksand: { name: 'QUICKSAND', color: 'rgba(150,120,70,0.20)', playerSpeed: 0.62 },
   ice: { name: 'BLACK ICE', color: 'rgba(190,225,255,0.20)', playerSpeed: 1.28, enemySpeed: 1.1 },
-  embers: { name: 'EMBER VENTS', color: 'rgba(255,110,60,0.20)', burn: 5 },
-  gas: { name: 'TOXIC GAS', color: 'rgba(130,220,100,0.22)', burn: 4 },
+  embers: { name: 'EMBER VENTS', color: 'rgba(255,110,60,0.20)', burn: 5, burnLabel: 'BURN', burnColor: '#ff8a5c' },
+  gas: { name: 'TOXIC GAS', color: 'rgba(130,220,100,0.22)', burn: 4, burnLabel: 'POISON', burnColor: '#9be59b' },
   tar: { name: 'TAR PITS', color: 'rgba(48,56,50,0.30)', playerSpeed: 0.55, enemySpeed: 0.85 },
-  vines: { name: 'CHOKE VINES', color: 'rgba(80,140,70,0.22)', enemySpeed: 0.72 }
+  vines: { name: 'CHOKE VINES', color: 'rgba(80,140,70,0.22)', enemySpeed: 0.72 },
+  shards: { name: 'GLASS FALLOUT', color: 'rgba(190,230,220,0.24)', playerSpeed: 0.72, burn: 3, burnLabel: 'CUT', burnColor: '#bfe6e0' }
 };
 
 const AMBIENCE = {
@@ -110,7 +111,8 @@ const AMBIENCE = {
   ash: { mode: 'ember', color: 'rgba(255,150,80,0.62)', count: 24, speed: 14 },
   jungle: { mode: 'firefly', color: 'rgba(210,255,140,0.6)', count: 22, speed: 6 },
   crater: { mode: 'dust', color: 'rgba(160,120,180,0.45)', count: 26, speed: 10 },
-  toxic: { mode: 'firefly', color: 'rgba(150,255,170,0.55)', count: 26, speed: 5 }
+  toxic: { mode: 'firefly', color: 'rgba(150,255,170,0.55)', count: 26, speed: 5 },
+  glass: { mode: 'dust', color: 'rgba(200,240,230,0.42)', count: 28, speed: 9 }
 };
 
 const MUTATORS = [
@@ -156,7 +158,8 @@ const CAMO = {
   ash: '#6a4a3a',
   jungle: '#4a6a3a',
   crater: '#6a5a6a',
-  toxic: '#5a7a3a'
+  toxic: '#5a7a3a',
+  glass: '#5f7a72'
 };
 
 const ACHIEVEMENTS = [
@@ -364,6 +367,8 @@ function loadSettings() {
     if (Number.isFinite(raw.volume)) merged.volume = clamp(Math.round(raw.volume), 0, 100);
     if (typeof raw.shake === 'boolean') merged.shake = raw.shake;
     if (typeof raw.damageNumbers === 'boolean') merged.damageNumbers = raw.damageNumbers;
+    if (typeof raw.outlines === 'boolean') merged.outlines = raw.outlines;
+    if (typeof raw.flashes === 'boolean') merged.flashes = raw.flashes;
   }
   return merged;
 }
@@ -527,6 +532,7 @@ const sfx = {
   throwBomb() { tone('sine', 420, 180, 0.05, 0.16); },
   hit() { tone('triangle', 850, 320, 0.045, 0.035); },
   crit() { tone('square', 1400, 900, 0.05, 0.05); tone('sine', 2100, 1500, 0.03, 0.06); },
+  arc() { tone('sine', 1600, 2800, 0.05, 0.08); noiseSweep(0.05, 0.1, 2600, 900, 'bandpass'); },
   kill(streak) {
     const step = Math.min(6, streak || 0);
     noiseShot(0.09, 0.1, 520, 0.7);
@@ -930,6 +936,77 @@ const BOSS_TIPS = {
   wyrm: 'Burrows untargetable, erupts and spawns husks.'
 };
 
+const LORE = [
+  {
+    id: 'dustline',
+    title: 'THE DUSTLINE',
+    tag: 'SETTING',
+    text: 'A century after the sky burned, the dust never settled. NetWatch calls it a quarantine; the people still here call it home. Every run is a salvage shift: stay mobile, recover what the dead left, and extract before the horde closes.'
+  },
+  {
+    id: 'desert',
+    title: 'DUST BASIN',
+    tag: 'FIELD NOTE',
+    map: 'desert',
+    note: 'The first quarantine line. The convoys are still out there under the sand.',
+    text: 'Dry riverbeds swallowed the evacuation convoys whole; their cargo still glints under the sand. Crawlers nest in the wrecks, and the wind carries voices that are only static.'
+  },
+  {
+    id: 'frost',
+    title: 'WHITEOUT RIDGE',
+    tag: 'FIELD NOTE',
+    map: 'frost',
+    note: 'Cold keeps the dead fresh. Keep the squad between you and the ridge.',
+    text: 'The ridge was a weather station before the sky broke. Now the cold preserves everything: old patrols, old orders, old mistakes. Move fast on the ice and keep the squad between you and the frozen dead.'
+  },
+  {
+    id: 'ash',
+    title: 'ASHFALL',
+    tag: 'FIELD NOTE',
+    map: 'ash',
+    note: 'The city never stopped burning. Ember vents open without warning.',
+    text: 'The burning city never stopped burning. Ember vents open without warning and the ash hides tripwires and graves alike. NetWatch marks it a dead sector; the salvage is anything but.'
+  },
+  {
+    id: 'jungle',
+    title: 'GREENFALL',
+    tag: 'FIELD NOTE',
+    map: 'jungle',
+    note: 'The jungle ate the labs first. What grew here learned to hunt in packs.',
+    text: 'The jungle ate the labs first. Vines that used to be specimens now pull the horde along the old service roads. Whatever grew here learned to hunt in packs.'
+  },
+  {
+    id: 'crater',
+    title: 'CRATER FIELD',
+    tag: 'FIELD NOTE',
+    map: 'crater',
+    note: 'Glass, tar and crater rims. Nothing here is level, and everything is listening.',
+    text: 'The impact that ended the first wave left a field of glass and tar. Nothing here is level, and everything here is listening. The crater rims make good ground, if you can reach them.'
+  },
+  {
+    id: 'toxic',
+    title: 'DEAD ZONE',
+    tag: 'FIELD NOTE',
+    map: 'toxic',
+    note: 'The last exclusion ring. NetWatch sends nobody in. You are how they check.',
+    text: 'The last exclusion ring. The air is corrosive and the locals stopped counting the dead long ago. NetWatch sends nobody in. You are how they check.'
+  },
+  {
+    id: 'glass',
+    title: 'GLASS WASTES',
+    tag: 'FIELD NOTE',
+    map: 'glass',
+    note: 'The impact glass still sings underfoot. Every step is a cut waiting to happen.',
+    text: 'The first warhead turned the basin to glass. Now the dunes ring like broken bottles and the shard fields open under your boots. The horde does not mind the cuts. You will.'
+  },
+  {
+    id: 'signal',
+    title: 'THE SIGNAL',
+    tag: 'NETWATCH',
+    text: 'Every extraction beacon carries the same burst: a NetWatch authentication code, a coordinate, and a countdown that never reaches zero. Someone is still transmitting. No one has found the transmitter.'
+  }
+];
+
 const WEAPONS = {
   ak: { name: 'AK-47', skill: 'rifle', blurb: 'Balanced auto rifle', color: '#ffd27a' },
   smg: { name: 'SMG-45', skill: 'smg', blurb: 'Fast and frantic', color: '#ffcf5c' },
@@ -988,10 +1065,18 @@ const MAPS = {
     accent: '#a8ff8f',
     hazard: 'gas',
     props: { building: '#687660', rock: '#73755c', tree: '#43702f' }
+  },
+  glass: {
+    name: 'GLASS WASTES',
+    blurb: 'Vitrified dunes, shard fields',
+    sky: ['#9aa8a0', '#94a299', '#8e9c93'],
+    accent: '#bfe6e0',
+    hazard: 'shards',
+    props: { building: '#7d8a84', rock: '#9aa8a0', tree: '#5d7a6a' }
   }
 };
 
-const MAP_ORDER = ['desert', 'frost', 'ash', 'jungle', 'crater', 'toxic'];
+const MAP_ORDER = ['desert', 'frost', 'ash', 'jungle', 'crater', 'toxic', 'glass'];
 
 const TIME_LIMITS = [
   { id: 'endless', label: 'ENDLESS', sec: 0 },
@@ -1088,11 +1173,12 @@ const OPERATORS = [
   { id: 'ranger', name: 'RANGER', blurb: 'Balanced baseline', color: '#9be59b' },
   { id: 'vanguard', name: 'VANGUARD', blurb: '+30 HP · -10% damage taken', color: '#7fe0a0' },
   { id: 'marksman', name: 'MARKSMAN', blurb: '+15% velocity · +8% crit', color: '#ffe08a' },
-  { id: 'engineer', name: 'ENGINEER', blurb: 'Turrets +60% life · aura +15%', color: '#b8c6d0' },
-  { id: 'scavenger', name: 'SCAVENGER', blurb: '+20% shards · 4 relic picks', color: '#63dcc0' }
+  { id: 'engineer', name: 'ENGINEER', blurb: 'Turrets +60% life · aura+15%', color: '#b8c6d0' },
+  { id: 'scavenger', name: 'SCAVENGER', blurb: '+20% shards · 4 relic picks', color: '#63dcc0' },
+  { id: 'arcanist', name: 'ARCANIST', blurb: 'Arcane rounds · pierce', color: '#c39bff' }
 ];
 
-const OPERATOR_ORDER = ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger'];
+const OPERATOR_ORDER = ['ranger', 'vanguard', 'marksman', 'engineer', 'scavenger', 'arcanist'];
 const BOSS_EVERY = 5;
 const MEGA_EVERY_BOSSES = 4;
 
@@ -1738,6 +1824,7 @@ function startRun(options) {
     shield: { charges: 0, t: 0 },
     slowT: 0,
     pools: [],
+    arcs: [],
     recentKills: [],
     momentum: 0,
     hitStop: 0,
@@ -1927,9 +2014,31 @@ function abandonRun() {
 }
 
 const PROP_TILE = 300;
+const ARENA_TILE = 1100;
 
 function mapDef() {
   return MAPS[(G && G.map) || setup.map] || MAPS.desert;
+}
+
+function arenaAtPoint(x, y, pad) {
+  const extra = pad || 0;
+  if (Math.hypot(x, y) < 430 + extra) return { x: 0, y: 0, r: 430, home: true };
+  const gx = Math.floor(x / ARENA_TILE);
+  const gy = Math.floor(y / ARENA_TILE);
+  for (let j = -1; j <= 1; j++) {
+    for (let i = -1; i <= 1; i++) {
+      const ax = gx + i;
+      const ay = gy + j;
+      const h = hash2(ax * 13 + 3, ay * 17 + 7);
+      if (h > 0.72) continue;
+      const cx = ax * ARENA_TILE + ARENA_TILE / 2 + (hash2(ax * 5 + 1, ay * 11 + 2) - 0.5) * 200;
+      const cy = ay * ARENA_TILE + ARENA_TILE / 2 + (hash2(ax * 23 + 4, ay * 31 + 6) - 0.5) * 200;
+      const radius = 300 + hash2(ax * 41 + 9, ay * 43 + 5) * 150;
+      const reach = radius + extra;
+      if (dist2(x, y, cx, cy) < reach * reach) return { x: cx, y: cy, r: radius };
+    }
+  }
+  return null;
 }
 
 function ambienceDef() {
@@ -1953,6 +2062,7 @@ function hazardAt(x, y) {
       const cx = gx * HAZARD_TILE + HAZARD_TILE / 2 + (hash2(gx * 23, gy * 29) - 0.5) * 70;
       const cy = gy * HAZARD_TILE + HAZARD_TILE / 2 + (hash2(gx * 31, gy * 37) - 0.5) * 70;
       const r = 58 + hash2(gx * 41, gy * 43) * 40;
+      if (arenaAtPoint(cx, cy, 70)) continue;
       if (dist2(x, y, cx, cy) < r * r) return def.hazard;
     }
   }
@@ -1977,6 +2087,7 @@ function drawHazards(cam) {
       const cx = tx * TS + TS / 2 + (hash2(tx * 23, ty * 29) - 0.5) * 70;
       const cy = ty * TS + TS / 2 + (hash2(tx * 31, ty * 37) - 0.5) * 70;
       const r = 58 + hash2(tx * 41, ty * 43) * 40;
+      if (arenaAtPoint(cx, cy, 70)) continue;
       if (sprite) {
         ctx.drawImage(sprite, cx - r, cy - r * 0.72, r * 2, r * 1.44);
       } else {
@@ -2000,6 +2111,61 @@ function drawHazards(cam) {
   }
 }
 
+function drawArenas(cam) {
+  const def = mapDef();
+  const seen = [];
+  const drawOne = (arena) => {
+    if (!arena) return;
+    for (const other of seen) {
+      if (other.x === arena.x && other.y === arena.y) return;
+    }
+    seen.push(arena);
+    if (arena.x + arena.r < cam.x || arena.x - arena.r > cam.x + W) return;
+    if (arena.y + arena.r * 0.74 < cam.y || arena.y - arena.r * 0.74 > cam.y + H) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,244,214,0.045)';
+    ctx.beginPath();
+    ctx.ellipse(arena.x, arena.y, arena.r, arena.r * 0.74, 0, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 0.16;
+    ctx.strokeStyle = def.accent;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([20, 16]);
+    ctx.beginPath();
+    ctx.ellipse(arena.x, arena.y, arena.r, arena.r * 0.74, 0, 0, TAU);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.07;
+    ctx.beginPath();
+    ctx.ellipse(arena.x, arena.y, arena.r * 0.6, arena.r * 0.44, 0, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = def.accent;
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * TAU;
+      const px = arena.x + Math.cos(ang) * arena.r * 0.9;
+      const py = arena.y + Math.sin(ang) * arena.r * 0.666;
+      ctx.fillRect(px - 3, py - 3, 6, 6);
+    }
+    ctx.restore();
+  };
+  drawOne(arenaAtPoint(0, 0));
+  const tx0 = Math.floor(cam.x / ARENA_TILE) - 1;
+  const ty0 = Math.floor(cam.y / ARENA_TILE) - 1;
+  const tx1 = Math.floor((cam.x + W) / ARENA_TILE) + 1;
+  const ty1 = Math.floor((cam.y + H) / ARENA_TILE) + 1;
+  for (let ty = ty0; ty <= ty1; ty++) {
+    for (let tx = tx0; tx <= tx1; tx++) {
+      const h = hash2(tx * 13 + 3, ty * 17 + 7);
+      if (h > 0.72) continue;
+      const cx = tx * ARENA_TILE + ARENA_TILE / 2 + (hash2(tx * 5 + 1, ty * 11 + 2) - 0.5) * 200;
+      const cy = ty * ARENA_TILE + ARENA_TILE / 2 + (hash2(tx * 23 + 4, ty * 31 + 6) - 0.5) * 200;
+      const radius = 300 + hash2(tx * 41 + 9, ty * 43 + 5) * 150;
+      drawOne({ x: cx, y: cy, r: radius });
+    }
+  }
+}
+
 function propTile(tx, ty) {
   const out = [];
   const h = hash2(tx * 7 + 11, ty * 13 + 5);
@@ -2011,6 +2177,7 @@ function propTile(tx, ty) {
     const px = tx * PROP_TILE + 40 + hash2(tx * 17 + i, ty * 19 + i) * (PROP_TILE - 80);
     const py = ty * PROP_TILE + 40 + hash2(tx * 23 + i, ty * 29 + i) * (PROP_TILE - 80);
     if (Math.hypot(px, py) < 300) continue;
+    if (arenaAtPoint(px, py, 36)) continue;
     if (kindRoll < 0.3) {
       out.push({
         kind: 'building',
@@ -2059,6 +2226,7 @@ function decorTile(tx, ty) {
   else if (map === 'jungle') kind = roll < 0.46 ? 'fern' : roll < 0.72 ? 'flower' : 'mushroom';
   else if (map === 'crater') kind = roll < 0.48 ? 'crack' : roll < 0.74 ? 'pebbles' : 'bones';
   else if (map === 'toxic') kind = roll < 0.44 ? 'fern' : roll < 0.72 ? 'charred' : 'pebbles';
+  else if (map === 'glass') kind = roll < 0.5 ? 'crack' : roll < 0.76 ? 'pebbles' : 'bones';
   else kind = roll < 0.55 ? 'grass' : roll < 0.78 ? 'bones' : 'pebbles';
   return [{
     kind,
@@ -2452,6 +2620,9 @@ function fireWeapon(id, dt) {
   const ang = Math.atan2(near.y - G.player.y, near.x - G.player.x);
   const speed = st.speed * bulletSpeedMult();
   const life = (st.range * bulletSpeedMult()) / speed;
+  const arcane = isOperator('arcanist');
+  const shotColor = arcane ? '#c39bff' : st.color;
+  const pierce = (st.pierce || 0) + (arcane ? 1 : 0);
   if (id === 'shotgun') {
     for (let i = 0; i < st.pellets; i++) {
       const off = (i / Math.max(1, st.pellets - 1) - 0.5) * st.spread;
@@ -2463,8 +2634,8 @@ function fireWeapon(id, dt) {
         speed,
         hit.dmg,
         'p',
-        st.color,
-        { crit: hit.crit, pierce: st.pierce || 0, life }
+        shotColor,
+        { crit: hit.crit, pierce, life }
       );
     }
     G.stats.shots.shotgun += st.pellets;
@@ -2480,15 +2651,15 @@ function fireWeapon(id, dt) {
         speed,
         hit.dmg,
         'p',
-        st.color,
-        { crit: hit.crit, pierce: st.pierce || 0, life }
+        shotColor,
+        { crit: hit.crit, pierce, life }
       );
     }
     G.stats.shots[id] = (G.stats.shots[id] || 0) + shots;
   }
   G.cds[id] = st.cd / fireRateMult();
   shake = Math.max(shake, id === 'shotgun' ? 2.2 : id === 'dmr' ? 2 : 1.1);
-  muzzle(G.player.x, G.player.y, ang, st.color);
+  muzzle(G.player.x, G.player.y, ang, shotColor);
   sfx[st.sfx]();
 }
 
@@ -2672,7 +2843,7 @@ function spawnEnemyAt(type, x, y) {
     hp: Math.round(base.hp * hpScale),
     maxHp: Math.round(base.hp * hpScale),
     speed: base.speed,
-    touch: base.touch * (1 + G.time / 200),
+    touch: base.touch * Math.min(3.2, 1 + G.time / 260),
     xp: base.xp,
     boss,
     mega: !!base.mega,
@@ -3480,14 +3651,19 @@ function announceCallout(text, sub, color, dur) {
   G.callout = { text, sub: sub || '', color: color || '#ffd27a', t: max, max };
 }
 
+function flashScreen(color, time) {
+  if (!settings.flashes) return;
+  G.flashT = time;
+  G.flashColor = color;
+}
+
 function evaluateLastStand() {
   if (!G) return;
   if (G.hp > 0 && G.hp <= G.maxHp * 0.1) {
     if (!G.lastStand) {
       G.lastStand = true;
       announceCallout('LAST STAND', '10% HEALTH · +50% DAMAGE · MORE RISK', '#ff4a3a', 3.2);
-      G.flashT = 0.4;
-      G.flashColor = '#ff2a1a';
+      flashScreen('#ff2a1a', 0.4);
       sfx.lastStand();
     }
   } else if (G.hp > G.maxHp * 0.12) {
@@ -3501,8 +3677,7 @@ function checkKillMilestones() {
     G.milestoneIdx++;
     G.score += tier.kills * 5;
     announceCallout(tier.name, tier.kills + ' TOTAL KILLS · +' + tier.kills * 5 + ' SCORE', tier.color, 3);
-    G.flashT = 0.35;
-    G.flashColor = tier.color;
+    flashScreen(tier.color, 0.35);
     sfx.milestone(G.milestoneIdx);
     save.milestones = save.milestones || {};
     save.milestones[tier.name] = (save.milestones[tier.name] || 0) + 1;
@@ -3521,8 +3696,7 @@ function triggerStreakReward(reward) {
   G.score += 150;
   G.streakRewards.push(reward.id);
   announceCallout(reward.name, 'KILL STREAK REWARD · +150 SCORE', reward.color, 2.8);
-  G.flashT = 0.3;
-  G.flashColor = reward.color;
+  flashScreen(reward.color, 0.3);
   sfx.reward();
   if (reward.id === 'supply') {
     for (let i = 0; i < 3; i++) G.medkits.push({ x: G.player.x + rnd(-50, 50), y: G.player.y + rnd(-50, 50) });
@@ -3690,6 +3864,20 @@ function killEnemy(e) {
     spawnFloater(e.x, e.y - e.r - 10, 'OVERCHARGE', '#9fd8ff', 12);
   }
   checkAchievements();
+
+  if (isOperator('arcanist') && !e.boss && !e.arcSource && G.kills % 4 === 0) {
+    const target = nearestEnemy(e.x, e.y, 190);
+    if (target) {
+      target.arcSource = true;
+      G.stats.arcs = (G.stats.arcs || 0) + 1;
+      spawnFloater(target.x, target.y - target.r - 10, 'ARC', '#c39bff', 12);
+      fxBurst(target.x, target.y, 1, '#c39bff', 0, 30, 0.28, 'ring');
+      G.arcs.push({ x1: e.x, y1: e.y, x2: target.x, y2: target.y, t: 0.28, max: 0.28, seed: hash2(Math.round(e.x), Math.round(e.y)) * TAU });
+      sfx.arc();
+      damageEnemy(target, Math.min(160, 12 + e.maxHp * 0.4) * damageMult(), target.x, target.y, false, false);
+      target.arcSource = false;
+    }
+  }
 
   if (G.streak % 10 === 0) {
     sfx.combo(G.streak);
@@ -3955,6 +4143,8 @@ function updateParticles(dt) {
     p.life -= dt;
   }
   G.particles = G.particles.filter((p) => p.life > 0);
+  for (const a of G.arcs) a.t -= dt;
+  G.arcs = G.arcs.filter((a) => a.t > 0);
   for (const a of G.afterimages) a.life -= dt;
   G.afterimages = G.afterimages.filter((a) => a.life > 0);
   for (const d of G.decals) d.life -= dt;
@@ -4034,8 +4224,7 @@ function announceCombos() {
         save.secrets = save.secrets || [];
         if (save.secrets.indexOf(combo.id) < 0) save.secrets.push(combo.id);
         announceCallout('SECRET COMBO', combo.name + ' · ' + combo.desc, '#ff8ad8', 3);
-        G.flashT = 0.3;
-        G.flashColor = '#ff8ad8';
+        flashScreen('#ff8ad8', 0.3);
         sfx.reward();
       } else {
         G.banner = combo.name;
@@ -4315,7 +4504,7 @@ function updateRun(dt) {
       G.burnCd = 0.6;
       G.hp = Math.max(0, G.hp - standingHazard.burn);
       G.hurtT = 0.2;
-      spawnFloater(G.player.x, G.player.y - 20, standingHazard.name === 'TOXIC GAS' ? 'POISON' : 'BURN', standingHazard.name === 'TOXIC GAS' ? '#9be59b' : '#ff8a5c', 11);
+      spawnFloater(G.player.x, G.player.y - 20, standingHazard.burnLabel || 'BURN', standingHazard.burnColor || '#ff8a5c', 11);
       if (G.hp <= 0) { gameOver(); return; }
     }
   }
@@ -5169,6 +5358,13 @@ function drawEnemies() {
     }
     ctx.save();
     ctx.translate(e.x, e.y);
+    if (settings.outlines) {
+      ctx.strokeStyle = e.boss ? '#ffd27a' : 'rgba(255,250,235,0.6)';
+      ctx.lineWidth = e.boss ? 2.5 : 1.25;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 3, 0, TAU);
+      ctx.stroke();
+    }
     if (e.boss) {
       const pulse = 0.5 + 0.5 * Math.sin(uiT * 2.6);
       ctx.strokeStyle = 'rgba(255,90,70,' + (0.1 + 0.12 * pulse) + ')';
@@ -6056,7 +6252,7 @@ function drawAfterimages() {
 function drawPlayer() {
   const p = G.player;
   const tier = evolutionTier(G.level);
-  const accent = accentColor();
+  const accent = isOperator('arcanist') ? '#c39bff' : accentColor();
   const scale = 1 + tier * 0.06;
   ctx.save();
   ctx.translate(p.x, p.y);
@@ -6129,6 +6325,12 @@ function drawPlayer() {
     ctx.fillStyle = '#39424a';
     ctx.fillRect(27, -2, 7, 4);
     ctx.fillRect(12, 5, 4, 7);
+  }
+  if (isOperator('arcanist')) {
+    ctx.fillStyle = '#c39bff';
+    ctx.beginPath();
+    ctx.arc(33, 0, 3.5, 0, TAU);
+    ctx.fill();
   }
 
   const camo = CAMO[G.map] || '#2f6fb5';
@@ -6258,6 +6460,37 @@ function drawBullets() {
       ctx.arc(b.x, b.y, 1.8, 0, TAU);
       ctx.fill();
     }
+  }
+}
+
+function drawArcs() {
+  for (const a of G.arcs) {
+    const k = clamp(a.t / a.max, 0, 1);
+    const dx = a.x2 - a.x1;
+    const dy = a.y2 - a.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = '#c39bff';
+    ctx.beginPath();
+    const steps = 6;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const wob = i === 0 || i === steps ? 0 : Math.sin(i * 2.7 + a.seed) * 10 * k;
+      const px = a.x1 + dx * t + nx * wob;
+      const py = a.y1 + dy * t + ny * wob;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.globalAlpha = 0.85 * k;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.globalAlpha = 0.22 * k;
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -6806,7 +7039,7 @@ function drawVignette() {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
-  if (G && G.hurtT > 0) {
+  if (G && G.hurtT > 0 && settings.flashes) {
     ctx.fillStyle = 'rgba(170,25,25,' + (G.hurtT * 0.55) + ')';
     ctx.fillRect(0, 0, W, H);
   }
@@ -6816,7 +7049,7 @@ function drawDanger() {
   if (!G || screen !== 'play') return;
   const ratio = G.hp / G.maxHp;
   if (ratio > 0.3) return;
-  const pulse = 0.5 + 0.5 * Math.sin(uiT * 7);
+  const pulse = settings.flashes ? 0.5 + 0.5 * Math.sin(uiT * 7) : 0.5;
   const strength = (0.28 + 0.32 * (1 - ratio / 0.3)) * (0.65 + 0.35 * pulse);
   if (!dangerCanvas && canOffscreen()) {
     const c = makeOffscreen(W * DPR, H * DPR);
@@ -6848,7 +7081,7 @@ function drawDangerBorder() {
   if (!G || screen !== 'play') return;
   const ratio = G.hp / G.maxHp;
   if (ratio > 0.3) return;
-  const pulse = 0.5 + 0.5 * Math.sin(uiT * 7);
+  const pulse = settings.flashes ? 0.5 + 0.5 * Math.sin(uiT * 7) : 0.5;
   ctx.strokeStyle = 'rgba(255,70,55,' + (0.16 + 0.3 * pulse) + ')';
   ctx.lineWidth = 3;
   ctx.strokeRect(2, 2, W - 4, H - 4);
@@ -6931,41 +7164,44 @@ function drawSetupScreen() {
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
   ctx.fillText('MAP', 92, 166);
+  const mapW = 124;
+  const mapGap = 6;
+  const mapStart = (W - (MAP_ORDER.length * mapW + (MAP_ORDER.length - 1) * mapGap)) / 2;
   MAP_ORDER.forEach((id, i) => {
     const m = MAPS[id];
     const chosen = setup.map === id;
-    const x = 36 + i * 152;
+    const x = mapStart + i * (mapW + mapGap);
     const y = 174;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: 142, h: 54 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 54;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: mapW, h: 54 });
+    const hover = mouse.x >= x && mouse.x <= x + mapW && mouse.y >= y && mouse.y <= y + 54;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, 142, 54, 7);
+    rr(x, y, mapW, 54, 7);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.3 : 0.55;
     ctx.fillStyle = '#06080a';
-    rr(x, y, 142, 54, 7);
+    rr(x, y, mapW, 54, 7);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, 142, 54, 7);
+    rr(x, y, mapW, 54, 7);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
     ctx.font = '700 12px Consolas, monospace';
-    ctx.fillText(m.name, x + 10, y + 22);
+    ctx.fillText(m.name, x + 8, y + 22);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 10, y + 41);
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 8, y + 41);
     ctx.fillStyle = m.props.building;
-    ctx.fillRect(x + 104, y + 12, 9, 9);
+    ctx.fillRect(x + mapW - 38, y + 12, 9, 9);
     ctx.fillStyle = m.props.rock;
     ctx.beginPath();
-    ctx.arc(x + 118, y + 17, 4.5, 0, TAU);
+    ctx.arc(x + mapW - 24, y + 17, 4.5, 0, TAU);
     ctx.fill();
     ctx.fillStyle = m.props.tree;
     ctx.beginPath();
-    ctx.arc(x + 130, y + 17, 4, 0, TAU);
+    ctx.arc(x + mapW - 12, y + 17, 4, 0, TAU);
     ctx.fill();
   });
 
@@ -7044,13 +7280,13 @@ function drawSetupScreen() {
   OPERATOR_ORDER.forEach((id, i) => {
     const op = OPERATORS.find((o) => o.id === id);
     const chosen = setup.operator === id;
-    const x = 92 + i * 166;
+    const x = 36 + i * 146;
     const y = 408;
-    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 158, h: 24 });
-    const hover = mouse.x >= x && mouse.x <= x + 158 && mouse.y >= y && mouse.y <= y + 24;
+    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 138, h: 24 });
+    const hover = mouse.x >= x && mouse.x <= x + 138 && mouse.y >= y && mouse.y <= y + 24;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? op.color : 'rgba(224,178,92,0.22)';
-    rr(x, y, 158, 24, 5);
+    rr(x, y, 138, 24, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
@@ -7281,25 +7517,31 @@ function drawSettingsScreen() {
     ctx.textAlign = 'center';
   };
 
-  rowLabel('MASTER VOLUME', 190, 'All game audio');
-  drawButton('volume-down', '-', 636, 166, 46, 34);
+  rowLabel('MASTER VOLUME', 176, 'All game audio');
+  drawButton('volume-down', '-', 636, 152, 46, 34);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e7eef3';
   ctx.font = '700 18px Consolas, monospace';
-  ctx.fillText(settings.volume + '%', 690, 188);
-  drawButton('volume-up', '+', 744, 166, 46, 34);
+  ctx.fillText(settings.volume + '%', 690, 174);
+  drawButton('volume-up', '+', 744, 152, 46, 34);
 
-  rowLabel('SCREEN SHAKE', 256, 'Camera kick on hits and blasts');
-  drawButton('shake', settings.shake ? 'ON' : 'OFF', 744, 232, 110, 34);
+  rowLabel('SCREEN SHAKE', 236, 'Camera kick on hits and blasts');
+  drawButton('shake', settings.shake ? 'ON' : 'OFF', 744, 212, 110, 34);
 
-  rowLabel('DAMAGE NUMBERS', 322, 'Floating hit values');
-  drawButton('damage-numbers', settings.damageNumbers ? 'ON' : 'OFF', 744, 298, 110, 34);
+  rowLabel('DAMAGE NUMBERS', 296, 'Floating hit values');
+  drawButton('damage-numbers', settings.damageNumbers ? 'ON' : 'OFF', 744, 272, 110, 34);
 
-  drawButton('back-settings', 'BACK', W / 2, 388, 180, 44);
+  rowLabel('HOSTILE OUTLINES', 356, 'Bright ring around every hostile');
+  drawButton('outlines', settings.outlines ? 'ON' : 'OFF', 744, 332, 110, 34);
+
+  rowLabel('REDUCED FLASH', 416, 'Fewer full-screen pulses');
+  drawButton('flashes', settings.flashes ? 'ON' : 'OFF', 744, 392, 110, 34);
+
+  drawButton('back-settings', 'BACK', W / 2, 470, 180, 44);
   ctx.fillStyle = 'rgba(190,180,155,0.55)';
   ctx.font = '600 10px Consolas, monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 456);
+  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 534);
 }
 
 function startDaily() {
@@ -7391,26 +7633,30 @@ function drawManualScreen() {
   ctx.fillText('FIELD MANUAL', W / 2, 56);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('EVERY HOSTILE, BOSS AND RELIC · KILL COUNTS ARE LIFETIME', W / 2, 76);
+  ctx.fillText('HOSTILES, BOSSES, RELICS AND FIELD NOTES · KILLS ARE LIFETIME', W / 2, 76);
 
   const tabs = [
     ['manual-enemies', 'HOSTILES · ' + Object.keys(ENEMY_TYPES).length, 'enemies'],
     ['manual-bosses', 'BOSSES · ' + Object.keys(BOSS_TYPES).length, 'bosses'],
-    ['manual-relics', 'RELICS · ' + RELICS.length, 'relics']
+    ['manual-relics', 'RELICS · ' + RELICS.length, 'relics'],
+    ['manual-lore', 'NOTES · ' + LORE.length, 'lore']
   ];
+  const tabW = 166;
+  const tabGap = 8;
+  const tabStart = (W - (tabs.length * tabW + (tabs.length - 1) * tabGap)) / 2;
   tabs.forEach(([id, label, key], i) => {
-    const x = W / 2 - 300 + i * 200;
+    const x = tabStart + i * (tabW + tabGap);
     const chosen = manualTab === key;
-    uiButtons.push({ id, label, x, y: 92, w: 190, h: 28 });
-    const hover = mouse.x >= x && mouse.x <= x + 190 && mouse.y >= 92 && mouse.y <= 120;
+    uiButtons.push({ id, label, x, y: 92, w: tabW, h: 28 });
+    const hover = mouse.x >= x && mouse.x <= x + tabW && mouse.y >= 92 && mouse.y <= 120;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.26)';
-    rr(x, 92, 190, 28, 6);
+    rr(x, 92, tabW, 28, 6);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
     ctx.font = '700 11px Consolas, monospace';
-    ctx.fillText(label, x + 95, 111);
+    ctx.fillText(label, x + tabW / 2, 111);
   });
 
   const live = G && (screen === 'play' || screen === 'paused');
@@ -7492,7 +7738,7 @@ function drawManualScreen() {
       ctx.font = '600 9px Consolas, monospace';
       ctx.fillText('BEST WAVE ' + (save.bestWave || 1), x + 12, y + 78);
     });
-  } else {
+  } else if (manualTab === 'relics') {
     RELICS.forEach((relic, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
@@ -7520,6 +7766,44 @@ function drawManualScreen() {
     ctx.fillStyle = 'rgba(190,185,170,0.55)';
     ctx.font = '600 9px Consolas, monospace';
     ctx.fillText('OWN ALL TEN AND CRATES PAY 30 SHARDS INSTEAD', W / 2, 496);
+  } else {
+    LORE.forEach((note, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 36 + col * 452;
+      const y = 128 + row * 100;
+      ctx.fillStyle = 'rgba(14,18,22,0.9)';
+      ctx.strokeStyle = 'rgba(224,178,92,0.22)';
+      ctx.lineWidth = 1;
+      rr(x, y, 440, 92, 7);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e0b25c';
+      ctx.font = '700 12px Consolas, monospace';
+      ctx.fillText(note.title, x + 12, y + 18);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(150,145,130,0.6)';
+      ctx.font = '600 8px Consolas, monospace';
+      ctx.fillText(note.tag, x + 428, y + 18);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(215,210,195,0.78)';
+      ctx.font = '600 9px Consolas, monospace';
+      const words = note.text.split(' ');
+      let line = '';
+      let ly = y + 36;
+      for (const word of words) {
+        const next = line ? line + ' ' + word : word;
+        if (next.length > 68 && line) {
+          ctx.fillText(line, x + 12, ly);
+          ly += 12;
+          line = word;
+        } else {
+          line = next;
+        }
+      }
+      if (line) ctx.fillText(line, x + 12, ly);
+    });
   }
 
   ctx.textAlign = 'center';
@@ -7545,7 +7829,7 @@ function drawHelpScreen() {
     ['BOSS', 'Bosses every 5th wave; every 4th boss is a MEGA boss.'],
     ['EVOLVE', 'Max a skill at level 10 and take its partner to level 3 to evolve it.'],
     ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more shards.'],
-    ['HAZARDS', 'Each map has a terrain hazard: quicksand, ice, embers or vines.'],
+    ['HAZARDS', 'Each map has a hazard: quicksand, ice, embers, vines, tar, gas or glass.'],
     ['MUTATORS', 'Take up to two run modifiers, plus one run-long mutation.'],
     ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 fire callouts.'],
     ['LAST STAND', 'Under 10% health: +50% damage, no extra safety. Recover to escape.'],
@@ -7553,6 +7837,7 @@ function drawHelpScreen() {
     ['EXTRACT', 'Bosses arm a beacon: bank shards there or risk losing half.'],
     ['EVENTS', 'Horde surges, supply drops, storms and hunters hit the sector.'],
     ['MAP', 'Press M during a run to see contracts, alerts and the beacon.'],
+    ['ARENAS', 'Worn rings mark prop-free clearings: use them to kite the horde.'],
     ['DAILY', 'One seeded run per day with a fixed loadout. Beat your best.'],
     ['PAUSE', 'Esc opens the pause menu with settings, map and restart.']
   ];
@@ -7928,6 +8213,12 @@ function drawPauseScreen() {
   ctx.fillStyle = 'rgba(200,190,165,0.55)';
   ctx.font = '600 10px Consolas, monospace';
   ctx.fillText('ESC RESUMES', W / 2, 466);
+  const fieldNote = G && LORE.find((note) => note.map === G.map);
+  if (fieldNote) {
+    ctx.fillStyle = 'rgba(224,178,92,0.55)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText('FIELD NOTE · ' + fieldNote.note, W / 2, 494);
+  }
 }
 
 function drawLevelUpCelebration() {
@@ -8573,7 +8864,7 @@ function pressButton(id) {
     goMenu();
     return;
   }
-  if (id === 'manual-enemies' || id === 'manual-bosses' || id === 'manual-relics') {
+  if (id.indexOf('manual-') === 0) {
     manualTab = id.slice(7);
     return;
   }
@@ -8611,6 +8902,16 @@ function pressButton(id) {
   }
   if (id === 'damage-numbers') {
     settings.damageNumbers = !settings.damageNumbers;
+    writeStore(SETTINGS_KEY, settings);
+    return;
+  }
+  if (id === 'outlines') {
+    settings.outlines = !settings.outlines;
+    writeStore(SETTINGS_KEY, settings);
+    return;
+  }
+  if (id === 'flashes') {
+    settings.flashes = !settings.flashes;
     writeStore(SETTINGS_KEY, settings);
     return;
   }
@@ -8661,6 +8962,7 @@ function render() {
     if (shake > 0.1 && settings.shake) ctx.translate(rnd(-shake, shake), rnd(-shake, shake));
     ctx.translate(-G.cam.x, -G.cam.y);
     drawGround(G.cam);
+    drawArenas(G.cam);
     drawHazards(G.cam);
     drawDecor(G.cam);
     drawDecals();
@@ -8679,6 +8981,7 @@ function render() {
     drawPlayer();
     drawShield();
     drawBullets();
+    drawArcs();
     drawParticles();
     drawFloaters();
     ctx.restore();
@@ -8689,7 +8992,7 @@ function render() {
   if (touchMode) drawTouchControls();
     drawVignette();
     drawDangerBorder();
-    if (G.flashT > 0) {
+    if (G.flashT > 0 && settings.flashes) {
       ctx.globalAlpha = clamp(G.flashT / 0.4, 0, 1) * 0.2;
       ctx.fillStyle = G.flashColor;
       ctx.fillRect(0, 0, W, H);
@@ -8912,6 +9215,7 @@ window.Dustline = {
         enemies: Object.keys(ENEMY_TYPES).length,
         bosses: Object.keys(BOSS_TYPES).length,
         relics: RELICS.length,
+        lore: LORE.length,
         enemyTips: Object.keys(ENEMY_TIPS).length,
         bossTips: Object.keys(BOSS_TIPS).length
       },
@@ -8978,6 +9282,8 @@ window.Dustline = {
       });
       snap.player = { x: G.player.x, y: G.player.y, angle: G.player.angle };
       snap.cam = { x: G.cam.x, y: G.cam.y };
+      snap.arena = arenaAtPoint(G.player.x, G.player.y);
+      snap.flashT = G.flashT;
       snap.soldiers = G.soldiers.map((s) => ({ x: s.x, y: s.y }));
       snap.enemies = G.enemies.map((e) => ({
         type: e.type,
@@ -8987,6 +9293,7 @@ window.Dustline = {
         maxHp: e.maxHp,
         r: e.r,
         speed: e.speed,
+        touch: e.touch,
         boss: !!e.boss,
         style: e.style || null,
         champion: !!e.champion,
@@ -9010,6 +9317,7 @@ window.Dustline = {
         return out;
       }, {});
       snap.afterimages = G.afterimages.length;
+      snap.zaps = G.arcs.length;
       snap.decals = G.decals.length;
       snap.ambience = ambienceDef().mode;
       snap.bombs = G.bombs.length;
@@ -9038,10 +9346,12 @@ window.Dustline = {
         shieldSaves: G.stats.shieldSaves || 0,
         banked: G.stats.banked,
         lost: G.stats.lost,
-        ricochets: G.stats.ricochets || 0
+        ricochets: G.stats.ricochets || 0,
+        arcs: G.stats.arcs || 0
       };
       snap.bullets = G.bullets.map((b) => b.owner);
       snap.bulletColors = Array.from(new Set(G.bullets.map((b) => b.color)));
+      snap.bulletPierce = G.bullets.filter((b) => b.owner === 'p').map((b) => b.pierce || 0);
       snap.bannerT = G.bannerT;
       snap.dash = { ready: G.dash.cd <= 0, cd: G.dash.cd, t: G.dash.t };
       snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
@@ -9170,6 +9480,7 @@ if (window.__DUSTLINE_TEST__) {
   };
   window.Dustline.buyMeta = (id) => buyMeta(id);
   window.Dustline.props = (x, y, r) => propsNear(x, y, r).map((p) => ({ kind: p.kind, x: p.x, y: p.y, w: p.w || 0, h: p.h || 0, r: p.r || 0 }));
+  window.Dustline.arenaAt = (x, y) => arenaAtPoint(Number(x) || 0, Number(y) || 0);
   window.Dustline.setPlayer = (x, y) => {
     if (!G) return;
     G.player.x = Number(x) || 0;

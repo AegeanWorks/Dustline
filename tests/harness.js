@@ -105,6 +105,12 @@ function createCanvasStub(width, height, counter, record) {
             count(prop);
           };
         }
+        if (prop === 'stroke') {
+          return () => {
+            if (log) log.strokes.push({ strokeStyle: state.strokeStyle, lineWidth: state.lineWidth, alpha: alpha() });
+            count(prop);
+          };
+        }
         if (prop === 'fillRect') {
           return (x, y, w, h) => {
             if (log) log.rects.push({ x, y, w, h, sx: x + tx, sy: y + ty, fillStyle: state.fillStyle, alpha: alpha() });
@@ -137,7 +143,7 @@ function createGame(options) {
   const width = 960;
   const height = 600;
   const ops = Object.create(null);
-  const record = opts.record ? { texts: [], fills: [], rects: [], images: [] } : null;
+  const record = opts.record ? { texts: [], fills: [], rects: [], images: [], strokes: [] } : null;
   const { canvas, handlers } = createCanvasStub(width, height, ops, record);
   const winHandlers = Object.create(null);
   const clock = { now: 0, raf: null };
@@ -202,6 +208,7 @@ function createGame(options) {
     fills: record ? record.fills : [],
     rects: record ? record.rects : [],
     images: record ? record.images : [],
+    strokes: record ? record.strokes : [],
     step,
     steps(n, ms) {
       for (let i = 0; i < Math.max(0, n | 0); i++) step(ms);
