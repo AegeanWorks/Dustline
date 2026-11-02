@@ -1352,7 +1352,9 @@ const CONTRACTS = [
   { id: 'bomb', name: 'DEMOLITION', target: 4, reward: 12, goal: (g) => g.stats.bombs },
   { id: 'chip', name: 'TECH SALVAGE', target: 3, reward: 14, goal: (g) => g.stats.chips },
   { id: 'dash', name: 'EVASION', target: 12, reward: 10, goal: (g) => g.stats.dashes },
-  { id: 'streak', name: 'CHAIN KILLER', target: 35, reward: 16, goal: (g) => g.bestStreak }
+  { id: 'streak', name: 'CHAIN KILLER', target: 35, reward: 16, goal: (g) => g.bestStreak },
+  { id: 'trophy', name: 'TROPHY HUNTER', target: 2, reward: 18, goal: (g) => g.stats.champions || 0 },
+  { id: 'cache', name: 'CACHE RAIDER', target: 2, reward: 14, goal: (g) => g.stats.chests || 0 }
 ];
 
 function srnd() {

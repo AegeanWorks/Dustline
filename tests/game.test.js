@@ -863,6 +863,34 @@ test('contracts complete and pay out', () => {
   assert.ok(s.unbanked > before, 'the contract paid risky shards');
 });
 
+test('trophy and cache contracts complete and pay out', () => {
+  const g = boot({ seed: 242 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.forceContracts(['trophy', 'cache']));
+  const before = g.api.snapshot().unbanked;
+  g.api.spawnEnemy('tank', 120, 0);
+  g.api.spawnEnemy('tank', 160, 0);
+  assert.ok(g.api.forceChampion(0, 'shielded'));
+  assert.ok(g.api.forceChampion(1, 'swift'));
+  g.api.killEnemies();
+  g.steps(4);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.stats.champions, 2, 'two champions were slain');
+  g.api.spawnChest(18, 0);
+  g.steps(6);
+  g.api.spawnChest(-18, 0);
+  g.steps(6);
+  s = g.api.snapshot();
+  assert.strictEqual(s.stats.chests >= 2, true, 'two supply caches were opened');
+  g.steps(4);
+  s = g.api.snapshot();
+  assert.strictEqual(s.contracts[0].done, true, 'trophy hunter completes');
+  assert.strictEqual(s.contracts[1].done, true, 'cache raider completes');
+  assert.ok(s.stats.contracts >= 2, 'both contracts counted');
+  assert.ok(s.unbanked > before, 'both contracts paid risky shards');
+});
+
 test('hardware chips apply their effects', () => {
   const g = boot({ seed: 251 });
   deploy(g);
