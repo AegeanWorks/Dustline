@@ -1,66 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-s2-tunneler",
-    "last_phase": "phase 5",
+    "task_id": "dustline-s3-graphics",
+    "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793653483.0417805,
+    "updated_at": 1793654097.2836716,
     "owner": "unidentified",
     "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793653510.8414245
+    "completed_at": 1793654113.271567
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-sprite-ui-pass",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/5] Focused visual tests and full 152-test regression passed; live loadout preview confirms map glyph hierarchy.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793551754.22867,
-      "timestamp_str": "2026-11-01 19:49:14",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-sprite-ui-pass",
-      "phase": "phase 5",
-      "phase_num": 5,
-      "description": "[4/5] Final visual audit complete; checklists: passed. Full regression 152/152 and all 5 project gates passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793551814.567132,
-      "timestamp_str": "2026-11-01 19:50:14",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-sprite-ui-pass",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-sprite-ui-pass' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793551814.635779,
-      "timestamp_str": "2026-11-01 19:50:14",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-room-audit",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/5] Auditing deterministic room generation, prop collision, encounter hooks, sprite paths, animation state, and renderer constraints.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793552332.6382315,
-      "timestamp_str": "2026-11-01 19:58:52",
-      "agent": "copilot:vscode",
-      "impact_assessment": {
-        "why": "Open arenas and isolated props leave room-scale navigation and encounter identity underdeveloped.",
-        "benefits": "Seed-stable room landmarks, stronger spatial readability, reusable visual hooks, and testable encounter surfaces.",
-        "risks": "contract: room collision and encounter changes can affect movement; dependency: room data must integrate with existing props/hazards; concurrency: existing dirty AIKit files must remain untouched; state: save data must remain compatible.",
-        "mitigation": "Reuse deterministic hash generation, preserve existing prop APIs and save fields, gate new encounters behind room-local state, and add focused regression tests."
-      }
-    },
     {
       "task_id": "dustline-room-audit",
       "phase": "phase 4",
@@ -243,6 +194,56 @@
       "status": "completed",
       "timestamp": 1793653510.8414264,
       "timestamp_str": "2026-11-03 00:05:10",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s3-graphics",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] S3 graphics: mutator blurb overflow DATA fix; world layer verified",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793654096.7119496,
+      "timestamp_str": "2026-11-03 00:14:56",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "Three mutator card lines bled past 142px borders on fresh captures",
+        "benefits": "All six cards read inside borders; world render confirmed clean",
+        "risks": "contract: MUTATORS blurb strings only; dependency: none; concurrency: none; state: none",
+        "mitigation": "Blurb only rendered on one card line; browser before/after plus full suite and 5/5 gates"
+      },
+      "plan_digest": "8ccbd2e77213c126900d80c705125c056097fa958e0f0c5077d18ea2825e7987"
+    },
+    {
+      "task_id": "dustline-s3-graphics",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Shorten bounty/fog/vampiric blurbs; add ADR-032",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793654096.9942026,
+      "timestamp_str": "2026-11-03 00:14:56",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s3-graphics",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified: 160/160 tests, 5/5 gates, setup before/after inspected; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793654097.2836716,
+      "timestamp_str": "2026-11-03 00:14:57",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s3-graphics",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-s3-graphics' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793654113.271568,
+      "timestamp_str": "2026-11-03 00:15:13",
       "agent": "unidentified"
     }
   ]
