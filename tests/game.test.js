@@ -891,6 +891,33 @@ test('trophy and cache contracts complete and pay out', () => {
   assert.ok(s.unbanked > before, 'both contracts paid risky shards');
 });
 
+test('hunter and close-call contracts complete and pay out', () => {
+  const g = boot({ seed: 243 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.forceContracts(['hunter', 'closecall']));
+  const before = g.api.snapshot().unbanked;
+  g.api.spawnEnemy('hunter', 140, 0);
+  g.api.spawnEnemy('hunter', 160, 0);
+  g.api.killEnemies();
+  g.steps(4);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.stats.hunters, 2, 'two hunters were slain');
+  for (let k = 0; k < 12; k++) {
+    g.api.spawnEnemy('tank', 300 + k * 4, 0);
+    g.api.setEnemyHp(k, 5);
+    g.api.hitEnemy(k, 1);
+  }
+  g.api.killEnemies();
+  g.steps(4);
+  s = g.api.snapshot();
+  assert.strictEqual(s.stats.nearMisses, 12, 'twelve near misses were baited');
+  assert.strictEqual(s.contracts[0].done, true, 'hunter down completes');
+  assert.strictEqual(s.contracts[1].done, true, 'close calls completes');
+  assert.ok(s.stats.contracts >= 2, 'both contracts counted');
+  assert.ok(s.unbanked > before, 'both contracts paid risky shards');
+});
+
 test('hardware chips apply their effects', () => {
   const g = boot({ seed: 251 });
   deploy(g);
