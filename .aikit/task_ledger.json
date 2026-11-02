@@ -1,56 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-room-depth-audit",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793559417.644468,
-    "owner": "copilot:vscode",
-    "started_by": "copilot:vscode",
+    "task_id": "dustline-s1-menu-unify",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1793653089.9293568,
+    "owner": "unidentified",
+    "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793559421.9397995
+    "impact_assessment": {
+      "why": "ARMORY sub-label vs DAILY plain label used 16px vs 18px branch",
+      "benefits": "One-row readout, no box or hit-test change",
+      "risks": "contract: button IDs and label positions unchanged; dependency: none; concurrency: none; state: none",
+      "mitigation": "Recorder sx/sy unchanged; full suite plus browser before/after captures"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-33",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Planning: UI and visual overhaul across Armory, Statistics, Main Menu, Field Manual Relics, and Combat Boss HUD",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793542772.6729455,
-      "timestamp_str": "2026-11-01 17:19:32",
-      "agent": "unidentified",
-      "impact_assessment": {
-        "why": "Visual audit revealed uncentered Armory rows with crammed buy buttons, unpaneled Kills-by-Type section on Stats, hollow 140px center hole on Main Menu buttons, missing relic glyphs in Manual, and raw unrounded rectangular Boss HUD bar",
-        "benefits": "Centered balanced Armory with currency badge, tactical Kills-by-Type panel, unified Main Menu column with career badge, illustrated relic codex, sleek tactical boss health bar, and luminous XP gems",
-        "risks": "contract: button IDs and layout tests for Armory and Stats must pass; dependency: none; concurrency: none; state: none",
-        "mitigation": "Preserve all existing button IDs, coordinate invariants (need.y + 6 <= next.y - 17, kills.y > best.y + 16), and verify with test suite and CDP screenshots"
-      }
-    },
-    {
-      "task_id": "dustline-v0-33",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Implementation: Centered Armory, unified Menu column, Statistics panel, Manual relic glyphs, Boss HUD bar, and XP gem halos",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793543463.3336444,
-      "timestamp_str": "2026-11-01 17:31:03",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-v0-33",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verification: 152/152 unit tests pass, 5/5 AIKit gates pass, visual inspection via CDP screenshots verified; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793543472.362877,
-      "timestamp_str": "2026-11-01 17:31:12",
-      "agent": "unidentified"
-    },
     {
       "task_id": "dustline-v0-33",
       "phase": "completed",
@@ -243,6 +209,46 @@
       "timestamp": 1793559421.9398022,
       "timestamp_str": "2026-11-01 21:57:01",
       "agent": "copilot:vscode"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Unify drawButton font branch; add ADR-030",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653080.735381,
+      "timestamp_str": "2026-11-02 23:58:00",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified: 160/160 tests, 5/5 gates, menu before/after inspected; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653082.2556262,
+      "timestamp_str": "2026-11-02 23:58:02",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] S1 slice: unify menu h>36 button labels to 17px (ARMORY/DAILY row)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653089.9293568,
+      "timestamp_str": "2026-11-02 23:58:09",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "ARMORY sub-label vs DAILY plain label used 16px vs 18px branch",
+        "benefits": "One-row readout, no box or hit-test change",
+        "risks": "contract: button IDs and label positions unchanged; dependency: none; concurrency: none; state: none",
+        "mitigation": "Recorder sx/sy unchanged; full suite plus browser before/after captures"
+      },
+      "plan_digest": "e9dfc421d1bfb35a510ac7ac6dc5e1cfed39d71233b119ab68a8684f3c70b208"
     }
   ]
 }
