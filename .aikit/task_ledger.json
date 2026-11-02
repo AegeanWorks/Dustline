@@ -1,113 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-s1-menu-unify",
-    "last_phase": "phase 2",
-    "active_phase": 2,
+    "task_id": "dustline-s2-tunneler",
+    "last_phase": "phase 5",
+    "active_phase": 5,
     "status": "in_progress",
-    "updated_at": 1793653089.9293568,
+    "updated_at": 1793653483.0417805,
     "owner": "unidentified",
     "started_by": "unidentified",
-    "continuations": [],
-    "impact_assessment": {
-      "why": "ARMORY sub-label vs DAILY plain label used 16px vs 18px branch",
-      "benefits": "One-row readout, no box or hit-test change",
-      "risks": "contract: button IDs and label positions unchanged; dependency: none; concurrency: none; state: none",
-      "mitigation": "Recorder sx/sy unchanged; full suite plus browser before/after captures"
-    }
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-v0-33",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-v0-33' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793543476.2538774,
-      "timestamp_str": "2026-11-01 17:31:16",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-visual-pass",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Implemented procedural insignia and player readability cues in the canvas renderer.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550275.6516073,
-      "timestamp_str": "2026-11-01 19:24:35",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-visual-pass",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Visual pass verified: checklists: passed. Regression, mechanics, hygiene, guidelines, and secrets gates all passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550367.975199,
-      "timestamp_str": "2026-11-01 19:26:07",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-visual-pass",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-visual-pass' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793550379.942726,
-      "timestamp_str": "2026-11-01 19:26:19",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-visual-continuation",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Baseline reviewed; broad visual pass targets map identity and combat threat readability while preserving existing uncommitted renderer work.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550519.9491873,
-      "timestamp_str": "2026-11-01 19:28:39",
-      "agent": "copilot:vscode",
-      "impact_assessment": {
-        "why": "Continue Dustline visual elevation after the prior insignia/player pass.",
-        "benefits": "Improve place recognition and reaction time without adding mechanics or dependencies.",
-        "risks": "contract: no gameplay contract change; dependency: none unless a local asset proves necessary; concurrency: shared canvas renderer; state: none",
-        "mitigation": "Use procedural cached drawing, preserve current geometry and validate full project gates."
-      }
-    },
-    {
-      "task_id": "dustline-visual-continuation",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Added procedural hazard signatures and clearer enemy bomb landing reticles; mechanics and controls unchanged.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550565.1396234,
-      "timestamp_str": "2026-11-01 19:29:25",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-visual-continuation",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verification complete: checklists: passed. Full regression suite passed 152/152 and all 5 Dustline project gates passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550683.6724896,
-      "timestamp_str": "2026-11-01 19:31:23",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-visual-continuation",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-visual-continuation' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793550690.2464352,
-      "timestamp_str": "2026-11-01 19:31:30",
-      "agent": "copilot:vscode"
-    },
     {
       "task_id": "dustline-sprite-ui-pass",
       "phase": "phase 3",
@@ -249,6 +152,98 @@
         "mitigation": "Recorder sx/sy unchanged; full suite plus browser before/after captures"
       },
       "plan_digest": "e9dfc421d1bfb35a510ac7ac6dc5e1cfed39d71233b119ab68a8684f3c70b208"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] S2 models: tunneler silhouette + dead-branch removal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653462.7580836,
+      "timestamp_str": "2026-11-03 00:04:22",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "Surfaced tunneler rendered identically to grunt; two duplicate branches unreachable",
+        "benefits": "Burrowing mob readable above ground; less dead code",
+        "risks": "contract: enemy draw branches only, hitboxes unchanged; dependency: none; concurrency: none; state: none",
+        "mitigation": "Harness op signatures before/after; browser gameplay captures; full suite plus 5/5 gates"
+      },
+      "plan_digest": "652da0458f7afd0073ad0b5c36bc9b126e58add035cc7b040b57feac044faf32"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "superseded",
+      "phase_num": 2,
+      "description": "Superseded by 'dustline-s2-tunneler' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793653462.7580836,
+      "timestamp_str": "2026-11-03 00:04:22",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Add tunneler branch, remove dead phantom/hunter branches, pin tunneler in silhouette test, add ADR-031",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653463.1086788,
+      "timestamp_str": "2026-11-03 00:04:23",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified: tunneler sig differs, 160/160 tests, 5/5 gates, gameplay before/after inspected; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653463.3826318,
+      "timestamp_str": "2026-11-03 00:04:23",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'dustline-s1-menu-unify' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793653469.4775329,
+      "timestamp_str": "2026-11-03 00:04:29",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "phase 5",
+      "phase_num": 5,
+      "description": "Task 'dustline-s1-menu-unify' completed successfully.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653469.4775329,
+      "timestamp_str": "2026-11-03 00:04:29",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "phase 5",
+      "phase_num": 5,
+      "description": "Task 'dustline-s2-tunneler' completed successfully.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793653483.0417805,
+      "timestamp_str": "2026-11-03 00:04:43",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s1-menu-unify",
+      "phase": "superseded",
+      "phase_num": 5,
+      "description": "Superseded by 'dustline-s2-tunneler' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793653483.0417805,
+      "timestamp_str": "2026-11-03 00:04:43",
+      "agent": "unidentified"
     }
   ]
 }
