@@ -1,59 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-s3-graphics",
+    "task_id": "dustline-s4-animation",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793654097.2836716,
+    "updated_at": 1793655102.2619846,
     "owner": "unidentified",
     "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793654113.271567
+    "completed_at": 1793655112.836578
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-room-audit",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/5] Deterministic rooms, room collision, room encounters, room visuals, map-view outlines, README updates, and focused regression tests complete; checklists: passed. 152/152 tests and 5/5 project gates passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793552698.0151427,
-      "timestamp_str": "2026-11-01 20:04:58",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-room-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-room-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793552700.8010237,
-      "timestamp_str": "2026-11-01 20:05:00",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-room-depth-audit",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/5] Deep room lifecycle complete: three-stage objectives, deterministic bounded rewards, safe revisits, room-state map feedback, visual telegraphs, README and regression coverage. checklists: passed. 153/153 tests and 5/5 project gates passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793559417.644468,
-      "timestamp_str": "2026-11-01 21:56:57",
-      "agent": "copilot:vscode"
-    },
-    {
-      "task_id": "dustline-room-depth-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'dustline-room-depth-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793559421.9398022,
-      "timestamp_str": "2026-11-01 21:57:01",
-      "agent": "copilot:vscode"
-    },
     {
       "task_id": "dustline-s1-menu-unify",
       "phase": "phase 3",
@@ -244,6 +202,56 @@
       "status": "completed",
       "timestamp": 1793654113.271568,
       "timestamp_str": "2026-11-03 00:15:13",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s4-animation",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] S4 animation: capture dash/wave/boss-rush frames, audit timings",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793655100.7279117,
+      "timestamp_str": "2026-11-03 00:31:40",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "Animation timing must pass judged by eye with headless proof beneath",
+        "benefits": "Spawn/hit/bob/dash/telegraph all verified; evidence attached",
+        "risks": "contract: none, no code change; dependency: none; concurrency: none; state: none",
+        "mitigation": "Suite-pinned trail behavior plus fresh stills; flake recorded not chased"
+      },
+      "plan_digest": "8ceb074eee212eaa1ae5f85a458b0eb56723a3639aea679b45caf130103bcc3b"
+    },
+    {
+      "task_id": "dustline-s4-animation",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Audit finds no timing defect; record ADR-033 verify-only",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793655101.6107438,
+      "timestamp_str": "2026-11-03 00:31:41",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s4-animation",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified: 160/160 tests, 5/5 gates, boss/dash/wave stills inspected; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793655102.2619846,
+      "timestamp_str": "2026-11-03 00:31:42",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s4-animation",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-s4-animation' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793655112.8365796,
+      "timestamp_str": "2026-11-03 00:31:52",
       "agent": "unidentified"
     }
   ]
