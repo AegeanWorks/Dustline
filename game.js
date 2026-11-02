@@ -205,9 +205,9 @@ const MUTATORS = [
   { id: 'glass', name: 'GLASS CANNON', blurb: '+40% damage dealt, +60% taken', shard: 1.2, color: '#ff8a8a' },
   { id: 'swarm', name: 'SWARM', blurb: '+50% spawns, -15% mob health', shard: 1.25, color: '#c9a8ff' },
   { id: 'elite', name: 'ELITE HUNT', blurb: 'Triple champion rate', shard: 1.3, color: '#ffd27a' },
-  { id: 'fog', name: 'FOG', blurb: 'Permanent reduced vision', shard: 1.25, color: '#9fd8ff' },
-  { id: 'vampiric', name: 'VAMPIRIC HORDE', blurb: 'Enemies heal when they hit', shard: 1.3, color: '#ff7f8f' },
-  { id: 'bounty', name: 'BOUNTY', blurb: 'Hunters every 45 seconds', shard: 1.35, color: '#e2563f' }
+  { id: 'fog', name: 'FOG', blurb: 'Thick fog always', shard: 1.25, color: '#9fd8ff' },
+  { id: 'vampiric', name: 'VAMPIRIC HORDE', blurb: 'Enemies steal life', shard: 1.3, color: '#ff7f8f' },
+  { id: 'bounty', name: 'BOUNTY', blurb: 'Hunter every 45s', shard: 1.35, color: '#e2563f' }
 ];
 
 const MUTATOR_ORDER = ['glass', 'swarm', 'elite', 'fog', 'vampiric', 'bounty'];
