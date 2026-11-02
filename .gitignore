@@ -1,6 +1,9 @@
 # AIKit transient state
 .aikit/*.lock
 .aikit/*.bak
+# Verification captures: workspace-level by default (ADR-030); only
+# explicitly added shots/ files stay tracked (tracked files ignore this).
+shots/*.png
 .aikit/*.tmp_*
 .aikit/*.corrupt_*
 __pycache__/

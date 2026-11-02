@@ -140,6 +140,17 @@ dustline/
 ├── scripts/
 │   ├── serve.js              <- zero-dependency static server for `npm start`
 │   └── make_icons.ps1        <- regenerates the PWA icons with System.Drawing
+├── shots/                   <- verification captures (tracked) + workspace scratches (ignored)
+│   ├── shot_s4_loadout.py    <- regenerates the s4 setup captures
+│   ├── shot_s4_touch.py      <- regenerates the s4 touch-layout captures
+│   ├── s4-setup-default.png  <- setup default capture
+│   ├── s4-setup-map.png      <- setup map-row capture
+│   ├── s4-setup-mutators.png <- setup mutator-row capture
+│   ├── s4-setup-operator.png <- setup operator-row capture
+│   ├── s4-setup-weapon.png   <- setup weapon-row capture
+│   ├── s4-setup-small.png    <- setup small-viewport capture
+│   ├── s4-setup-touch.png    <- setup touch-layout capture
+│   └── s4-game-touch.png     <- in-game touch-layout capture
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens
