@@ -42,5 +42,101 @@
       }
     }
   },
-  "screenshots": []
+  "screenshots": [
+    {
+      "path": "assets/screenshots/2026-11-03-menu.png",
+      "alt": "Dustline menu at 2026-11-03",
+      "caption": "First-run menu from npm start (http://127.0.0.1:5173): nine buttons, zero lifetime stats. Verified against the live HEAD build, which renders the identical layout.",
+      "commit": "39036c101b2383e42852fbcfe52cbd7db1c2aefc",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real capture, byte-identical to the committed shots/s1-menu-after.png: DEPLOY/ARMORY/DAILY/STATS/SKILLS/MANUAL/SETTINGS/LEADERBOARD/HOW TO PLAY, zero stats. Honest fresh state.",
+        "score": 93,
+        "reviewed_at": "2026-11-03"
+      }
+    },
+    {
+      "path": "assets/screenshots/2026-11-03-loadout.png",
+      "alt": "Dustline Railgun loadout at 2026-11-03",
+      "caption": "Loadout screen: Railgun on Dust Basin, Endless, Normal, Ranger, Survivors, with DEPLOY summary.",
+      "commit": "39036c101b2383e42852fbcfe52cbd7db1c2aefc",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real capture from shots/s4-setup-weapon.png: all five weapons, seven maps, six operators, modes, time limits, difficulties and mutators legible; DEPLOY line proves the summary strip.",
+        "score": 92,
+        "reviewed_at": "2026-11-03"
+      }
+    },
+    {
+      "path": "assets/screenshots/2026-11-03-setup.png",
+      "alt": "Dustline AK-47 setup at 2026-11-03",
+      "caption": "Second loadout variant: AK-47 with different map and operator picks, showing selection depth.",
+      "commit": "39036c101b2383e42852fbcfe52cbd7db1c2aefc",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real capture from shots/s3-setup-after.png: alternate weapon/map/operator combination, same honest pre-run state.",
+        "score": 91,
+        "reviewed_at": "2026-11-03"
+      }
+    },
+    {
+      "path": "assets/screenshots/2026-11-03-combat.png",
+      "alt": "Dustline wave-1 combat at 2026-11-03",
+      "caption": "Wave 1 at 0:15: 5 kills, Ranger loadout HUD, dash/bomb/overdrive bar, XP 1/57.",
+      "commit": "39036c101b2383e42852fbcfe52cbd7db1c2aefc",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real capture from shots/s3-game-mid.png: live combat HUD, kill feed line, desert arena with buildings and grass. Early-run state a fresh user reaches in seconds.",
+        "score": 92,
+        "reviewed_at": "2026-11-03"
+      }
+    },
+    {
+      "path": "assets/screenshots/2026-11-03-boss.png",
+      "alt": "Dustline Warlord boss at 2026-11-03",
+      "caption": "Boss Rush: WARLORD 630/798 HP bar, BOSS 1/8, Ranger at full XP bar start.",
+      "commit": "39036c101b2383e42852fbcfe52cbd7db1c2aefc",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real capture from shots/s4-boss-1.png: boss HP bar, boss counter, arena with tree and rocks. Proves the Boss Rush presentation.",
+        "score": 93,
+        "reviewed_at": "2026-11-03"
+      }
+    }
+  ]
 }

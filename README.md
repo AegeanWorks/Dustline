@@ -189,3 +189,19 @@ These systems are ported from CyberPulse's behavioral-psychology design review (
 ## 📜 License
 
 Free for personal play under the Aegean Game License 1.1 (AGL-1.1); see [LICENSE](LICENSE). It is DRM-free: Licensor ships no DRM and a distributor may not add it. Streaming, modding and free mods are allowed. Commercial use, paid mods and AI training need the Aegean Commercial License 1.0 (ACL-1.0); see [COMMERCIAL.md](COMMERCIAL.md).
+
+<!-- aegean:screenshots:start -->
+## Screenshots
+
+<a href="https://github.com/AegeanWorks/Dustline/commit/39036c1"><img src="assets/screenshots/2026-11-03-menu.png" alt="Dustline menu at 2026-11-03"></a>
+
+<a href="https://github.com/AegeanWorks/Dustline/commit/39036c1"><img src="assets/screenshots/2026-11-03-loadout.png" alt="Dustline Railgun loadout at 2026-11-03"></a>
+
+<a href="https://github.com/AegeanWorks/Dustline/commit/39036c1"><img src="assets/screenshots/2026-11-03-setup.png" alt="Dustline AK-47 setup at 2026-11-03"></a>
+
+<a href="https://github.com/AegeanWorks/Dustline/commit/39036c1"><img src="assets/screenshots/2026-11-03-combat.png" alt="Dustline wave-1 combat at 2026-11-03"></a>
+
+<a href="https://github.com/AegeanWorks/Dustline/commit/39036c1"><img src="assets/screenshots/2026-11-03-boss.png" alt="Dustline Warlord boss at 2026-11-03"></a>
+
+*commit `39036c1` · 2026-11-03 · viewport 1440x900 · menu, two loadouts, wave-1 combat and Warlord boss, promoted from tracked `shots/` and verified against the live HEAD build*
+<!-- aegean:screenshots:end -->
