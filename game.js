@@ -5002,7 +5002,7 @@ function drawButton(id, label, cx, y, w, h, sub) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = hover ? '#fff3d6' : '#e8dcc0';
-  const fontSize = h <= 24 ? 12 : h <= 30 ? 13 : h <= 36 ? 15 : sub ? 16 : 18;
+  const fontSize = h <= 24 ? 12 : h <= 30 ? 13 : h <= 36 ? 15 : 17;
   ctx.font = '700 ' + fontSize + 'px Consolas, monospace';
   ctx.fillText(label, cx, y + (sub ? h / 2 - 7 : h / 2));
   if (sub) {

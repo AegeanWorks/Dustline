@@ -246,3 +246,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   5. Boss Combat HUD: Upgraded boss health bar to an 8px rounded glassmorphic frame with purple/crimson glow, trough background, top gloss highlight, 4-segment quarter division ticks, and distinct mega vs normal accents.
   6. Pickups: Added soft ambient halos to all regular and tier-2 XP gems (`globalAlpha` 0.12 to 0.22).
 - **Consequences**: Screens throughout the entire game flow now have visual balance, cohesive tactical styling, and no awkward gaps or colliding elements. All 152 tests continue to pass with 0 regressions, and all visual changes were verified and inspected through CDP browser captures.
+
+### ADR-030: Menu button label-size unification
+- **Date**: 2026-11-02
+- **Status**: Accepted
+- **Context**: The menu ARMORY button carries a `SHARDS n` sub-label while DAILY does not; `drawButton` used 16px for sub-labelled and 18px for plain h=40 buttons, leaving a 1px-class asymmetry between the two side-by-side cards.
+- **Decision**: Unify all h>36 button labels to 17px regardless of `sub`, keeping the existing `y+h/2-7` sub offset and `y+h/2+12` sub line.
+- **Consequences**: ARMORY/DAILY read as one row with no box, hit-test or snapshot change; 160/160 tests and 5/5 gates pass; before/after captures in `shots/s1-menu-before.png` vs `shots/s1-menu-after.png` (workspace-level, not committed).
