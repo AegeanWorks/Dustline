@@ -4,24 +4,14 @@
     "task_id": "dustline-s2-tunneler",
     "last_phase": "phase 5",
     "active_phase": 5,
-    "status": "in_progress",
+    "status": "completed",
     "updated_at": 1793653483.0417805,
     "owner": "unidentified",
     "started_by": "unidentified",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793653510.8414245
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-sprite-ui-pass",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/5] Added reusable enemy motion accents, map glyphs, and combat HUD grouping rails while preserving mechanics and hitboxes.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793551599.1304996,
-      "timestamp_str": "2026-11-01 19:46:39",
-      "agent": "copilot:vscode"
-    },
     {
       "task_id": "dustline-sprite-ui-pass",
       "phase": "phase 4",
@@ -243,6 +233,16 @@
       "status": "superseded",
       "timestamp": 1793653483.0417805,
       "timestamp_str": "2026-11-03 00:04:43",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s2-tunneler",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-s2-tunneler' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793653510.8414264,
+      "timestamp_str": "2026-11-03 00:05:10",
       "agent": "unidentified"
     }
   ]
