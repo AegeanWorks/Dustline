@@ -2217,7 +2217,7 @@ test('priority mobs no longer share the base grunt silhouette', () => {
     return keys.map((k) => g.ops[k] || 0).join(',');
   }
   const base = signature('grunt');
-  const types = ['shielder', 'leech', 'screamer', 'widower', 'mortar', 'husk', 'phantom', 'bomber', 'hunter'];
+  const types = ['shielder', 'leech', 'screamer', 'widower', 'mortar', 'husk', 'phantom', 'bomber', 'hunter', 'tunneler'];
   const unique = new Set([base]);
   for (const type of types) {
     const sig = signature(type);

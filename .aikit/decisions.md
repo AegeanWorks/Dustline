@@ -253,3 +253,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The menu ARMORY button carries a `SHARDS n` sub-label while DAILY does not; `drawButton` used 16px for sub-labelled and 18px for plain h=40 buttons, leaving a 1px-class asymmetry between the two side-by-side cards.
 - **Decision**: Unify all h>36 button labels to 17px regardless of `sub`, keeping the existing `y+h/2-7` sub offset and `y+h/2+12` sub line.
 - **Consequences**: ARMORY/DAILY read as one row with no box, hit-test or snapshot change; 160/160 tests and 5/5 gates pass; before/after captures in `shots/s1-menu-before.png` vs `shots/s1-menu-after.png` (workspace-level, not committed).
+
+### ADR-031: Surfaced tunneler silhouette and dead-branch removal
+- **Date**: 2026-11-02
+- **Status**: Accepted
+- **Context**: The surfaced tunneler fell through to the generic grunt `else` body (identical op signature `117,133,112,125,62,55,28,118`), so the only burrowing mob read as a grunt above ground; two later `else if` branches (a second `phantom` with tail, a second `hunter` with visor strips) were unreachable because earlier branches already matched those types.
+- **Decision**: Give the surfaced tunneler its own branch: flattened `ellipse` hull, drill quad snout, three dorsal plate ticks and a gold core (hitbox `e.r` unchanged, pure draw). Delete the two unreachable duplicate branches. Pin `tunneler` in the `priority mobs` silhouette test's type list.
+- **Consequences**: Tunneler signature is now `115,136,112,129,68,55,29,117` (adds `ellipse`, extra `moveTo`/`lineTo`, one fewer `fillRect`) vs grunt; 160/160 tests and 5/5 gates pass. No balance, save or snapshot change. Gameplay captures at 0:02 are intentionally identical (tunnelers enter at 95s+); distinctness is proven by the harness signature run plus the extended suite guard.

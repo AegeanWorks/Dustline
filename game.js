@@ -6402,26 +6402,6 @@ function drawEnemies() {
         ctx.arc(Math.cos(a) * e.r * 0.45, Math.sin(a) * e.r * 0.45, 3, 0, TAU);
         ctx.fill();
       }
-    } else if (e.type === 'phantom') {
-      ctx.rotate(facing);
-      ctx.fillStyle = 'rgba(90,122,138,0.5)';
-      ctx.beginPath();
-      ctx.moveTo(-e.r * 0.3, -e.r * 0.75);
-      ctx.lineTo(-e.r * 2.1 - Math.sin(uiT * 6) * 4, 0);
-      ctx.lineTo(-e.r * 0.3, e.r * 0.75);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = base;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(220,245,255,0.5)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = '#0d1a22';
-      ctx.beginPath();
-      ctx.arc(e.r * 0.25, 0, e.r * 0.3, 0, TAU);
-      ctx.fill();
     } else if (e.type === 'mortar') {
       ctx.rotate(facing);
       ctx.strokeStyle = dark;
@@ -6468,20 +6448,6 @@ function drawEnemies() {
       ctx.beginPath();
       ctx.arc(e.r * 0.35, 0, e.r * 0.26, 0, TAU);
       ctx.fill();
-    } else if (e.type === 'hunter') {
-      ctx.fillStyle = '#1a1014';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r + 4, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = base;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = '#e8e2d6';
-      ctx.fillRect(-e.r * 0.5, -e.r - 3, e.r * 0.95, 5);
-      ctx.fillRect(-e.r * 0.5, e.r - 2, e.r * 0.95, 5);
-      ctx.fillStyle = '#ff3b30';
-      ctx.fillRect(0, -2.5, e.r * 0.8, 5);
     } else if (e.type === 'tank' || e.type === 'bomber') {
       if (e.type === 'bomber') {
         ctx.fillStyle = dark;
@@ -6543,6 +6509,35 @@ function drawEnemies() {
         ctx.arc(0, 0, e.r + 4, -0.4, 0.4);
         ctx.stroke();
       }
+    } else if (e.type === 'tunneler') {
+      ctx.rotate(facing);
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, e.r, e.r * 0.62, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = dark;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.moveTo(e.r * 0.4, -e.r * 0.5);
+      ctx.lineTo(e.r * 0.9, -e.r * 0.28);
+      ctx.lineTo(e.r * 0.9, e.r * 0.28);
+      ctx.lineTo(e.r * 0.4, e.r * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1.5;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * e.r * 0.35 - e.r * 0.55, -e.r * 0.5);
+        ctx.lineTo(i * e.r * 0.35 - e.r * 0.55, -e.r * 0.28);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#ffd27a';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r * 0.2, 0, TAU);
+      ctx.fill();
     } else {
       ctx.rotate(facing);
       ctx.fillStyle = base;
