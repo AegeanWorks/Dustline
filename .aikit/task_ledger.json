@@ -1,59 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dustline-s5-contracts",
+    "task_id": "dustline-s6-content",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793656033.7165878,
+    "updated_at": 1793656991.6732674,
     "owner": "unidentified",
     "started_by": "unidentified",
     "continuations": [],
-    "completed_at": 1793656581.7359393
+    "completed_at": 1793657085.0488584
   },
   "checkpoints": [
-    {
-      "task_id": "dustline-s1-menu-unify",
-      "phase": "superseded",
-      "phase_num": 2,
-      "description": "Superseded by 'dustline-s2-tunneler' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793653462.7580836,
-      "timestamp_str": "2026-11-03 00:04:22",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-s2-tunneler",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/3] Add tunneler branch, remove dead phantom/hunter branches, pin tunneler in silhouette test, add ADR-031",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793653463.1086788,
-      "timestamp_str": "2026-11-03 00:04:23",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-s2-tunneler",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Verified: tunneler sig differs, 160/160 tests, 5/5 gates, gameplay before/after inspected; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793653463.3826318,
-      "timestamp_str": "2026-11-03 00:04:23",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "dustline-s2-tunneler",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'dustline-s1-menu-unify' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793653469.4775329,
-      "timestamp_str": "2026-11-03 00:04:29",
-      "agent": "unidentified"
-    },
     {
       "task_id": "dustline-s1-menu-unify",
       "phase": "phase 5",
@@ -244,6 +202,56 @@
       "status": "completed",
       "timestamp": 1793656581.7359426,
       "timestamp_str": "2026-11-03 00:56:21",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s6-content",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] S6 content: audit roster tables, pick contract vehicle",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793656990.8045237,
+      "timestamp_str": "2026-11-03 01:03:10",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "why": "Boss/map/relic/affix growth needs layout reflow or engine code per measurements",
+        "benefits": "Two new objective playstyles via existing generic engine",
+        "risks": "contract: CONTRACTS rows only; dependency: none; concurrency: none; state: none",
+        "mitigation": "Deterministic test first (seed 243); full suite plus gates"
+      },
+      "plan_digest": "467a4ec640e97e8a2b90bf31b24c583dd55bc34ce20b38d1956ef6a99245face"
+    },
+    {
+      "task_id": "dustline-s6-content",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/3] Add failing-first test, then hunter/closecall rows; add ADR-036",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793656991.260412,
+      "timestamp_str": "2026-11-03 01:03:11",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s6-content",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Verified: 162/162 tests, scripted run pays both; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793656991.6732674,
+      "timestamp_str": "2026-11-03 01:03:11",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "dustline-s6-content",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dustline-s6-content' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793657085.0488608,
+      "timestamp_str": "2026-11-03 01:04:45",
       "agent": "unidentified"
     }
   ]
