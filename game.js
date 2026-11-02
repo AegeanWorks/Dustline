@@ -3409,6 +3409,9 @@ function updateEnemies(dt) {
     }
   }
 
+  const sandstorm = !!(G.event && G.event.id === 'sandstorm');
+  const px = G.player.x;
+  const py = G.player.y;
   for (const e of G.enemies) {
     if (e.dead) continue;
     e.flash = Math.max(0, e.flash - dt);
@@ -3423,9 +3426,9 @@ function updateEnemies(dt) {
       e.flip = rnd(0.8, 2.2);
       e.strafe *= -1;
     }
-    const dx = G.player.x - e.x;
-    const dy = G.player.y - e.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const dx = px - e.x;
+    const dy = py - e.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     const ux = dx / d;
     const uy = dy / d;
     let vx = ux;
@@ -3433,7 +3436,7 @@ function updateEnemies(dt) {
     let speed = e.speed * (e.rageT > 0 ? 1.3 : 1);
     const eHz = HAZARDS[hazardAt(e.x, e.y)];
     if (eHz && eHz.enemySpeed) speed *= eHz.enemySpeed;
-    if (G.event && G.event.id === 'sandstorm') speed *= 1.2;
+    if (sandstorm) speed *= 1.2;
 
     if (e.type === 'tunneler') {
       if (e.burrowed) {
@@ -3815,6 +3818,7 @@ function separateEnemies() {
 }
 
 function updateBullets(dt) {
+  const ricochetBest = (220 + 12 * ((G && G.skills.ricochet) || 0)) * (220 + 12 * ((G && G.skills.ricochet) || 0));
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt;
@@ -3864,10 +3868,12 @@ function updateBullets(dt) {
           b.pierce--;
         } else if (b.bounces > 0) {
           let next = null;
-          let best = (220 + 12 * ((G && G.skills.ricochet) || 0)) ** 2;
+          let best = ricochetBest;
           for (const o of G.enemies) {
             if (o.dead || o === e || b.hits.indexOf(o) >= 0) continue;
-            const d = dist2(b.x, b.y, o.x, o.y);
+            const dx = b.x - o.x;
+            const dy = b.y - o.y;
+            const d = dx * dx + dy * dy;
             if (d < best) {
               best = d;
               next = o;
@@ -3876,7 +3882,7 @@ function updateBullets(dt) {
           if (next) {
             b.bounces--;
             b.ang = Math.atan2(next.y - b.y, next.x - b.x);
-            const speed = Math.hypot(b.vx, b.vy) || 800;
+            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 800;
             b.vx = Math.cos(b.ang) * speed;
             b.vy = Math.sin(b.ang) * speed;
             b.life = Math.max(b.life, 0.6);
@@ -4428,7 +4434,7 @@ function updatePickups(dt) {
     gem.spin += dt * 4;
     const dx = G.player.x - gem.x;
     const dy = G.player.y - gem.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (d < pr) {
       const pull = 220 + (1 - d / pr) * 380;
       gem.x += (dx / d) * pull * dt;
@@ -4453,7 +4459,7 @@ function updatePickups(dt) {
     chip.spin += dt * 3;
     const dx = G.player.x - chip.x;
     const dy = G.player.y - chip.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (d < pr) {
       const pull = 200 + (1 - d / pr) * 340;
       chip.x += (dx / d) * pull * dt;
@@ -4470,7 +4476,7 @@ function updatePickups(dt) {
     chest.spin += dt * 2.4;
     const dx = G.player.x - chest.x;
     const dy = G.player.y - chest.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (d < pr) {
       const pull = 170 + (1 - d / pr) * 260;
       chest.x += (dx / d) * pull * dt;
@@ -4508,7 +4514,7 @@ function updatePickups(dt) {
     kit.spin = (kit.spin || 0) + dt * 2;
     const dx = G.player.x - kit.x;
     const dy = G.player.y - kit.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (d < pr) {
       const pull = 200 + (1 - d / pr) * 340;
       kit.x += (dx / d) * pull * dt;
@@ -4528,7 +4534,7 @@ function updatePickups(dt) {
     oc.spin = (oc.spin || 0) + dt * 3;
     const dx = G.player.x - oc.x;
     const dy = G.player.y - oc.y;
-    const d = Math.hypot(dx, dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (d < pr) {
       const pull = 220 + (1 - d / pr) * 360;
       oc.x += (dx / d) * pull * dt;
@@ -7972,7 +7978,7 @@ function drawSetupScreen() {
     ctx.fillText(m.name, x + 8, y + 18);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name, x + 8, y + 36);
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name.split(' ')[0], x + 8, y + 36);
     ctx.fillStyle = m.props.building;
     ctx.fillRect(x + mapW - 32, y + 29, 7, 7);
     ctx.fillStyle = m.props.rock;
@@ -8092,21 +8098,21 @@ function drawSetupScreen() {
     const chosen = setup.mutators.indexOf(id) >= 0;
     const x = 36 + i * 148;
     const y = 348;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 26 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 26;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 30 });
+    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 30;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 142, 26, 5);
+    rr(x, y, 142, 30, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
     ctx.font = '700 9.5px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 11);
+    ctx.fillText(def.name, x + 7, y + 12);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 7.5px Consolas, monospace';
-    ctx.fillText('LOOT x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 20);
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText('x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 24);
   });
 
   ctx.fillStyle = '#e0b25c';
@@ -8118,23 +8124,27 @@ function drawSetupScreen() {
     const chosen = setup.mutation === id;
     const x = 36 + i * 178;
     const y = 390;
-    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 172, h: 26 });
-    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 26;
+    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 172, h: 30 });
+    const hover = mouse.x >= x && mouse.x <= x + 172 && mouse.y >= y && mouse.y <= y + 30;
     ctx.fillStyle = chosen ? 'rgba(255,138,92,0.18)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 172, 26, 5);
+    rr(x, y, 172, 30, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
     ctx.font = '700 9.5px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 11);
+    ctx.fillText(def.name, x + 7, y + 12);
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 7.5px Consolas, monospace';
-    ctx.fillText(def.blurb, x + 7, y + 20);
+    ctx.font = '600 8px Consolas, monospace';
+    ctx.fillText(def.blurb, x + 7, y + 24);
   });
 
+  var deploySub = WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
+    findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
+    operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS');
+  if (deploySub.length > 64) deploySub = deploySub.slice(0, 61) + '…';
   drawButton(
     'setup-start',
     'DEPLOY',
@@ -8142,9 +8152,7 @@ function drawSetupScreen() {
     432,
     420,
     40,
-    WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
-      findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
-      operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS')
+    deploySub
   );
   drawButton('back-setup', 'BACK', W / 2, 484, 180, 28);
 }
