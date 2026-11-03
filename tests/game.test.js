@@ -803,6 +803,21 @@ test('mega bosses arrive after three regular bosses and use phases', () => {
   assert.strictEqual(s.boss.mega, true);
 });
 
+test('wave 30 brings the warlord again with a 140-kill war chest', () => {
+  const g = boot({ seed: 99 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(1160);
+  g.steps(4);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.wave, 30);
+  assert.ok(s.boss, 'wave 30 spawns a boss');
+  assert.strictEqual(s.boss.type, 'warlord');
+  assert.strictEqual(s.boss.mega, false);
+  assert.ok(s.warChest, 'wave 30 spawns a war chest');
+  assert.strictEqual(s.warChest.need, 140);
+});
+
 test('high alert deploys NetWatch hunters', () => {
   const g = boot({ seed: 229 });
   deploy(g);

@@ -302,3 +302,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Twenty-eight captures sat in `shots/` with `media.json screenshots: []` and no README block; the menu, setup, combat and boss views were all present but unwired.
 - **Decision**: Copy five byte-identical keepers to `assets/screenshots/` (menu, Railgun loadout, AK-47 setup, wave-1 combat, Warlord boss), verify currency with a fresh `npm start` menu capture at HEAD `39036c1` (identical layout), and register all five in `.aikit/media.json` and the README `aegean:screenshots` block. The remaining `shots/` files stay as regeneration evidence per the README tree.
 - **Consequences**: README proves menu, loadouts, combat and boss. Reproduce with: `npm start`, open `http://127.0.0.1:5173/`, screenshot.
+
+### ADR-038: Wave 0/10/20/30 audit pins the wave-30 rotation repeat
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: Waves 5/10/15 were pinned by `every fifth wave` and waves 20/40 by the mega test, but wave 30 (slot 6, `BOSS_ORDER[0]` warlord repeat, `20+30*4=140`-kill war chest, only reachable on Endless past 1160s) had no regression pin despite closing the first-30-waves scope.
+- **Decision**: Verify-only audit of waves 0/10/20/30 via the seeded harness (t=0 wave 1 no boss, t=360 wave 10 overseer, t=760 wave 20 colossus mega, t=1160 wave 30 warlord, all deterministic across duplicate seeds) plus one test-only pin: `wave 30 brings the warlord again with a 140-kill war chest` (seed 99). No engine, balance, seed or snapshot change.
+- **Consequences**: Wave-30 rotation and chest need are now suite-pinned; the wrong-boss mutation (`overseer`) fails as expected. 163/163 tests pass.
