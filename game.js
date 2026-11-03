@@ -7335,7 +7335,9 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e8a87c';
     ctx.font = '700 9px Consolas, monospace';
-    ctx.fillText(tags.join('  ·  '), 22, 94);
+    let tagsText = tags.join('  ·  ');
+    if (tagsText.length > 44) tagsText = tagsText.slice(0, 41) + '...';
+    ctx.fillText(tagsText, 22, 94);
   }
 
   ctx.textAlign = 'center';
@@ -8049,10 +8051,10 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('TIME LIMIT', 400, 246);
+  ctx.fillText('TIME LIMIT', 408, 246);
   TIME_LIMITS.forEach((lim, i) => {
     const chosen = setup.limit === lim.id;
-    const x = 400 + i * 130;
+    const x = 408 + i * 130;
     const y = 252;
     uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 124, h: 30 });
     const hover = mouse.x >= x && mouse.x <= x + 124 && mouse.y >= y && mouse.y <= y + 30;
@@ -10411,7 +10413,15 @@ function canvasXY(t) {
 
 cv.addEventListener('touchstart', (e) => {
   touchMode = true;
+  initAudio();
   e.preventDefault();
+  if (screen !== 'play') {
+    for (const t of e.changedTouches) {
+      const p = canvasXY(t);
+      clickAt(p.x, p.y);
+    }
+    return;
+  }
   for (const t of e.changedTouches) {
     const p = canvasXY(t);
     if (p.x < W * 0.42) {

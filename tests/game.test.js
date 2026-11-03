@@ -3193,3 +3193,103 @@ test('the run-over screen calls out the device board rank', () => {
     'the rank renders on the report'
   );
 });
+
+test('touch taps activate menu buttons (V2)', () => {
+  const g = boot({ seed: 1337, record: true });
+  const play = g.api.snapshot().buttons.find((b) => b.id === 'play');
+  assert.ok(play, 'play button exists');
+  const cx = play.x + play.w / 2;
+  const cy = play.y + play.h / 2;
+  g.handlers.touchstart({ preventDefault() {}, changedTouches: [{ identifier: 7, clientX: cx, clientY: cy }] });
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'setup', 'touch tap on PLAY reaches setup, got ' + g.api.snapshot().screen);
+});
+
+test('setup MODE and TIME LIMIT groups keep separation (V3)', () => {
+  const g = boot({ seed: 9003, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  const s = g.api.snapshot();
+  const mode = s.buttons.filter((b) => b.id.indexOf('mode-') === 0).sort((a, b) => a.x - b.x);
+  const limits = s.buttons.filter((b) => b.id.indexOf('limit-') === 0).sort((a, b) => a.x - b.x);
+  assert.strictEqual(mode.length, 2, 'two mode cards');
+  assert.strictEqual(limits.length, 4, 'four limit cards');
+  const modeRight = Math.max(...mode.map((b) => b.x + b.w));
+  const limitLeft = Math.min(...limits.map((b) => b.x));
+  assert.ok(modeRight + 8 <= limitLeft, 'mode cards clear time-limit cards: ' + modeRight + ' vs ' + limitLeft);
+  const modeHeader = g.texts.find((t) => t.text === 'MODE');
+  const limitHeader = g.texts.find((t) => t.text === 'TIME LIMIT');
+  assert.ok(modeHeader && limitHeader, 'both headers render');
+  assert.ok(Math.abs(modeHeader.y - limitHeader.y) < 3, 'headers share the row band');
+  assert.ok(modeHeader.x + 60 <= limitHeader.x, 'headers do not collide: ' + modeHeader.x + ' vs ' + limitHeader.x);
+});
+
+test('HUD mutator tags stay inside the kills panel (V4)', () => {
+  const g = boot({ seed: 1337, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  g.api.clickButton('mutator-glass');
+  g.api.clickButton('mutator-swarm');
+  g.api.clickButton('mutation-overclock');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const tags = g.texts.find((t) => t.text.indexOf('MUTATORS') === 0 || t.text.indexOf('MUTATION') === 0);
+  assert.ok(tags, 'tags line renders, saw: ' + JSON.stringify(g.texts.map((t) => t.text).slice(0, 20)));
+  assert.ok(tags.text.length <= 44, 'tags line fits the 250px panel, got ' + tags.text.length + ': ' + tags.text);
+  assert.ok(tags.x >= 14 && tags.x + tags.text.length * 5.5 <= 14 + 250 + 8, 'tags stay in panel horizontally');
+});
+
+test('early progression banks the first level-up inside 80 seconds (M1)', () => {
+  const g = boot({ seed: 1337 });
+  g.api.clickButton('play');
+  g.steps(1);
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  g.api.setInvulnerable(true);
+  g.steps(5400);
+  const s = g.api.snapshot();
+  assert.ok(s.level >= 2, 'stationary play levels by 80s, got level ' + s.level + ' xp ' + Math.round(s.xp) + '/' + s.xpNext + ' kills ' + s.kills);
+  assert.ok(s.kills >= 60, 'enough kills to feed gems, got ' + s.kills);
+});
+
+test('contact damage respects the spawn-time cap in long runs (M3)', () => {
+  const g = boot({ seed: 9105 });
+  deploy(g);
+  g.api.setTime(600);
+  g.api.spawnEnemy('tank', 240, 0);
+  const at600 = g.api.snapshot().enemies[g.api.snapshot().enemies.length - 1].touch;
+  assert.ok(Math.abs(at600 - 57.6) < 0.01, 'caps at 3.2x by 600s, got ' + at600);
+  g.api.setTime(1200);
+  g.api.spawnEnemy('tank', 320, 0);
+  const at1200 = g.api.snapshot().enemies[g.api.snapshot().enemies.length - 1].touch;
+  assert.ok(Math.abs(at1200 - 57.6) < 0.01, 'stays capped at 1200s, got ' + at1200);
+  g.api.setPlayer(0, 0);
+  g.api.setTime(600);
+  g.api.setInvulnerable(false);
+  const hp0 = g.api.snapshot().hp;
+  g.api.hurt(at600);
+  g.steps(1);
+  assert.ok(g.api.snapshot().hp < hp0, 'capped hits still hurt');
+  assert.ok(g.api.snapshot().hp > 0, 'a single capped tank touch does not one-shot at full health');
+});
+
+test('bombs target the densest cluster (M4)', () => {
+  let hits = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const g = boot({ seed });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    g.api.setPlayer(0, 0);
+    for (let i = 0; i < 5; i++) g.api.spawnEnemy('grunt', 400 + (i % 5) * 10, (i % 5) * 10);
+    for (let i = 0; i < 15; i++) g.api.spawnEnemy('grunt', -400 + (i % 5) * 10, (i % 5) * 10);
+    g.steps(1);
+    assert.ok(g.api.throwBomb(), 'bomb throws on seed ' + seed);
+    assert.strictEqual(g.api.snapshot().bombs, 1, 'one bomb in flight');
+    g.steps(60);
+    const s = g.api.snapshot();
+    const leftAlive = s.enemies.filter((e) => !e.dead && e.x < 0).length;
+    const rightAlive = s.enemies.filter((e) => !e.dead && e.x > 0).length;
+    if (leftAlive < rightAlive) hits++;
+  }
+  assert.ok(hits >= 12, 'bomb favors the 15-cluster, got ' + hits + '/20');
+});
