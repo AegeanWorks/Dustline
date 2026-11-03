@@ -2401,6 +2401,8 @@ test('armory keeps insufficient-shard feedback inside its own row', () => {
 test('the selected map card stays brighter than the unselected cards', () => {
   const g = boot({ seed: 1805, record: true });
   enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   const overlays = g.fills.filter((f) => f.fillStyle === '#06080a' && f.alpha < 1);
   assert.ok(overlays.length >= 4, 'four map cards are painted, saw ' + overlays.length);
   assert.ok(overlays[0].alpha < overlays[1].alpha, 'selected overlay ' + overlays[0].alpha + ' is lighter than ' + overlays[1].alpha);
@@ -2908,6 +2910,8 @@ test('the setup rows keep clear separation between labels and cards', () => {
   const g = boot({ seed: 9003, record: true });
   g.api.clickButton('play');
   g.steps(1);
+  g.api.clickButton('setup-tab-2');
+  g.steps(1);
   const text = (prefix) => g.texts.find((t) => t.text.indexOf(prefix) === 0);
   const label = text('MUTATORS');
   const mutator = g.texts.find((t) => t.text === 'GLASS CANNON');
@@ -3209,6 +3213,8 @@ test('setup MODE and TIME LIMIT groups keep separation (V3)', () => {
   const g = boot({ seed: 9003, record: true });
   g.api.clickButton('play');
   g.steps(1);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   const s = g.api.snapshot();
   const mode = s.buttons.filter((b) => b.id.indexOf('mode-') === 0).sort((a, b) => a.x - b.x);
   const limits = s.buttons.filter((b) => b.id.indexOf('limit-') === 0).sort((a, b) => a.x - b.x);
@@ -3250,6 +3256,67 @@ test('early progression banks the first level-up inside 80 seconds (M1)', () => 
   const s = g.api.snapshot();
   assert.ok(s.level >= 2, 'stationary play levels by 80s, got level ' + s.level + ' xp ' + Math.round(s.xp) + '/' + s.xpNext + ' kills ' + s.kills);
   assert.ok(s.kills >= 60, 'enough kills to feed gems, got ' + s.kills);
+});
+
+test('the loadout opens on the arsenal tab and pages through field and rules', () => {
+  const g = boot({ seed: 9003, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'setup', 'setup opens');
+  assert.strictEqual(s.setupTab, 0, 'arsenal first');
+  const tabIds = s.buttons.map((b) => b.id).filter((id) => id.indexOf('setup-tab-') === 0);
+  assert.strictEqual(tabIds.length, 3, 'three tabs registered');
+  for (const id of ['setup-tab-0', 'setup-tab-1', 'setup-tab-2']) assert.ok(tabIds.indexOf(id) >= 0, id + ' registered');
+  let labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('WEAPON'), 'arsenal shows weapons');
+  assert.ok(!labels.includes('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT'), 'rules hidden on arsenal');
+  assert.ok(g.api.clickButton('setup-next'), 'next exists');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setupTab, 1, 'field second');
+  labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('MAP'), 'field shows maps');
+  assert.ok(labels.includes('MODE'), 'field shows modes');
+  assert.ok(!labels.includes('WEAPON'), 'arsenal hidden on field');
+  g.api.clickButton('setup-tab-2');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setupTab, 2, 'rules third');
+  labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT'), 'rules show mutators');
+  g.api.clickButton('setup-prev');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setupTab, 1, 'prev returns to field');
+});
+
+test('hidden loadout pages do not answer mouse clicks', () => {
+  const g = boot({ seed: 9003 });
+  g.api.clickButton('play');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'desert', 'default map');
+  g.down(220, 166);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'desert', 'map click ignored on arsenal tab');
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  g.down(220, 166);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'frost', 'map click lands on field tab, got ' + g.api.snapshot().setup.map);
+});
+
+test('the loadout tabs summarize the current picks', () => {
+  const g = boot({ seed: 9003, record: true });
+  g.api.clickButton('play');
+  g.steps(1);
+  g.api.clickButton('weapon-smg');
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  g.api.clickButton('map-frost');
+  g.api.clickButton('mode-bossrush');
+  g.api.clickButton('setup-tab-0');
+  g.steps(1);
+  const labels = g.texts.map((t) => t.text).join(' / ');
+  assert.ok(labels.indexOf('SMG-45') >= 0, 'arsenal tab shows the picked weapon');
+  assert.ok(labels.indexOf('BOSS RUSH') >= 0 || labels.indexOf('BOSSRUSH') >= 0 || labels.indexOf('bossrush') >= 0, 'field tab shows the picked mode');
 });
 
 test('contact damage respects the spawn-time cap in long runs (M3)', () => {

@@ -1879,6 +1879,7 @@ function addSoldier() {
 }
 
 let setup = { weapon: 'ak', map: 'desert', limit: 'endless', difficulty: 'normal', mutators: [], mode: 'survivors', operator: 'ranger', mutation: 'none' };
+let setupTab = 0;
 
 function freshSkills() {
   const skills = {};
@@ -7915,47 +7916,75 @@ function drawSetupScreen() {
   ctx.fillText('LOADOUT', W / 2, 38);
   ctx.fillStyle = 'rgba(200,190,165,0.65)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText('WEAPON · MAP · OPERATOR · MODE · DIFFICULTY · ' + slotCap('offense') + ' OFF / ' + slotCap('passive') + ' DEF SLOTS', W / 2, 53);
+  ctx.fillText(slotCap('offense') + ' OFF / ' + slotCap('passive') + ' DEF SLOTS · PICK A TAB, THEN DEPLOY', W / 2, 53);
+
+  const tabDefs = [
+    { id: 'setup-tab-0', label: '1 · ARSENAL', sub: WEAPONS[setup.weapon].name + ' / ' + operatorDefName() },
+    { id: 'setup-tab-1', label: '2 · FIELD', sub: MAPS[setup.map].name + ' / ' + setup.mode.toUpperCase() },
+    { id: 'setup-tab-2', label: '3 · RULES', sub: setup.mutators.length + ' MUT / ' + (MUTATIONS.find((m) => m.id === setup.mutation) || {}).name }
+  ];
+  tabDefs.forEach((tab, i) => {
+    const x = 36 + i * 296;
+    const y = 62;
+    uiButtons.push({ id: tab.id, label: tab.label, x, y, w: 288, h: 40 });
+    const chosen = setupTab === i;
+    const hover = mouse.x >= x && mouse.x <= x + 288 && mouse.y >= y && mouse.y <= y + 40;
+    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
+    ctx.lineWidth = chosen ? 2 : 1;
+    rr(x, y, 288, 40, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(tab.label, x + 144, y + 17);
+    ctx.fillStyle = 'rgba(200,195,180,0.65)';
+    ctx.font = '600 8.5px Consolas, monospace';
+    ctx.fillText(tab.sub, x + 144, y + 31);
+    ctx.textAlign = 'left';
+  });
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('WEAPON', 36, 68);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 0) ctx.fillText('WEAPON', 36, 120);
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
     const x = 36 + i * 178;
-    const y = 74;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 170, h: 48 });
-    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 48;
+    const y = 128;
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 170, h: 72, page: 0 });
+    if (setupTab !== 0) return;
+    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 72;
     if (chosen) {
       ctx.strokeStyle = 'rgba(255,210,122,' + (0.25 + 0.15 * Math.sin(uiT * 4)) + ')';
       ctx.lineWidth = 4;
-      rr(x - 2, y - 2, 174, 52, 8);
+      rr(x - 2, y - 2, 174, 76, 8);
       ctx.stroke();
     }
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 170, 48, 6);
+    rr(x, y, 170, 72, 6);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = chosen ? 'rgba(255,240,210,0.10)' : 'rgba(255,240,210,0.04)';
-    rr(x + 1.5, y + 1.5, 167, 12, 4);
+    rr(x + 1.5, y + 1.5, 167, 14, 4);
     ctx.fill();
-    drawSkillGlyph(w.skill, x + 170 - 24, y + 24, 11, w.color);
+    drawSkillGlyph(w.skill, x + 170 - 26, y + 36, 13, w.color);
     ctx.textAlign = 'left';
     ctx.fillStyle = w.color;
-    ctx.font = '700 14px Consolas, monospace';
-    ctx.fillText(w.name, x + 12, y + 21);
+    ctx.font = '700 15px Consolas, monospace';
+    ctx.fillText(w.name, x + 12, y + 28);
     ctx.fillStyle = 'rgba(210,205,190,0.72)';
-    ctx.font = '600 9px Consolas, monospace';
-    ctx.fillText(w.blurb, x + 12, y + 37);
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText(w.blurb, x + 12, y + 52);
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MAP', 36, 134);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 1) ctx.fillText('MAP', 36, 122);
   const mapW = 124;
   const mapGap = 6;
   const mapStart = (W - (MAP_ORDER.length * mapW + (MAP_ORDER.length - 1) * mapGap)) / 2;
@@ -7963,189 +7992,203 @@ function drawSetupScreen() {
     const m = MAPS[id];
     const chosen = setup.map === id;
     const x = mapStart + i * (mapW + mapGap);
-    const y = 140;
-    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: mapW, h: 48 });
-    const hover = mouse.x >= x && mouse.x <= x + mapW && mouse.y >= y && mouse.y <= y + 48;
+    const y = 130;
+    uiButtons.push({ id: 'map-' + id, label: m.name, x, y, w: mapW, h: 72, page: 1 });
+    if (setupTab !== 1) return;
+    const hover = mouse.x >= x && mouse.x <= x + mapW && mouse.y >= y && mouse.y <= y + 72;
     ctx.fillStyle = m.sky[0];
-    rr(x, y, mapW, 48, 6);
+    rr(x, y, mapW, 72, 6);
     ctx.fill();
     ctx.globalAlpha = chosen ? 0.3 : 0.55;
     ctx.fillStyle = '#06080a';
-    rr(x, y, mapW, 48, 6);
+    rr(x, y, mapW, 72, 6);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = chosen ? m.accent : hover ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
     ctx.lineWidth = chosen ? 2.5 : 1.5;
-    rr(x, y, mapW, 48, 6);
+    rr(x, y, mapW, 72, 6);
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#fff6e2' : '#e8e2d4';
     ctx.font = '700 11px Consolas, monospace';
-    ctx.fillText(m.name, x + 8, y + 18);
+    ctx.fillText(m.name, x + 8, y + 20);
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name.split(' ')[0], x + 8, y + 36);
+    ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name.split(' ')[0], x + 8, y + 38);
     ctx.fillStyle = m.props.building;
-    ctx.fillRect(x + mapW - 32, y + 29, 7, 7);
+    ctx.fillRect(x + mapW - 32, y + 47, 7, 7);
     ctx.fillStyle = m.props.rock;
     ctx.beginPath();
-    ctx.arc(x + mapW - 20, y + 32.5, 3.5, 0, TAU);
+    ctx.arc(x + mapW - 20, y + 50.5, 3.5, 0, TAU);
     ctx.fill();
     ctx.fillStyle = m.props.tree;
     ctx.beginPath();
-    ctx.arc(x + mapW - 10, y + 32.5, 3.5, 0, TAU);
+    ctx.arc(x + mapW - 10, y + 50.5, 3.5, 0, TAU);
     ctx.fill();
-    drawMapGlyph(id, x + mapW - 20, y + 14, chosen ? m.accent : 'rgba(235,230,215,0.72)');
+    drawMapGlyph(id, x + mapW - 20, y + 16, chosen ? m.accent : 'rgba(235,230,215,0.72)');
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('OPERATOR', 36, 198);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 0) ctx.fillText('OPERATOR', 36, 224);
   OPERATOR_ORDER.forEach((id, i) => {
     const op = OPERATORS.find((o) => o.id === id);
     const chosen = setup.operator === id;
-    const x = 36 + i * 148;
-    const y = 204;
-    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 142, h: 32 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 32;
+    const x = 36 + (i % 3) * 298;
+    const y = 232 + Math.floor(i / 3) * 68;
+    uiButtons.push({ id: 'operator-' + id, label: op.name, x, y, w: 290, h: 60, page: 0 });
+    if (setupTab !== 0) return;
+    const hover = mouse.x >= x && mouse.x <= x + 290 && mouse.y >= y && mouse.y <= y + 60;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? op.color : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 142, 32, 5);
+    rr(x, y, 290, 60, 5);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = op.color;
-    ctx.fillRect(x + 1.5, y + 5, 3, 22);
+    ctx.fillRect(x + 1.5, y + 8, 3, 44);
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? op.color : '#cfc6ad';
-    ctx.font = '700 10.5px Consolas, monospace';
-    ctx.fillText(op.name, x + 9, y + 14);
-    ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(op.blurb, x + 9, y + 26);
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(op.name, x + 12, y + 24);
+    ctx.fillStyle = 'rgba(190,185,170,0.7)';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText(op.blurb, x + 12, y + 44);
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MODE', 36, 246);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 1) ctx.fillText('MODE', 36, 224);
   MODES.forEach((mode, i) => {
     const chosen = setup.mode === mode.id;
-    const x = 36 + i * 174;
-    const y = 252;
-    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 168, h: 30 });
-    const hover = mouse.x >= x && mouse.x <= x + 168 && mouse.y >= y && mouse.y <= y + 30;
+    const x = 36 + i * 248;
+    const y = 232;
+    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 240, h: 48, page: 1 });
+    if (setupTab !== 1) return;
+    const hover = mouse.x >= x && mouse.x <= x + 240 && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#63dcc0' : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 168, 30, 5);
+    rr(x, y, 240, 48, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? '#63dcc0' : '#cfc6ad';
-    ctx.font = '700 10.5px Consolas, monospace';
-    ctx.fillText(mode.name, x + 10, y + 13);
-    ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(mode.blurb, x + 10, y + 23);
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(mode.name, x + 12, y + 20);
+    ctx.fillStyle = 'rgba(190,185,170,0.65)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(mode.blurb, x + 12, y + 36);
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('TIME LIMIT', 408, 246);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 1) ctx.fillText('TIME LIMIT', 548, 224);
   TIME_LIMITS.forEach((lim, i) => {
     const chosen = setup.limit === lim.id;
-    const x = 408 + i * 130;
-    const y = 252;
-    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 124, h: 30 });
-    const hover = mouse.x >= x && mouse.x <= x + 124 && mouse.y >= y && mouse.y <= y + 30;
+    const x = 548 + i * 96;
+    const y = 232;
+    uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 90, h: 48, page: 1 });
+    if (setupTab !== 1) return;
+    const hover = mouse.x >= x && mouse.x <= x + 90 && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 124, 30, 6);
+    rr(x, y, 90, 48, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
     ctx.font = '700 11px Consolas, monospace';
-    ctx.fillText(lim.label, x + 62, y + 19);
+    ctx.fillText(lim.label, x + 45, y + 29);
     ctx.textAlign = 'left';
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('DIFFICULTY', 36, 292);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 1) ctx.fillText('DIFFICULTY', 36, 302);
   DIFFICULTY_ORDER.forEach((id, i) => {
     const diff = findDifficulty(id);
     const chosen = setup.difficulty === id;
     const x = 36 + i * 296;
-    const y = 298;
-    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 288, h: 34 });
-    const hover = mouse.x >= x && mouse.x <= x + 288 && mouse.y >= y && mouse.y <= y + 34;
+    const y = 310;
+    uiButtons.push({ id: 'difficulty-' + id, label: diff.name, x, y, w: 288, h: 64, page: 1 });
+    if (setupTab !== 1) return;
+    const hover = mouse.x >= x && mouse.x <= x + 288 && mouse.y >= y && mouse.y <= y + 64;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? diff.color : 'rgba(224,178,92,0.25)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 288, 34, 6);
+    rr(x, y, 288, 64, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? diff.color : '#d8d0bd';
-    ctx.font = '700 12.5px Consolas, monospace';
-    ctx.fillText(diff.name, x + 12, y + 16);
+    ctx.font = '700 13px Consolas, monospace';
+    ctx.fillText(diff.name, x + 12, y + 24);
     ctx.fillStyle = 'rgba(200,195,180,0.65)';
-    ctx.font = '600 8.5px Consolas, monospace';
-    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 28);
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(diff.blurb + '  ·  LOOT x' + diff.shard, x + 12, y + 44);
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 36, 342);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 2) ctx.fillText('MUTATORS · CHOOSE UP TO 2 FOR EXTRA LOOT', 36, 122);
   MUTATOR_ORDER.forEach((id, i) => {
     const def = mutatorDef(id);
     const chosen = setup.mutators.indexOf(id) >= 0;
-    const x = 36 + i * 148;
-    const y = 348;
-    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 142, h: 30 });
-    const hover = mouse.x >= x && mouse.x <= x + 142 && mouse.y >= y && mouse.y <= y + 30;
+    const x = 36 + (i % 3) * 300;
+    const y = 130 + Math.floor(i / 3) * 72;
+    uiButtons.push({ id: 'mutator-' + id, label: def.name, x, y, w: 292, h: 64, page: 2 });
+    if (setupTab !== 2) return;
+    const hover = mouse.x >= x && mouse.x <= x + 292 && mouse.y >= y && mouse.y <= y + 64;
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.22)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 142, 30, 5);
+    rr(x, y, 292, 64, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
-    ctx.font = '700 9.5px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 12);
-    ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText('x' + def.shard + ' · ' + def.blurb.split(',')[0], x + 7, y + 24);
+    ctx.font = '700 12px Consolas, monospace';
+    ctx.fillText(def.name, x + 10, y + 22);
+    ctx.fillStyle = 'rgba(190,185,170,0.7)';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText('x' + def.shard + ' · ' + def.blurb, x + 10, y + 44);
   });
 
   ctx.fillStyle = '#e0b25c';
-  ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('MUTATION · A RUN-LONG TWIST', 36, 384);
+  ctx.font = '700 12px Consolas, monospace';
+  if (setupTab === 2) ctx.fillText('MUTATION · A RUN-LONG TWIST', 36, 296);
   MUTATION_ORDER.forEach((id, i) => {
     const def = MUTATIONS.find((m) => m.id === id);
     if (!def) return;
     const chosen = setup.mutation === id;
     const x = 36 + i * 178;
-    const y = 390;
-    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 172, h: 30 });
-    const hover = mouse.x >= x && mouse.x <= x + 172 && mouse.y >= y && mouse.y <= y + 30;
+    const y = 304;
+    uiButtons.push({ id: 'mutation-' + id, label: def.name, x, y, w: 172, h: 56, page: 2 });
+    if (setupTab !== 2) return;
+    const hover = mouse.x >= x && mouse.x <= x + 172 && mouse.y >= y && mouse.y <= y + 56;
     ctx.fillStyle = chosen ? 'rgba(255,138,92,0.18)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? def.color : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 172, 30, 5);
+    rr(x, y, 172, 56, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = chosen ? def.color : '#cfc6ad';
-    ctx.font = '700 9.5px Consolas, monospace';
-    ctx.fillText(def.name, x + 7, y + 12);
-    ctx.fillStyle = 'rgba(190,185,170,0.6)';
-    ctx.font = '600 8px Consolas, monospace';
-    ctx.fillText(def.blurb, x + 7, y + 24);
+    ctx.font = '700 11px Consolas, monospace';
+    ctx.fillText(def.name, x + 10, y + 22);
+    ctx.fillStyle = 'rgba(190,185,170,0.7)';
+    ctx.font = '600 9px Consolas, monospace';
+    ctx.fillText(def.blurb, x + 10, y + 40);
   });
+
+  if (setupTab > 0) drawButton('setup-prev', '< PREV', 116, 428, 160, 32);
+  if (setupTab < 2) drawButton('setup-next', 'NEXT >', W - 116, 428, 160, 32);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(200,190,165,0.6)';
+  ctx.font = '600 11px Consolas, monospace';
+  ctx.fillText([1, 2, 3].map((n, i) => (i === setupTab ? '[ ' + n + ' ]' : '  ' + n + '  ')).join('   '), W / 2, 452);
 
   var deploySub = WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
     findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
@@ -8155,12 +8198,12 @@ function drawSetupScreen() {
     'setup-start',
     'DEPLOY',
     W / 2,
-    432,
+    470,
     420,
     40,
     deploySub
   );
-  drawButton('back-setup', 'BACK', W / 2, 484, 180, 28);
+  drawButton('back-setup', 'BACK', W / 2, 522, 180, 28);
 }
 
 function drawArmoryScreen() {
@@ -10010,6 +10053,20 @@ function pressButton(id) {
   sfx.click();
   if (id === 'play') {
     screen = 'setup';
+    setupTab = 0;
+    return;
+  }
+  if (id === 'setup-tab-0' || id === 'setup-tab-1' || id === 'setup-tab-2') {
+    setupTab = Number(id.slice(10));
+    return;
+  }
+  if (id === 'setup-next') {
+    setupTab = Math.min(2, setupTab + 1);
+    return;
+  }
+  if (id === 'setup-prev') {
+    if (setupTab > 0) setupTab--;
+    else screen = 'menu';
     return;
   }
   if (id === 'setup-start' || id === 'retry') {
@@ -10395,6 +10452,7 @@ function onKeyUp(e) {
 
 function clickAt(x, y) {
   for (const b of uiButtons) {
+    if (b.page !== undefined && b.page !== setupTab) continue;
     if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
       pressButton(b.id);
       return true;
@@ -10538,6 +10596,7 @@ window.Dustline = {
         deviceCode: ownBoardCode()
       },
       setup: { ...setup, mutators: setup.mutators.slice() },
+      setupTab,
       boardTab,
       daily: dailyInfo(),
       manual: {
