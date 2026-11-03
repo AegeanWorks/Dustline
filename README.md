@@ -136,7 +136,13 @@ dustline/
 │   ├── social-preview.svg    <- README banner
 │   ├── icon-192.png          <- PWA launcher icon (procedural, see make_icons.ps1)
 │   ├── icon-512.png          <- PWA launcher icon (procedural, see make_icons.ps1)
-│   └── icon-maskable-512.png <- PWA maskable icon (procedural)
+│   ├── icon-maskable-512.png <- PWA maskable icon (procedural)
+│   └── screenshots/          <- promoted keepers (ADR-037), verified at 39036c1
+│       ├── 2026-11-03-menu.png    <- first-run menu
+│       ├── 2026-11-03-loadout.png <- Railgun loadout
+│       ├── 2026-11-03-setup.png   <- AK-47 setup variant
+│       ├── 2026-11-03-combat.png  <- wave-1 combat
+│       └── 2026-11-03-boss.png    <- Warlord boss rush
 ├── scripts/
 │   ├── serve.js              <- zero-dependency static server for `npm start`
 │   └── make_icons.ps1        <- regenerates the PWA icons with System.Drawing
