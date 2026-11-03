@@ -30,10 +30,26 @@ function enterSetup(g) {
 
 function deploy(g, opts) {
   if (g.api.snapshot().screen === 'menu') enterSetup(g);
+  if (opts && (opts.weapon || opts.operator)) {
+    g.api.clickButton('setup-tab-0');
+    g.steps(1);
+  }
   if (opts && opts.weapon) g.api.clickButton('weapon-' + opts.weapon);
+  if (opts && opts.operator) g.api.clickButton('operator-' + opts.operator);
+  if (opts && (opts.map || opts.mode || opts.limit || opts.difficulty)) {
+    g.api.clickButton('setup-tab-1');
+    g.steps(1);
+  }
   if (opts && opts.map) g.api.clickButton('map-' + opts.map);
+  if (opts && opts.mode) g.api.clickButton('mode-' + opts.mode);
   if (opts && opts.limit) g.api.clickButton('limit-' + opts.limit);
   if (opts && opts.difficulty) g.api.clickButton('difficulty-' + opts.difficulty);
+  if (opts && (opts.mutators || opts.mutation)) {
+    g.api.clickButton('setup-tab-2');
+    g.steps(1);
+  }
+  if (opts && opts.mutators) for (const m of opts.mutators) g.api.clickButton('mutator-' + m);
+  if (opts && opts.mutation) g.api.clickButton('mutation-' + opts.mutation);
   if (opts) g.steps(1);
   assert.ok(g.api.clickButton('setup-start'), 'deploy button exists');
   g.steps(1);
@@ -68,6 +84,8 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   for (const limit of ['endless', '5', '10', '15']) assert.ok(ids.includes('limit-' + limit), limit);
 
   g.api.clickButton('weapon-dmr');
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
@@ -1200,6 +1218,8 @@ test('champions and caches persist in the career record', () => {
 test('mutators toggle up to two and apply their modifiers', () => {
   const g = boot({ seed: 431 });
   enterSetup(g);
+  g.api.clickButton('setup-tab-2');
+  g.steps(1);
   g.api.clickButton('mutator-glass');
   g.api.clickButton('mutator-swarm');
   g.api.clickButton('mutator-fog');
@@ -1225,6 +1245,8 @@ test('each map has a terrain hazard and embers burn', () => {
   for (const map of Object.keys(expectations)) {
     const g = boot({ seed: 433 });
     enterSetup(g);
+    g.api.clickButton('setup-tab-1');
+    g.steps(1);
     g.api.clickButton('map-' + map);
     g.api.clickButton('setup-start');
     g.steps(1);
@@ -1332,7 +1354,7 @@ test('the railgun fires piercing shots through a line', () => {
   g.api.setEnemyHp(2, 40);
   let fired = false;
   let sawRailColor = false;
-  for (let i = 0; i < 10 && !fired; i++) {
+  for (let i = 0; i < 80 && !fired; i++) {
     g.step();
     if (g.api.snapshot().shots.rail > 0) fired = true;
   }
@@ -1697,8 +1719,7 @@ test('bosses drop a salvage crate that offers three relics', () => {
   g.steps(1);
   let s = g.api.snapshot();
   assert.strictEqual(s.salvage, 1, 'the boss leaves salvage');
-  const boss = s.enemies.length >= 0;
-  assert.ok(boss);
+  assert.strictEqual(s.boss, null, 'no live boss remains after killEnemies');
   g.api.setPlayer(s.player.x + 500, s.player.y);
   for (let i = 0; i < 60; i++) {
     g.step();
@@ -1801,6 +1822,8 @@ test('the setup screen offers survivors and boss rush modes', () => {
   assert.ok(ids.includes('mode-survivors'));
   assert.ok(ids.includes('mode-bossrush'));
   assert.strictEqual(g.api.snapshot().setup.mode, 'survivors');
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   g.api.clickButton('mode-bossrush');
   g.steps(1);
   assert.strictEqual(g.api.snapshot().setup.mode, 'bossrush');
@@ -1814,6 +1837,8 @@ test('the setup screen offers survivors and boss rush modes', () => {
 test('boss rush spawns bosses instead of waves and wins after eight', () => {
   const g = boot({ seed: 803 });
   enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   g.api.clickButton('mode-bossrush');
   g.steps(1);
   g.api.clickButton('setup-start');
@@ -1890,6 +1915,8 @@ test('boss rush records clears and best time, and unlocks first clear', () => {
   const store = makeStore();
   const g = boot({ seed: 907, storage: store });
   enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
   g.api.clickButton('mode-bossrush');
   g.steps(1);
   g.api.clickButton('setup-start');
@@ -2793,6 +2820,8 @@ test('mutations apply their run-long modifiers', () => {
   for (const id of ['mutation-none', 'mutation-explosive', 'mutation-berserker', 'mutation-overclock', 'mutation-veteran']) {
     assert.ok(ids.includes(id), id);
   }
+  g.api.clickButton('setup-tab-2');
+  g.steps(1);
   g.api.clickButton('mutation-berserker');
   g.steps(1);
   assert.strictEqual(g.api.snapshot().setup.mutation, 'berserker');
@@ -2805,6 +2834,8 @@ test('mutations apply their run-long modifiers', () => {
   const h = boot({ seed: 3613 });
   h.api.clickButton('play');
   h.steps(1);
+  h.api.clickButton('setup-tab-2');
+  h.steps(1);
   h.api.clickButton('mutation-overclock');
   h.api.clickButton('setup-start');
   h.steps(1);
@@ -2812,6 +2843,8 @@ test('mutations apply their run-long modifiers', () => {
 
   const k = boot({ seed: 3615 });
   k.api.clickButton('play');
+  k.steps(1);
+  k.api.clickButton('setup-tab-2');
   k.steps(1);
   k.api.clickButton('mutation-veteran');
   k.api.clickButton('setup-start');
@@ -2939,6 +2972,8 @@ test('an active callout suppresses the banner so they never collide', () => {
 test('the player body is tinted with the map camouflage', () => {
   const g = boot({ seed: 9007, record: true });
   g.api.clickButton('play');
+  g.steps(1);
+  g.api.clickButton('setup-tab-1');
   g.steps(1);
   g.api.clickButton('map-desert');
   g.api.clickButton('setup-start');
@@ -3234,6 +3269,8 @@ test('HUD mutator tags stay inside the kills panel (V4)', () => {
   const g = boot({ seed: 1337, record: true });
   g.api.clickButton('play');
   g.steps(1);
+  g.api.clickButton('setup-tab-2');
+  g.steps(1);
   g.api.clickButton('mutator-glass');
   g.api.clickButton('mutator-swarm');
   g.api.clickButton('mutation-overclock');
@@ -3373,4 +3410,167 @@ test('bombs target the densest cluster (M4)', () => {
     if (leftAlive < rightAlive) hits++;
   }
   assert.ok(hits >= 12, 'bomb favors the 15-cluster, got ' + hits + '/20');
+});
+
+test('rail respects its spawn cooldown on the first shot (S06-B1)', () => {
+  const g = boot({ seed: 42 });
+  deploy(g, { weapon: 'rail' });
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 200, 0);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().bullets.length, 0, 'rail waits out its 0.9s cooldown on frame 1');
+});
+
+test('boardBests rejects non-finite distance (S01-B6)', () => {
+  const store = makeStore({
+    'dustline.save': JSON.stringify({ v: 2, shards: 10, boardBests: [{ s: 10, k: 1, t: 5, m: 'desert', win: true, d: 'Infinity' }] })
+  });
+  const g = createGame({ seed: 1, storage: store });
+  g.steps(2);
+  const rows = g.api.snapshot().save.boardBests;
+  assert.ok(rows.length === 0 || Number.isFinite(rows[0].d), 'Infinity distance is dropped or clamped, got ' + JSON.stringify(rows));
+});
+
+test('hidden setup tabs do not answer clickButton (S12-B1)', () => {
+  const g = boot({ seed: 9003 });
+  g.api.clickButton('play');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'desert', 'default map');
+  assert.strictEqual(g.api.clickButton('map-frost'), false, 'hidden map tab rejected via clickButton');
+  assert.strictEqual(g.api.snapshot().setup.map, 'desert', 'map unchanged while tab hidden');
+});
+
+test('finisher zero-damage blast adds no grenadeHits (S09-B1)', () => {
+  const g = boot({ seed: 901 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setKills(24);
+  g.api.spawnEnemy('grunt', 30, 0);
+  g.api.setEnemyHp(0, 1);
+  g.api.spawnEnemy('grunt', 40, 0);
+  g.api.setEnemyHp(1, 1000);
+  g.steps(1);
+  const h0 = g.api.snapshot().stats.grenadeHits;
+  g.api.hitEnemy(0, 99);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().stats.grenadeHits, h0, '0-damage finisher adds no grenadeHits');
+});
+
+test('help column two truncates long rows (S12-B1)', () => {
+  const g = boot({ seed: 113, record: true });
+  assert.ok(g.api.clickButton('upgrades'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('back-upgrades'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('help'));
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'help');
+  const col2 = g.texts.filter((t) => t.x === 596);
+  assert.ok(col2.length >= 10, 'help draws column two, got ' + col2.length);
+  for (const t of col2) assert.ok(t.text.length <= 46, 'truncated: ' + t.text);
+});
+
+test('tied-best time keeps the better kill count (S04-B5)', () => {
+  const g = boot({ seed: 41 });
+  deploy(g);
+  g.api.setTime(300);
+  g.api.setKills(5);
+  g.api.hurt(99999);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().save.bestKills, 5);
+  g.api.clickButton('retry');
+  g.steps(1);
+  g.api.setTime(300);
+  g.api.setKills(50);
+  g.api.hurt(99999);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().save.bestKills, 50, 'tie at 300s keeps 50 kills');
+});
+
+test('railgun obeys the ready gate on the first volley (S06-B1)', () => {
+  const g = boot({ seed: 7 });
+  deploy(g, { weapon: 'rail' });
+  g.api.spawnEnemy('runner', 300, 0);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().shots.rail, 0, 'rail waits for its cooldown on step 1');
+});
+
+test('shield rings stay visible at max charges (S09-B10)', () => {
+  const g = boot({ seed: 9, record: true });
+  deploy(g);
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('aegis');
+  g.api.grantRelic('aegiscore');
+  g.api.setInvulnerable(true);
+  g.steps(3);
+  const rings = g.strokes.filter((s) => String(s.strokeStyle).indexOf('159,216,255') >= 0);
+  assert.ok(rings.length >= 11, 'eleven shield rings drawn, got ' + rings.length);
+  for (const r of rings) {
+    const m = /([\d.]+)\)\s*$/.exec(String(r.strokeStyle));
+    assert.ok(m && Number(m[1]) > 0, 'positive ring alpha: ' + r.strokeStyle);
+  }
+});
+
+test('rifle max-level display respects the 0.16s cooldown floor (swarm K1-B1)', () => {
+  const g = boot({ seed: 11 });
+  deploy(g);
+  const line = g.api.skillStatLine('rifle', 10);
+  assert.ok(!line.includes('0.00'), 'no zero cooldown, got ' + line);
+  assert.ok(line.includes('0.16'), 'clamped to gameplay floor, got ' + line);
+});
+
+test('crit chance stays capped at 100% (swarm K1-B10)', () => {
+  const g = boot({ seed: 21 });
+  deploy(g, { operator: 'marksman' });
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('crit');
+  g.api.grantRelic('voidlens');
+  g.api.spawnEnemy('tank', 120, 0);
+  g.api.setEnemyHp(0, 5);
+  g.api.hitEnemy(0, 1);
+  const s = g.api.snapshot();
+  assert.ok(s.surge > 0, 'surge window opened');
+  assert.ok(s.mods.crit <= 1, 'capped at 100%, got ' + s.mods.crit);
+});
+
+test('explosive barrels chain damage to nearby enemies (swarm K3-B2)', () => {
+  const g = boot({ seed: 31 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 200, 0);
+  g.api.spawnInteract('barrel', 150, 0);
+  g.api.spawnEnemy('tank', 210, 60);
+  g.api.setEnemyHp(0, 50000);
+  g.api.setEnemyHp(1, 50000);
+  g.steps(60);
+  const s = g.api.snapshot();
+  const tank = s.enemies.find((e) => e.type === 'tank');
+  assert.ok(tank, 'tank still on field');
+  assert.ok(tank.hp < 50000, 'barrel blast damaged off-axis tank, hp=' + tank.hp);
+});
+
+test('explode helper deals damage (swarm K6-B4)', () => {
+  const g = boot({ seed: 41 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 10, 0);
+  g.api.setEnemyHp(0, 5000);
+  g.api.explode(0, 0, 200);
+  const s = g.api.snapshot();
+  const tank = s.enemies.find((e) => e.type === 'tank');
+  assert.ok(tank, 'tank still on field');
+  assert.ok(tank.hp < 5000, 'explode damaged the tank, hp=' + tank.hp);
+});
+
+test('setGhost(false) resumes the phantom cycle (swarm K6-B5)', () => {
+  const g = boot({ seed: 51 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('phantom', 170, 0);
+  g.api.setEnemyHp(0, 5000);
+  g.api.setGhost(0, true);
+  g.api.setGhost(0, false);
+  g.steps(120);
+  const s = g.api.snapshot();
+  const phantom = s.enemies.find((e) => e.type === 'phantom');
+  assert.ok(phantom, 'phantom still on field');
+  assert.strictEqual(phantom.ghost, true, 'cycle resumed after manual clear');
 });

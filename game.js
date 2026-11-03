@@ -415,13 +415,15 @@ function cleanBoardBests(raw) {
     const k = Math.max(0, Math.round(Number(e.k)));
     const t = Math.max(0, Number(e.t));
     if (!Number.isFinite(s) || s < 0 || !Number.isFinite(k) || !Number.isFinite(t)) continue;
+    const d = Math.max(0, Math.round(Number(e.d) || 0));
+    if (!Number.isFinite(d)) continue;
     out.push({
       s,
       k,
       t,
       m: typeof e.m === 'string' && e.m ? e.m.slice(0, 24) : 'desert',
       win: !!e.win,
-      d: Math.max(0, Math.round(Number(e.d) || 0))
+      d
     });
   }
   out.sort((a, b) => b.s - a.s);
@@ -937,7 +939,7 @@ function skillStatLine(id, lvl) {
   const next = Math.min(SKILL_MAX, lvl + 1);
   const atMax = lvl >= SKILL_MAX;
   const range = (a, b) => (atMax ? String(a) : a + ' → ' + b);
-  if (id === 'rifle') return 'DMG ' + range(14 + 5 * (cur - 1), 14 + 5 * (next - 1)) + ' · CD ' + range((0.55 - 0.055 * cur).toFixed(2), (0.55 - 0.055 * next).toFixed(2)) + 's';
+  if (id === 'rifle') return 'DMG ' + range(14 + 5 * (cur - 1), 14 + 5 * (next - 1)) + ' · CD ' + range(Math.max(0.16, 0.55 - 0.055 * cur).toFixed(2), Math.max(0.16, 0.55 - 0.055 * next).toFixed(2)) + 's';
   if (id === 'smg') return 'DMG ' + range(6 + 2.2 * (cur - 1), 6 + 2.2 * (next - 1)) + ' · CD ' + range((0.19 - 0.012 * cur).toFixed(2), (0.19 - 0.012 * next).toFixed(2)) + 's';
   if (id === 'shotgun') return 'DMG ' + range(7 + 2 * cur, 7 + 2 * next) + ' · PELLETS ' + range(2 + cur, 2 + next);
   if (id === 'dmr') return 'DMG ' + range(34 + 14 * (cur - 1), 34 + 14 * (next - 1)) + ' · PIERCE ' + range(2 + Math.floor(cur / 2), 2 + Math.floor(next / 2));
@@ -1538,13 +1540,14 @@ function bulletSpeedMult() {
 }
 
 function critChance() {
-  return (
+  return Math.min(
+    1,
     0.07 * G.skills.crit +
-    (hasEvolution('smg') ? 0.1 : 0) +
-    (G.surgeT > 0 ? 0.15 : 0) +
-    (hasRelic('voidlens') ? 0.1 : 0) +
-    (isOperator('marksman') ? 0.08 : 0) +
-    (hasCombo('executioner') ? 0.05 : 0)
+      (hasEvolution('smg') ? 0.1 : 0) +
+      (G.surgeT > 0 ? 0.15 : 0) +
+      (hasRelic('voidlens') ? 0.1 : 0) +
+      (isOperator('marksman') ? 0.08 : 0) +
+      (hasCombo('executioner') ? 0.05 : 0)
   );
 }
 
@@ -1972,7 +1975,7 @@ function startRun(options) {
     decals: [],
     bombs: [],
     skills: freshSkills(),
-    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
+    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, rail: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
     dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false },
     bomb: { cd: 0, max: 6, held: false },
     shield: { charges: 0, t: 0 },
@@ -2036,7 +2039,7 @@ function startRun(options) {
     bannerSub: '',
     bannerT: 0,
     stats: {
-      shots: { rifle: 0, smg: 0, shotgun: 0, dmr: 0, soldier: 0, enemy: 0 },
+      shots: { rifle: 0, smg: 0, shotgun: 0, dmr: 0, rail: 0, turret: 0, soldier: 0, enemy: 0 },
       bladeHits: 0,
       grenadeHits: 0,
       bombs: 0,
@@ -2143,7 +2146,7 @@ function recordRun(outcome) {
   });
   save.boardBests = save.boardBests.slice(0, 25);
   save.boardBests = cleanBoardBests(save.boardBests);
-  if (G.time > save.bestTime) {
+  if (G.time >= save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
   }
@@ -3948,7 +3951,7 @@ function updateBullets(dt) {
       if (obj.dead || obj.kind !== 'barrel') continue;
       if (segHitsCircle(x0, y0, b.x, b.y, obj.x, obj.y, 13)) {
         obj.dead = true;
-        explodeAt(obj.x, obj.y, 88, 0, '#ff8a5c', 'p');
+        explodeAt(obj.x, obj.y, 88, 100 * damageMult(), '#ff8a5c', 'p');
         fxBurst(obj.x, obj.y, 10, '#ff8a5c', 260, 3.2, 0.45, 'spark');
         b.pierce = 0;
         b.dead = true;
@@ -4028,6 +4031,7 @@ function explodeAt(x, y, radius, dmg, color, owner) {
     if (dist2(x, y, G.player.x, G.player.y) < radius * radius) damagePlayer(dmg);
     return;
   }
+  if (!(dmg > 0)) return;
   for (const e of G.enemies) {
     if (e.dead) continue;
     if (dist2(x, y, e.x, e.y) < (radius + e.r) * (radius + e.r)) {
@@ -4086,7 +4090,7 @@ function drawPools() {
 function drawShield() {
   if (!G.shield || G.shield.charges <= 0) return;
   for (let i = 0; i < G.shield.charges; i++) {
-    ctx.strokeStyle = 'rgba(159,216,255,' + (0.34 - 0.04 * i) + ')';
+    ctx.strokeStyle = 'rgba(159,216,255,' + Math.max(0.06, 0.34 - 0.04 * i) + ')';
     ctx.lineWidth = i === 0 ? 2.5 : 1.5;
     ctx.beginPath();
     ctx.arc(G.player.x, G.player.y, 24 + i * 5, 0, TAU);
@@ -4123,6 +4127,7 @@ function damageEnemy(e, dmg, x, y, crit, splash) {
   if (e.dead) return;
   if (e.burrowed) return;
   if (e.ghost) return;
+  if (!(dmg > 0)) return;
   if (splash === undefined) splash = true;
   let dealt = dmg;
   if (e.type === 'warden' && !crit) dealt *= 0.55;
@@ -5196,6 +5201,13 @@ const hazardCache = Object.create(null);
 let hazardCacheMap = null;
 
 function withAlpha(color, alpha) {
+  const hex = /^#([0-9a-fA-F]{6})$/.exec(String(color));
+  if (hex) {
+    const r = parseInt(hex[1].slice(0, 2), 16);
+    const g = parseInt(hex[1].slice(2, 4), 16);
+    const b = parseInt(hex[1].slice(4, 6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
   const match = /^rgba?\(([^)]+)\)$/.exec(String(color));
   if (!match) return color;
   const parts = match[1].split(',').map((part) => part.trim());
@@ -8600,7 +8612,6 @@ function tryAddFriend() {
 
 function startDaily() {
   const rules = dailyRules(dailyDay());
-  dailyOverride !== null ? null : null;
   startRun({
     weapon: rules.weapon,
     map: rules.map,
@@ -9044,7 +9055,7 @@ function drawHelpScreen() {
   ];
   const col2 = [
     ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more.'],
-    ['HAZARDS', 'Each map has a hazard: quicksand, ice, embers, vines, tar, gas or glass.'],
+    ['HAZARDS', 'quicksand/ice/embers/vines/tar/gas/glass'],
     ['MUTATORS', 'Take up to two run modifiers, plus one mutation.'],
     ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 callouts.'],
     ['LAST STAND', 'Under 10% health: +50% dmg, no extra safety.'],
@@ -9088,7 +9099,7 @@ function drawHelpScreen() {
     ctx.fillStyle = 'rgba(235,225,205,0.85)';
     ctx.font = '600 10.5px Consolas, monospace';
     const text = item[1].length > 46 ? item[1].slice(0, 44) + '..' : item[1];
-    ctx.fillText(item[1], 596, y + 2);
+    ctx.fillText(text, 596, y + 2);
   });
 
   drawButton('back-help', 'BACK', W / 2, 510, 180, 32);
@@ -10922,7 +10933,7 @@ window.Dustline = {
 
 if (window.__DUSTLINE_TEST__) {
   window.Dustline.clickButton = (id) => {
-    const found = uiButtons.find((b) => b.id === id);
+    const found = uiButtons.find((b) => b.id === id && (b.page === undefined || b.page === setupTab));
     if (!found) return false;
     pressButton(found.id);
     return true;
@@ -10930,6 +10941,7 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.giveXp = (value) => {
     if (G) addXp(value);
   };
+  window.Dustline.skillStatLine = skillStatLine;
   window.Dustline.spawnEnemy = (type, x, y) => {
     if (!G) return false;
     spawnEnemyAt(type, G.player.x + x, G.player.y + y);
@@ -10974,9 +10986,9 @@ if (window.__DUSTLINE_TEST__) {
     burst(G.player.x + (x || 0), G.player.y + (y || 0), 12, '#ffcf7a', 160, 3, 0.5, kind || 'dot');
     return true;
   };
-  window.Dustline.explode = (x, y, r) => {
+  window.Dustline.explode = (x, y, r, dmg) => {
     if (!G) return false;
-    explodeAt(Number(x) || 0, Number(y) || 0, Number(r) || 80, 0, '#ffb066', 'p');
+    explodeAt(Number(x) || 0, Number(y) || 0, Number(r) || 80, Number(dmg) > 0 ? Number(dmg) : 150, '#ffb066', 'p');
     return true;
   };
   window.Dustline.ambience = () => ({ mode: ambienceDef().mode, count: ambienceDef().count });
@@ -11049,7 +11061,7 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.setGhost = (index, value) => {
     if (!G || !G.enemies[index]) return false;
     G.enemies[index].ghost = !!value;
-    G.enemies[index].ghostT = value ? 99 : 99;
+    G.enemies[index].ghostT = value ? 99 : 1.6;
     return true;
   };
   window.Dustline.setBurrowed = (index, value) => {
