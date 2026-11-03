@@ -1897,6 +1897,7 @@ function findDifficulty(id) {
 }
 
 function startRun(options) {
+  clearTileCache();
   for (const key in keys) delete keys[key];
   touchStick.active = false;
   const opts = options || {};
@@ -2026,6 +2027,7 @@ function startRun(options) {
     bossKills: 0,
     megaKills: 0,
     explored: Object.create(null),
+    exploredCount: 0,
     rooms: Object.create(null),
     roomFocus: null,
     offers: [],
@@ -2189,7 +2191,26 @@ function mapDef() {
   return MAPS[(G && G.map) || setup.map] || MAPS.desert;
 }
 
+const tileCache = { prop: new Map(), room: new Map(), arena: new Map(), walls: new Map() };
+function clearTileCache() {
+  tileCache.prop.clear();
+  tileCache.room.clear();
+  tileCache.arena.clear();
+  tileCache.walls.clear();
+}
+
 function arenaAtPoint(x, y, pad) {
+  const extra = pad || 0;
+  const key = x + '|' + y + '|' + extra;
+  const hit = tileCache.arena.get(key);
+  if (hit !== undefined) return hit;
+  if (tileCache.arena.size > 4096) tileCache.arena.clear();
+  const found = arenaAtPointRaw(x, y, extra);
+  tileCache.arena.set(key, found);
+  return found;
+}
+
+function arenaAtPointRaw(x, y, pad) {
   const extra = pad || 0;
   if (Math.hypot(x, y) < 430 + extra) return { x: 0, y: 0, r: 430, home: true };
   const gx = Math.floor(x / ARENA_TILE);
@@ -2211,6 +2232,15 @@ function arenaAtPoint(x, y, pad) {
 }
 
 function roomTile(tx, ty) {
+  const key = tx + ',' + ty;
+  const hit = tileCache.room.get(key);
+  if (hit !== undefined) return hit;
+  const found = roomTileRaw(tx, ty);
+  tileCache.room.set(key, found);
+  return found;
+}
+
+function roomTileRaw(tx, ty) {
   const h = hash2(tx * 67 + 17, ty * 89 + 29);
   if (h > 0.82) return null;
   const seed = hash2(tx * 101 + 7, ty * 131 + 11);
@@ -2259,6 +2289,14 @@ function roomAtPoint(x, y, pad) {
 }
 
 function roomWalls(room) {
+  const hit = tileCache.walls.get(room.id);
+  if (hit !== undefined) return hit;
+  const found = roomWallsRaw(room);
+  tileCache.walls.set(room.id, found);
+  return found;
+}
+
+function roomWallsRaw(room) {
   const left = room.x - room.w / 2;
   const right = room.x + room.w / 2;
   const top = room.y - room.h / 2;
@@ -2574,6 +2612,15 @@ function drawRooms(cam) {
 }
 
 function propTile(tx, ty) {
+  const key = tx + ',' + ty;
+  const hit = tileCache.prop.get(key);
+  if (hit !== undefined) return hit;
+  const found = propTileRaw(tx, ty);
+  tileCache.prop.set(key, found);
+  return found;
+}
+
+function propTileRaw(tx, ty) {
   const out = [];
   const h = hash2(tx * 7 + 11, ty * 13 + 5);
   if (h < 0.55) return out;
@@ -2731,11 +2778,18 @@ function markExplored() {
   const cy = Math.floor(G.player.y / CELL);
   for (let j = -2; j <= 2; j++) {
     for (let i = -2; i <= 2; i++) {
-      G.explored[(cx + i) + ',' + (cy + j)] = 1;
+      const key = (cx + i) + ',' + (cy + j);
+      if (!G.explored[key]) {
+        G.explored[key] = 1;
+        G.exploredCount++;
+      }
     }
   }
-  const exploredKeys = Object.keys(G.explored); // aikit:allow-secret
-  if (exploredKeys.length > 4000) delete G.explored[exploredKeys[0]];
+  if (G.exploredCount > 4000) {
+    const oldest = Object.keys(G.explored)[0]; // aikit:allow-secret
+    delete G.explored[oldest];
+    G.exploredCount--;
+  }
 }
 
 function clusterPoint(radius) {
@@ -3799,31 +3853,69 @@ function updateEnemies(dt) {
   G.enemies = G.enemies.filter((e) => !e.dead);
 }
 
-function separateEnemies() {
+function enemyGrid(cell) {
+  const grid = new Map();
   const list = G.enemies;
   for (let i = 0; i < list.length; i++) {
-    const a = list[i];
-    for (let j = i + 1; j < list.length; j++) {
-      const b = list[j];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const d = Math.hypot(dx, dy);
-      const min = a.r + b.r - 2;
-      if (d > 0.01 && d < min) {
-        const push = (min - d) / 2;
-        const ux = dx / d;
-        const uy = dy / d;
-        a.x -= ux * push;
-        a.y -= uy * push;
-        b.x += ux * push;
-        b.y += uy * push;
+    const e = list[i];
+    const k = Math.floor(e.x / cell) + ',' + Math.floor(e.y / cell);
+    let arr = grid.get(k);
+    if (!arr) {
+      arr = [];
+      grid.set(k, arr);
+    }
+    arr.push(e);
+  }
+  return grid;
+}
+
+function pushPair(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const min = a.r + b.r - 2;
+  const d2 = dx * dx + dy * dy;
+  if (d2 > 0.0001 && d2 < min * min) {
+    const d = Math.sqrt(d2);
+    const push = (min - d) / 2;
+    const ux = dx / d;
+    const uy = dy / d;
+    a.x -= ux * push;
+    a.y -= uy * push;
+    b.x += ux * push;
+    b.y += uy * push;
+  }
+}
+
+function separateEnemies() {
+  const CELL = 80;
+  const list = G.enemies;
+  const grid = enemyGrid(CELL);
+  grid.forEach((arr, key) => {
+    const sep = key.indexOf(',');
+    const cx = Number(key.slice(0, sep));
+    const cy = Number(key.slice(sep + 1));
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) pushPair(arr[i], arr[j]);
+    }
+    const neighbors = [
+      grid.get(cx + 1 + ',' + cy),
+      grid.get((cx - 1) + ',' + (cy + 1)),
+      grid.get(cx + ',' + (cy + 1)),
+      grid.get((cx + 1) + ',' + (cy + 1))
+    ];
+    for (const other of neighbors) {
+      if (!other) continue;
+      for (const a of arr) {
+        for (const b of other) pushPair(a, b);
       }
     }
-  }
+  });
+  G.egrid = grid;
 }
 
 function updateBullets(dt) {
   const ricochetBest = (220 + 12 * ((G && G.skills.ricochet) || 0)) * (220 + 12 * ((G && G.skills.ricochet) || 0));
+  const grid = G.egrid || enemyGrid(80);
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt;
@@ -3864,9 +3956,17 @@ function updateBullets(dt) {
       }
     }
     if (b.dead) continue;
-    for (const e of G.enemies) {
-      if (e.dead || b.hits.indexOf(e) >= 0) continue;
-      if (segHitsCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + 4)) {
+    const minX = Math.min(x0, b.x) - 64;
+    const maxX = Math.max(x0, b.x) + 64;
+    const minY = Math.min(y0, b.y) - 64;
+    const maxY = Math.max(y0, b.y) + 64;
+    for (let gx = Math.floor(minX / 80); gx <= Math.floor(maxX / 80); gx++) {
+      for (let gy = Math.floor(minY / 80); gy <= Math.floor(maxY / 80); gy++) {
+        const arr = grid.get(gx + ',' + gy);
+        if (!arr) continue;
+        for (const e of arr) {
+          if (e.dead || b.hits.indexOf(e) >= 0) continue;
+          if (segHitsCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + 4)) {
         b.hits.push(e);
         damageEnemy(e, b.dmg, b.x, b.y, b.crit);
         if (b.pierce > 0) {
@@ -3901,6 +4001,8 @@ function updateBullets(dt) {
         } else {
           b.dead = true;
           break;
+        }
+      }
         }
       }
     }

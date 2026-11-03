@@ -3319,6 +3319,20 @@ test('the loadout tabs summarize the current picks', () => {
   assert.ok(labels.indexOf('BOSS RUSH') >= 0 || labels.indexOf('BOSSRUSH') >= 0 || labels.indexOf('bossrush') >= 0, 'field tab shows the picked mode');
 });
 
+test('a 150-mob pile-up steps inside the logic budget (PERF)', () => {
+  const g = boot({ seed: 7 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 150; i++) g.api.spawnEnemy('grunt', (i % 15) * 24 - 170, Math.floor(i / 15) * 24 - 120);
+  g.steps(1);
+  assert.strictEqual(g.api.enemyLimit(), 150, 'the horde is at cap');
+  const t0 = Date.now();
+  g.steps(120);
+  const ms = Date.now() - t0;
+  assert.ok(ms < 2000, '120 steps with 150 clustered mobs took ' + ms + 'ms, budget 2000ms');
+  assert.ok(g.api.enemyLimit() >= 100, 'the horde survives the steps, saw ' + g.api.enemyLimit());
+});
+
 test('contact damage respects the spawn-time cap in long runs (M3)', () => {
   const g = boot({ seed: 9105 });
   deploy(g);
