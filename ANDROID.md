@@ -46,6 +46,8 @@ The in-game LEADERBOARD screen (GLOBAL / FRIENDS / TÜRKIYE) currently runs on
 a local-first provider: run history (`save.boardBests`, top 25 by score),
 device identity (`save.deviceId`, 8 hex chars, player-facing as SQUAD CODE)
 and friend entries (`save.friends`, max 12, `best: null` = awaiting sync).
+House rivals (`RIVALS` tables, beaten flags in `save.rivalsBeaten`) seed the
+GLOBAL and TÜRKIYE tabs so an offline board still has someone to chase.
 
 The online provider must implement:
 
@@ -61,6 +63,9 @@ The online provider must implement:
   per-code throttling plus entry caps.
 - Client keeps the exact local provider as offline fallback and marks synced
   rows; conflicts resolve server-wins on score, client-wins on friend list.
+- House-rival rows are local-only and must never be submitted or merged:
+  any board row whose `code` is not 8 hex chars (e.g. `DUSTKING`) is a
+  rival, never a run. `POST /v1/scores` accepts player runs only.
 
 ## Checklist before store submission
 

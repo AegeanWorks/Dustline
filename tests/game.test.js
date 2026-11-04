@@ -4496,6 +4496,21 @@ test('P2-14e rivals line and combos share the over screen (playtest)', () => {
   assert.ok(labels.some((t) => t.indexOf('COMBOS:') === 0), 'combos shift down beside it');
 });
 
+test('P2-14f rival names can never enter the friend-code system (backend contract)', () => {
+  const g = boot({ seed: 181, record: true });
+  assert.ok(g.api.clickButton('leaderboard'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('board-friends'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('friend-add'));
+  g.steps(1);
+  for (const ch of 'dustking') g.key(ch);
+  assert.ok(g.api.clickButton('friend-save'), 'save button exists');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().save.friends.length, 0, 'rival names are not valid sync codes');
+  assert.ok(g.texts.some((t) => t.text.indexOf('8 HEX') >= 0), 'the hex rule is announced');
+});
+
 test('P2-14d career stats track the rivalry (playtest)', () => {
   const store = makeStore();
   const g = boot({ seed: 173, storage: store, record: true });

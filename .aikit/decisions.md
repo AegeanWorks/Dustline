@@ -556,3 +556,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The ADR-070 rivals line and the combos line share the same after-action panel rows; the overlap branch (both present) had no coverage, and combos need each skill at 2+.
 - **Decision**: No layout change (the shift already fits panel bounds 338 < 346). Added a death-run test that earns both and asserts both lines render.
 - **Consequences**: 265/265 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates (re-run below). One test.
+
+### ADR-074: Backend contract names rivals as un-syncable (integration safety)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: ANDROID.md's backend contract predates house rivals; a future implementer could mistake DUSTKING's 45000 for a syncable player run and upload it.
+- **Decision**: Contract note — any board row whose code is not 8 hex chars is a local-only rival and must never be submitted or merged. Behavioral pin: typing DUSTKING into friend-add is rejected by the existing hex rule, so rival names cannot enter the code system from either side.
+- **Consequences**: 266/266 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Docs + one test, no game-code change.
