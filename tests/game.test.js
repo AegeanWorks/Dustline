@@ -62,7 +62,7 @@ test('boots to the main menu with the full navigation', () => {
   assert.strictEqual(s.screen, 'menu');
   assert.strictEqual(
     JSON.stringify(s.buttons.map((b) => b.id)),
-    JSON.stringify(['play', 'armory', 'daily', 'statistics', 'upgrades', 'manual', 'settings', 'leaderboard', 'help'])
+    JSON.stringify(['play', 'armory', 'daily', 'statistics', 'upgrades', 'manual', 'settings', 'leaderboard', 'help', 'shop'])
   );
   assert.strictEqual(s.settings.volume, 70);
   assert.strictEqual(s.save.shards, 0);
@@ -4316,6 +4316,48 @@ test('P2-11c the ticker counts down to the next surge (playtest visual)', () => 
   g.steps(2);
   const labels = g.texts.map((t) => t.text);
   assert.ok(labels.some((t) => t.indexOf('SURGE') === 0), 'surge ticker draws, got ' + JSON.stringify(labels.slice(0, 12)));
+});
+
+test('P2-13 the shop sells looks, never power (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 151, storage: store });
+  assert.ok(g.api.clickButton('shop'), 'shop opens from the menu');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().screen, 'shop');
+  g.api.grantShards(3000);
+  assert.ok(g.api.clickButton('skin-crimson'), 'crimson buys for shards');
+  let s = g.api.snapshot();
+  assert.strictEqual(s.save.shards, 2500, 'price deducted, got ' + s.save.shards);
+  assert.ok(s.save.cosmetics.skins.includes('crimson'), 'skin owned');
+  assert.strictEqual(s.save.cosmetics.skin, 'crimson', 'bought skin equips');
+  assert.ok(g.api.clickButton('skin-gold'), 'gold buys too');
+  assert.ok(g.api.clickButton('skin-crimson'), 'switching to an owned skin is free');
+  s = g.api.snapshot();
+  assert.strictEqual(s.save.shards, 1000, 'no charge for owned skins');
+  assert.strictEqual(s.save.cosmetics.skin, 'crimson', 'owned skin equips');
+  assert.ok(g.api.clickButton('skin-void'), 'void button exists');
+  assert.strictEqual(g.api.snapshot().save.shards, 1000, 'but refuses without funds');
+  const g2 = boot({ seed: 152, storage: store });
+  const kept = g2.api.snapshot().save.cosmetics;
+  assert.ok(kept.skins.includes('crimson') && kept.skins.includes('gold'), 'skins persist');
+  assert.strictEqual(kept.skin, 'crimson', 'equipped skin persists');
+});
+
+test('P2-13b VIP packs show prices but sell nothing (playtest)', () => {
+  const g = boot({ seed: 153, record: true });
+  assert.ok(g.api.clickButton('shop'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('shop-tab-1'), 'VIP tab opens');
+  g.steps(1);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('VIP BADGE'), 'VIP packs listed');
+  assert.ok(labels.some((t) => t.indexOf('$') >= 0), 'real-money prices shown, got ' + JSON.stringify(labels.slice(0, 12)));
+  assert.ok(labels.some((t) => t.indexOf('COMING SOON') >= 0), 'no billing in this build');
+  assert.strictEqual(g.api.clickButton('vip-vip-badge'), false, 'VIP packs have no purchase path');
+  assert.strictEqual(g.api.clickButton('vip-vip-neon'), false, 'neon has no purchase path');
+  const vip = g.api.snapshot().save.cosmetics.vip;
+  assert.strictEqual(vip.premium, false, 'no premium flag without checkout');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(vip.items)), [], 'no VIP entitlements');
 });
 
 test('P2-10 damage numbers climb white-yellow-orange-red (playtest)', () => {

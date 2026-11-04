@@ -406,7 +406,8 @@ function defaultSave() {
     lastSeed: 20261029,
     killsByType: {},
     meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0, velocity: 0, harvest: 0, resolve: 0 },
-    unlocked: { weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }
+    unlocked: { weapons: ['ak'], maps: ['desert', 'frost', 'ash'] },
+    cosmetics: { skins: ['ranger'], skin: 'ranger', vip: { premium: false, items: [] } }
   };
 }
 
@@ -482,6 +483,12 @@ function loadSave() {
   merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }, raw.unlocked || {});
   if (!Array.isArray(merged.unlocked.maps)) merged.unlocked.maps = [];
   for (const id of ['desert', 'frost', 'ash']) if (merged.unlocked.maps.indexOf(id) < 0) merged.unlocked.maps.push(id);
+  merged.cosmetics = Object.assign({ skins: ['ranger'], skin: 'ranger', vip: { premium: false, items: [] } }, raw.cosmetics || {});
+  if (!Array.isArray(merged.cosmetics.skins) || !merged.cosmetics.skins.length) merged.cosmetics.skins = ['ranger'];
+  if (typeof merged.cosmetics.skin !== 'string' || !merged.cosmetics.skin) merged.cosmetics.skin = 'ranger';
+  if (!merged.cosmetics.skins.includes(merged.cosmetics.skin)) merged.cosmetics.skin = merged.cosmetics.skins[0];
+  merged.cosmetics.vip = Object.assign({ premium: false, items: [] }, merged.cosmetics.vip || {});
+  if (!Array.isArray(merged.cosmetics.vip.items)) merged.cosmetics.vip.items = [];
   for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
@@ -542,6 +549,7 @@ let mapReturn = 'paused';
 let manualTab = 'enemies';
 let skillPage = 'grid';
 let boardTab = 'global';
+let shopTab = 0;
 let boardAddMode = false;
 let boardCode = '';
 let boardMsg = '';
@@ -1189,6 +1197,19 @@ const WEAPONS = {
 };
 
 const WEAPON_ORDER = ['ak', 'smg', 'spas', 'dmr', 'rail', 'beretta'];
+
+const SKINS = [
+  { id: 'ranger', name: 'RANGER TEAL', color: '#7fe0a0', price: 0, blurb: 'Standard-issue fatigues' },
+  { id: 'crimson', name: 'CRIMSON VETERAN', color: '#ff6a5c', price: 500, blurb: 'Blooded in the basin' },
+  { id: 'gold', name: 'GOLDEN STANDARD', color: '#ffd27a', price: 1500, blurb: 'Shines for the horde' },
+  { id: 'void', name: 'VOID WALKER', color: '#b78cff', price: 3000, blurb: 'Wears the dark between waves' }
+];
+
+const VIP_PACKS = [
+  { id: 'vip-badge', name: 'VIP BADGE', usd: '$4.99', blurb: 'Golden nameplate and VIP lounge' },
+  { id: 'vip-neon', name: 'NEON OVERDRIVE', usd: '$9.99', blurb: 'Neon trail plus two exclusive skins' },
+  { id: 'vip-general', name: 'GENERAL BUNDLE', usd: '$19.99', blurb: 'Everything plus the General rank frame' }
+];
 
 const MAPS = {
   desert: {
@@ -7416,6 +7437,12 @@ function accentColor() {
   return owned.length ? SKILLS[owned[0]].color : '#ffd27a';
 }
 
+function skinAccent() {
+  const equipped = SKINS.find((s) => s.id === (save.cosmetics && save.cosmetics.skin));
+  if (!equipped || equipped.id === 'ranger') return null;
+  return equipped.color;
+}
+
 function drawAfterimages() {
   for (const a of G.afterimages) {
     const k = clamp(a.life / a.max, 0, 1);
@@ -7437,7 +7464,7 @@ function drawAfterimages() {
 function drawPlayer() {
   const p = G.player;
   const tier = evolutionTier(G.level);
-  const accent = isOperator('arcanist') ? '#c39bff' : accentColor();
+  const accent = skinAccent() || (isOperator('arcanist') ? '#c39bff' : accentColor());
   const scale = 1 + tier * 0.06;
   ctx.save();
   ctx.translate(p.x, p.y);
@@ -8544,15 +8571,16 @@ function drawMenuScreen() {
   drawButton('settings', 'SETTINGS', 553, 394, 134, 40);
   drawButton('leaderboard', 'LEADERBOARD', 407, 442, 134, 40);
   drawButton('help', 'HOW TO PLAY', 553, 442, 134, 40);
+  drawButton('shop', 'SHOP · SKINS + VIP', W / 2, 488, 280, 32);
 
   // Career telemetry dossier badge
-  panel(W / 2 - 250, 494, 500, 46, 6);
+  panel(W / 2 - 250, 528, 500, 46, 6);
   ctx.fillStyle = '#63dcc0';
   ctx.font = '700 11px Consolas, monospace';
-  ctx.fillText('BEST SURVIVAL ' + fmtTime(best.time) + '   ·   ' + best.kills + ' KILLS   ·   ' + save.runs + ' RUNS', W / 2, 513);
+  ctx.fillText('BEST SURVIVAL ' + fmtTime(best.time) + '   ·   ' + best.kills + ' KILLS   ·   ' + save.runs + ' RUNS', W / 2, 547);
   ctx.fillStyle = 'rgba(200,190,165,0.7)';
   ctx.font = '600 9.5px Consolas, monospace';
-  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins + '   ·   ACHIEVEMENTS ' + achievementUnlocked() + '/' + ACHIEVEMENTS.length, W / 2, 529);
+  ctx.fillText('TOTAL KILLS ' + save.totalKills + '   ·   BOSSES ' + save.bossKills + '   ·   WINS ' + save.wins + '   ·   ACHIEVEMENTS ' + achievementUnlocked() + '/' + ACHIEVEMENTS.length, W / 2, 563);
 }
 
 function drawMapGlyph(id, cx, cy, color) {
@@ -8981,6 +9009,105 @@ function drawArmoryScreen() {
 
   ctx.textAlign = 'center';
   drawButton('back-armory', 'BACK', W / 2, 492, 180, 34);
+}
+
+function drawShopScreen() {
+  drawMenuBackdrop();
+  overlay(0.35);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2e6c8';
+  ctx.font = '700 28px Consolas, monospace';
+  ctx.fillText('SHOP', W / 2, 66);
+  ctx.fillStyle = 'rgba(200,190,165,0.7)';
+  ctx.font = '600 11px Consolas, monospace';
+  ctx.fillText('COSMETICS ONLY · LOOKS NEVER POWER', W / 2, 88);
+
+  const bW = 220;
+  panel(W / 2 - bW / 2, 104, bW, 26, 6);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#63dcc0';
+  ctx.font = '700 12px Consolas, monospace';
+  ctx.fillText('◆ ' + save.shards + ' SHARDS AVAILABLE', W / 2, 121);
+
+  drawButton('shop-tab-0', 'SKINS', W / 2 - 130, 140, 120, 30);
+  drawButton('shop-tab-1', 'VIP', W / 2 + 10, 140, 120, 30);
+  ctx.fillStyle = shopTab === 0 ? '#ffd27a' : 'rgba(200,190,165,0.5)';
+  ctx.fillRect(W / 2 - 130, 172, 120, 2);
+  ctx.fillStyle = shopTab === 1 ? '#ffd27a' : 'rgba(200,190,165,0.5)';
+  ctx.fillRect(W / 2 + 10, 172, 120, 2);
+
+  const cardW = 480;
+  const cardX = W / 2 - cardW / 2;
+  if (shopTab === 0) {
+    SKINS.forEach((skin, i) => {
+      const owned = save.cosmetics.skins.indexOf(skin.id) >= 0;
+      const equipped = save.cosmetics.skin === skin.id;
+      const canBuy = !owned && save.shards >= skin.price;
+      const y = 182 + i * 52;
+      ctx.fillStyle = equipped ? 'rgba(32,34,26,0.94)' : 'rgba(16,20,24,0.92)';
+      ctx.strokeStyle = equipped ? 'rgba(255,210,122,0.55)' : canBuy || owned ? 'rgba(99,220,192,0.5)' : 'rgba(224,178,92,0.28)';
+      ctx.lineWidth = 1.5;
+      rr(cardX, y, cardW, 46, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = skin.color;
+      ctx.beginPath();
+      ctx.arc(cardX + 30, y + 23, 12, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f2e6c8';
+      ctx.font = '700 12px Consolas, monospace';
+      ctx.fillText(skin.name, cardX + 52, y + 19);
+      ctx.fillStyle = 'rgba(200,195,180,0.7)';
+      ctx.font = '600 8.5px Consolas, monospace';
+      ctx.fillText(skin.blurb, cardX + 52, y + 33);
+      if (equipped) {
+        ctx.fillStyle = '#ffd27a';
+        ctx.font = '700 10px Consolas, monospace';
+        ctx.fillText('EQUIPPED', cardX + cardW - 90, y + 28);
+      } else if (owned) {
+        drawButton('skin-' + skin.id, 'WEAR', cardX + cardW - 96, y + 9, 82, 28);
+      } else {
+        drawButton('skin-' + skin.id, skin.price + ' SH', cardX + cardW - 96, y + 9, 82, 28);
+        if (!canBuy) {
+          ctx.fillStyle = 'rgba(255,90,70,0.85)';
+          ctx.font = '700 8.5px Consolas, monospace';
+          ctx.fillText('NEED ' + skin.price, cardX + cardW - 170, y + 28);
+        }
+      }
+    });
+  } else {
+    VIP_PACKS.forEach((pack, i) => {
+      const y = 182 + i * 62;
+      ctx.fillStyle = 'rgba(16,20,24,0.92)';
+      ctx.strokeStyle = 'rgba(224,178,92,0.28)';
+      ctx.lineWidth = 1;
+      rr(cardX, y, cardW, 56, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffd27a';
+      ctx.font = '700 12px Consolas, monospace';
+      ctx.fillText(pack.name, cardX + 16, y + 19);
+      ctx.fillStyle = 'rgba(200,195,180,0.7)';
+      ctx.font = '600 8.5px Consolas, monospace';
+      ctx.fillText(pack.blurb, cardX + 16, y + 33);
+      ctx.fillStyle = 'rgba(255,138,92,0.9)';
+      ctx.font = '700 10px Consolas, monospace';
+      ctx.fillText(pack.usd + ' · COMING SOON', cardX + 16, y + 47);
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(200,190,165,0.65)';
+    ctx.font = '600 9.5px Consolas, monospace';
+    ctx.fillText('VIP packs unlock with real-money checkout in a separately approved step.', W / 2, 384);
+    ctx.fillText('No billing code ships in this build.', W / 2, 398);
+  }
+
+  ctx.textAlign = 'center';
+  drawButton('back-shop', 'BACK', W / 2, 492, 180, 34);
 }
 
 function drawStatisticsScreen() {
@@ -10795,6 +10922,7 @@ function drawScreens() {
   if (screen === 'menu') drawMenuScreen();
   else if (screen === 'setup') drawSetupScreen();
   else if (screen === 'armory') drawArmoryScreen();
+  else if (screen === 'shop') drawShopScreen();
   else if (screen === 'statistics') drawStatisticsScreen();
   else if (screen === 'settings') drawSettingsScreen();
   else if (screen === 'help') drawHelpScreen();
@@ -10824,6 +10952,27 @@ function buyMeta(id) {
   }
   save.shards -= cost;
   save.meta[id] = rank + 1;
+  writeStore(SAVE_KEY, save);
+  sfx.upgrade();
+  return true;
+}
+
+function buySkin(id) {
+  const skin = SKINS.find((s) => s.id === id);
+  if (!skin) return false;
+  if (save.cosmetics.skins.indexOf(id) >= 0) {
+    save.cosmetics.skin = id;
+    writeStore(SAVE_KEY, save);
+    sfx.upgrade();
+    return true;
+  }
+  if (save.shards < skin.price) {
+    sfx.denied();
+    return false;
+  }
+  save.shards -= skin.price;
+  save.cosmetics.skins.push(id);
+  save.cosmetics.skin = id;
   writeStore(SAVE_KEY, save);
   sfx.upgrade();
   return true;
@@ -10925,6 +11074,23 @@ function pressButton(id) {
   }
   if (id.indexOf('meta-') === 0) {
     buyMeta(id.slice(5));
+    return;
+  }
+  if (id === 'shop') {
+    shopTab = 0;
+    screen = 'shop';
+    return;
+  }
+  if (id === 'back-shop') {
+    screen = 'menu';
+    return;
+  }
+  if (id === 'shop-tab-0' || id === 'shop-tab-1') {
+    shopTab = Number(id.slice(9));
+    return;
+  }
+  if (id.indexOf('skin-') === 0) {
+    buySkin(id.slice(5));
     return;
   }
   if (id === 'statistics' || id === 'stats-over') {
@@ -11395,6 +11561,7 @@ window.Dustline = {
         meta: { ...save.meta },
         boardBests: save.boardBests.map((e) => ({ ...e })),
         friends: save.friends.map((f) => ({ ...f })),
+        cosmetics: { skins: save.cosmetics.skins.slice(), skin: save.cosmetics.skin, vip: { premium: !!save.cosmetics.vip.premium, items: save.cosmetics.vip.items.slice() } },
         deviceCode: ownBoardCode()
       },
       setup: { ...setup, mutators: setup.mutators.slice() },
