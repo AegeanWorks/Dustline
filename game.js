@@ -11598,7 +11598,7 @@ cv.addEventListener('touchstart', (e) => {
       const bx = W - 86;
       const by = H - 96;
       if (Math.hypot(p.x - bx, p.y - by) < 46) keys['shift'] = true;
-      else if (Math.hypot(p.x - (bx - 74), p.y - by) < 46) keys['e'] = true;
+      else if (Math.hypot(p.x - (bx - 74), p.y - by) < 46) keys[settings.bombKey === 'q' ? 'q' : 'e'] = true;
       else if (Math.hypot(p.x - (bx - 148), p.y - by) < 46) keys['r'] = true;
     }
   }
@@ -11631,6 +11631,7 @@ cv.addEventListener('touchend', (e) => {
   }
   keys['shift'] = false;
   keys['e'] = false;
+  keys['q'] = false;
   keys['r'] = false;
 }, { passive: false });
 
@@ -11641,6 +11642,7 @@ cv.addEventListener('touchcancel', (e) => {
   touchStick.vy = 0;
   keys['shift'] = false;
   keys['e'] = false;
+  keys['q'] = false;
   keys['r'] = false;
 }, { passive: false });
 

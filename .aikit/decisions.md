@@ -626,3 +626,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Three recent systems (surge gating, boss no-stack, evolution choice) had never been stressed in the same frame sequence; their overlap windows (boss wave x surge tick x ready evolution) were untested.
 - **Decision**: A scripted collision test: hive alive across the 200s line while an evolution sits ready, then mass-kill and level through. Asserts play continues, the held surge releases, the ring assaults, and every entity keeps finite coords and non-negative hp.
 - **Consequences**: 270/270 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only addition, no game change.
+
+### ADR-083: Touch BOMB button follows the key binding (follow-up defect)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The P2-8b bomb-key choice rebound the keyboard path but the touch BOMB pad kept writing hardcoded `keys['e']`, and touch release cleared only E — so touch players on Q lost their bomb with no feedback.
+- **Decision**: Touch press writes the bound key; touch end/cancel clear both letters (safe against mid-touch setting changes). Pinned both ways by driving the canvas `touchstart` handler in-harness.
+- **Consequences**: 271/271 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One key lookup, two release lines, one test.

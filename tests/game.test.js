@@ -4833,3 +4833,25 @@ test('P2-11d surge, boss and evolution collide without corruption (robustness)',
   assert.ok(s.enemies.length > 0, 'the ring assaults');
   assert.ok(s.enemies.every((e) => Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp >= 0), 'every entity stays sane');
 });
+
+test('P2-16b touch BOMB button follows the key binding (playtest)', () => {
+  for (const [seed, key, wantBombs] of [[183, 'e', true], [185, 'q', true]]) {
+    const g = boot({ seed });
+    if (key === 'q') {
+      assert.ok(g.api.clickButton('settings'));
+      g.steps(1);
+      assert.ok(g.api.clickButton('bomb-key'));
+      assert.ok(g.api.clickButton('back-settings'));
+      g.steps(1);
+    }
+    deploy(g);
+    g.api.setInvulnerable(true);
+    for (let i = 0; i < 3; i++) g.api.spawnEnemy('grunt', 100 + i * 10, 0);
+    g.steps(1);
+    g.handlers.touchstart({ preventDefault() {}, changedTouches: [{ identifier: 7, clientX: 800, clientY: 504 }] });
+    g.steps(2);
+    assert.strictEqual(g.api.snapshot().bombs > 0, wantBombs, 'touch throws with key ' + key);
+    g.handlers.touchend({ preventDefault() {}, changedTouches: [{ identifier: 7 }] });
+    g.steps(1);
+  }
+});
