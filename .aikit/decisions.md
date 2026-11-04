@@ -451,3 +451,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted the choice between throwing the E bomb manually and letting it fire automatically. The manual E throw and auto grenades already existed side by side; the manual bomb itself had no auto path.
 - **Decision**: `settings.bombMode` manual (default) / auto, toggled on the settings screen with persistence and old-save default. Auto calls the same range-clamped `throwBomb` whenever off cooldown with a hostile inside 550px. HUD panel reads `SHIFT DASH` style: `E BOMB` vs `AUTO BOMB`; `snapshot().bomb.mode` pinned.
 - **Consequences**: 240/240 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One setting, one auto block, label + snapshot field. Next P2: airstrike as a radio/plane pickup.
+
+### ADR-059: P2 airstrike as a radio pickup (playtest P2-9)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted the plane called from a found field radio instead of a random-feeling streak trigger (`yerde telsiz... bulunca kullansın, uçak geçsin`). The streak-30 auto strike stays as the progression path; the radio adds the scavenged path.
+- **Decision**: New `G.radios` pickup list (cap 10, magnet collection): champions 25%, normal kills 0.3%, pips cosmetic-streamed. Collecting arms one strike (`T` key, footer hint added); `fireRadioStrike` reuses the streak-30 strike body with its own callout/score. HUD bomb panel shows the armed count; `snapshot().radioArmed` + `radios` pinned; test-only `spawnRadio` seam.
+- **Consequences**: 243/243 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One list, one key, one refactor-free reuse; `stats.radio` + read-only snapshot fields. Next P2: damage/XP visuals.

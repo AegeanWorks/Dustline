@@ -2039,6 +2039,9 @@ function startRun(options) {
     cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, rail: 0.9, akimbo: 0.3, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
     dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false, charges: 1 },
     bomb: { cd: 0, max: 6, held: false },
+    radioArmed: 0,
+    radioHeld: false,
+    radios: [],
     shield: { charges: 0, t: 0 },
     slowT: 0,
     pools: [],
@@ -2118,6 +2121,7 @@ function startRun(options) {
       champions: 0,
       chests: 0,
       dice: 0,
+      radio: 0,
       interact: 0,
       bunkers: 0,
       shieldSaves: 0,
@@ -4401,6 +4405,18 @@ function checkRank() {
   }
 }
 
+function fireRadioStrike() {
+  if (!G || G.radioArmed <= 0) return false;
+  G.radioArmed--;
+  G.airstrike = { t: 0, n: 10, x: G.player.x, y: G.player.y, ang: G.player.angle };
+  G.score += 100;
+  announceCallout('RADIO STRIKE', 'FIELD RADIO · +100 SCORE', '#ffcf5c', 2.8);
+  flashScreen('#ffcf5c', 0.3);
+  G.news = 'Radio strike inbound.';
+  sfx.reward();
+  return true;
+}
+
 function triggerStreakReward(reward) {
   G.score += 150;
   G.streakRewards.push(reward.id);
@@ -4599,6 +4615,7 @@ function killEnemy(e) {
     G.stats.champions = (G.stats.champions || 0) + 1;
     G.chests.push({ x: e.x, y: e.y, spin: 0 });
     G.dice.push({ x: e.x + rnd(-24, 24), y: e.y + rnd(-24, 24), spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
+    if (Math.random() < 0.25) G.radios.push({ x: e.x + rnd(-32, 32), y: e.y + rnd(-32, 32), spin: 0 });
     const affix = CHAMPION_AFFIXES.find((a) => a.id === e.affix);
     spawnFloater(e.x, e.y - e.r - 26, (affix ? affix.name + ' CHAMPION DOWN' : 'CHAMPION DOWN'), '#ffd27a', 15);
     if (e.affix === 'volatile') {
@@ -4609,6 +4626,9 @@ function killEnemy(e) {
   }
   if (!e.champion && Math.random() < 0.004) {
     G.dice.push({ x: e.x, y: e.y, spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
+  }
+  if (!e.champion && Math.random() < 0.003) {
+    G.radios.push({ x: e.x, y: e.y, spin: 0 });
   }
 
   if (e.type === 'splitter') {
@@ -4819,6 +4839,28 @@ function updatePickups(dt) {
   }
   G.dice = G.dice.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
   if (G.dice.length > 20) G.dice.splice(0, G.dice.length - 20);
+  for (const radio of G.radios) {
+    radio.spin += dt * 2.4;
+    const dx = G.player.x - radio.x;
+    const dy = G.player.y - radio.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (d < pr) {
+      const pull = 170 + (1 - d / pr) * 260;
+      radio.x += (dx / d) * pull * dt;
+      radio.y += (dy / d) * pull * dt;
+    }
+    if (d < 26) {
+      radio.dead = true;
+      G.radioArmed++;
+      G.stats.radio = (G.stats.radio || 0) + 1;
+      fxBurst(radio.x, radio.y, 5, '#9fd8ff', 170, 2.4, 0.32, 'spark');
+      spawnFloater(radio.x, radio.y - 14, 'RADIO +1 · T TO CALL', '#9fd8ff', 13);
+      G.news = 'Field radio recovered. Press T to call the plane.';
+      sfx.reward();
+    }
+  }
+  G.radios = G.radios.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.radios.length > 10) G.radios.splice(0, G.radios.length - 10);
   for (const s of G.salvage) {
     s.spin += dt * 2.2;
     s.t -= dt;
@@ -5312,6 +5354,9 @@ function updateRun(dt) {
   const bombHeld = !!keys['e'];
   if (bombHeld && !G.bomb.held) throwBomb();
   G.bomb.held = bombHeld;
+  const radioHeld = !!keys['t'];
+  if (radioHeld && !G.radioHeld && screen === 'play') fireRadioStrike();
+  G.radioHeld = radioHeld;
   if (settings.bombMode === 'auto' && G.bomb.cd <= 0 && screen === 'play') {
     for (const e of G.enemies) {
       if (!e.dead && dist2(e.x, e.y, G.player.x, G.player.y) < 550 * 550) {
@@ -6245,6 +6290,42 @@ function drawPickups() {
     ctx.fillStyle = 'rgba(244,239,226,0.8)';
     ctx.font = '700 9px Consolas, monospace';
     ctx.fillText('DICE', die.x, die.y - 15);
+    ctx.textAlign = 'left';
+  }
+  for (const radio of G.radios) {
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + radio.spin);
+    ctx.save();
+    ctx.translate(radio.x, radio.y);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#9fd8ff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 15 + pulse * 3, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.rotate(radio.spin * 0.3);
+    ctx.fillStyle = '#1a2a3a';
+    rr(-7, -5, 14, 10, 2);
+    ctx.fill();
+    ctx.strokeStyle = '#9fd8ff';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-7, -5, 14, 10);
+    ctx.strokeStyle = '#9fd8ff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(4, -5);
+    ctx.lineTo(4, -13);
+    ctx.stroke();
+    ctx.fillStyle = '#9fd8ff';
+    ctx.beginPath();
+    ctx.arc(4, -13, 1.6, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#63dcc0';
+    ctx.fillRect(-4, -1, 5, 3);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(159,216,255,0.85)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText('RADIO', radio.x, radio.y - 15);
     ctx.textAlign = 'left';
   }
   if (G.beacon) {
@@ -7975,7 +8056,8 @@ function drawHUD() {
     ctx.fillText(dashReady ? 'SHIFT ' + dashLabel : dashLabel, left + dw / 2, by + 13);
     ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
     const bombLabel = settings.bombMode === 'auto' ? 'AUTO' : 'E';
-    ctx.fillText(bombReady ? bombLabel + ' BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
+    const radioLabel = G.radioArmed > 0 ? ' T' + G.radioArmed : '';
+    ctx.fillText(bombReady ? bombLabel + ' BOMB' + radioLabel : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
     const odX = left + (dw + gap) * 2;
     ctx.fillStyle = odOn ? '#ff8a5c' : G.od.heat > 15 ? '#e0b13c' : 'rgba(255,138,92,0.35)';
     ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, by + 13);
@@ -11308,6 +11390,8 @@ window.Dustline = {
       snap.gems = G.gems.length;
       snap.chests = G.chests.length;
       snap.dice = G.dice.length;
+      snap.radios = G.radios.length;
+      snap.radioArmed = G.radioArmed;
       snap.turrets = G.turrets.length;
       snap.auraRadius = auraRadius();
       snap.medkits = G.medkits.length;
@@ -11346,6 +11430,7 @@ window.Dustline = {
         auraHits: G.stats.auraHits || 0,
         chests: G.stats.chests || 0,
         dice: G.stats.dice || 0,
+        radio: G.stats.radio || 0,
         shieldSaves: G.stats.shieldSaves || 0,
         banked: G.stats.banked,
         lost: G.stats.lost,
@@ -11490,6 +11575,11 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.spawnDie = (x, y) => {
     if (!G) return false;
     G.dice.push({ x: G.player.x + (Number(x) || 0), y: G.player.y + (Number(y) || 0), spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
+    return true;
+  };
+  window.Dustline.spawnRadio = (x, y) => {
+    if (!G) return false;
+    G.radios.push({ x: G.player.x + (Number(x) || 0), y: G.player.y + (Number(y) || 0), spin: 0 });
     return true;
   };
   window.Dustline.spawnMedkit = (x, y) => {

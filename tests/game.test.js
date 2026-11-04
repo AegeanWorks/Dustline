@@ -4198,6 +4198,50 @@ test('P2-6c dice draw on the map with pips and label (playtest visual)', () => {
   assert.ok(labels.includes('DICE'), 'die label draws, got ' + JSON.stringify(labels.slice(0, 10)));
 });
 
+test('P2-9 champions can drop a field radio (playtest)', () => {
+  const g = boot({ seed: 2 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 60, 0);
+  g.api.setPlayer(2000, 0);
+  g.api.forceChampion(0, 'swift');
+  g.api.setEnemyHp(0, 1);
+  g.api.hitEnemy(0, 999);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().radios, 1, 'the champion leaves a radio');
+});
+
+test('P2-9b collecting a radio arms a T-called plane strike (playtest)', () => {
+  const g = boot({ seed: 111 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  assert.ok(g.api.spawnRadio(10, 0), 'radio spawned');
+  g.steps(5);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.radios, 0, 'the radio is picked up');
+  assert.strictEqual(s.radioArmed, 1, 'one strike armed');
+  assert.strictEqual(s.stats.radio, 1, 'radio counted');
+  assert.ok(!s.airstrike, 'nothing fires without T');
+  g.key('t');
+  g.steps(2);
+  g.key('t', false);
+  s = g.api.snapshot();
+  assert.strictEqual(s.radioArmed, 0, 'calling spends the radio');
+  assert.ok(s.airstrike, 'the plane is inbound');
+});
+
+test('P2-9c radios draw on the map with a label (playtest visual)', () => {
+  const g = boot({ seed: 113, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  assert.ok(g.api.spawnRadio(150, 0), 'radio spawned in view');
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('RADIO'), 'radio label draws, got ' + JSON.stringify(labels.slice(0, 10)));
+});
+
 test('P2-7 shock boots bank dash charges up to 4 (playtest)', () => {
   const g = boot({ seed: 101 });
   deploy(g);
