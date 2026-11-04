@@ -745,7 +745,7 @@ const sfx = {
 const SKILL_MAX = 10;
 
 const SKILL_ORDER = [
-  'rifle', 'smg', 'shotgun', 'dmr', 'rail', 'blades', 'grenade', 'turret', 'aura',
+  'rifle', 'smg', 'shotgun', 'dmr', 'rail', 'akimbo', 'blades', 'grenade', 'turret', 'aura',
   'squad', 'speed', 'vitality', 'aegis', 'magnet', 'damage',
   'bulletSpeed', 'lifesteal', 'dashPower', 'crit', 'ricochet'
 ];
@@ -790,6 +790,14 @@ const SKILLS = {
     kind: 'weapon',
     desc: 'Slow charge, punches through whole lines.',
     color: '#9fe8ff'
+  },
+  akimbo: {
+    name: 'DUAL BERETTAS',
+    short: 'AK',
+    max: SKILL_MAX,
+    kind: 'weapon',
+    desc: 'Twin sidearms, alternating volleys.',
+    color: '#ffd9a0'
   },
   blades: {
     name: 'Bayonet Blades',
@@ -919,6 +927,7 @@ const SKILL_DETAILS = {
   shotgun: 'A point-blank shredder. Extra levels add pellets and damage; Hollow Points unlocks the Breaker.',
   dmr: 'A slow precision rifle that punches through a line. Blood Leech at level 3 unlocks the Reaper.',
   rail: 'A charge rifle that skewers whole columns. Match Ammo at level 3 unlocks the infinite-pierce Lancer.',
+  akimbo: 'Twin Berettas that alternate volleys. Killer Instinct at level 3 unlocks the 4-round Duelist.',
   blades: 'Two bayonet blades orbit you and shred anything they touch. Shock Boots at level 3 unlocks Tempest.',
   grenade: 'Lobs a frag at the thickest cluster. Hollow Points at level 3 unlocks Cluster, which throws two.',
   turret: 'Deploys a temporary sentry that fires on its own. Killer Instinct at level 3 unlocks Overwatch.',
@@ -955,6 +964,7 @@ function skillStatLine(id, lvl) {
   if (id === 'shotgun') return 'DMG ' + range(7 + 2 * cur, 7 + 2 * next) + ' · PELLETS ' + range(2 + cur, 2 + next);
   if (id === 'dmr') return 'DMG ' + range(34 + 14 * (cur - 1), 34 + 14 * (next - 1)) + ' · PIERCE ' + range(2 + Math.floor(cur / 2), 2 + Math.floor(next / 2));
   if (id === 'rail') return 'DMG ' + range(46 + 20 * (cur - 1), 46 + 20 * (next - 1)) + ' · PIERCE ' + range(4 + Math.floor(cur / 2), 4 + Math.floor(next / 2));
+  if (id === 'akimbo') return 'DMG ' + range(5 + 1.6 * (cur - 1), 5 + 1.6 * (next - 1)) + ' · CD ' + range(Math.max(0.14, 0.3 - 0.014 * cur).toFixed(2), Math.max(0.14, 0.3 - 0.014 * next).toFixed(2)) + 's · TWIN';
   if (id === 'blades') return 'BLADES ' + range(cur + 1, next + 1) + ' · DMG ' + range(8 + 6 * cur, 8 + 6 * next);
   if (id === 'grenade') return 'DMG ' + range(30 + 18 * cur, 30 + 18 * next) + ' · RADIUS ' + range(78 + 6 * cur, 78 + 6 * next);
   if (id === 'turret') return 'DMG ' + range(9 + 4 * cur, 9 + 4 * next) + ' · LIFE ' + range((10 + 1.5 * cur).toFixed(1), (10 + 1.5 * next).toFixed(1)) + 's';
@@ -1171,10 +1181,11 @@ const WEAPONS = {
   smg: { name: 'SMG-45', skill: 'smg', blurb: 'Fast and frantic', color: '#ffcf5c' },
   spas: { name: 'SPAS-12', skill: 'shotgun', blurb: 'Close-range shredder', color: '#ffb066' },
   dmr: { name: 'DMR-308', skill: 'dmr', blurb: 'Piercing precision', color: '#ffeab0' },
-  rail: { name: 'RAILGUN', skill: 'rail', blurb: 'Punches through lines', color: '#9fe8ff' }
+  rail: { name: 'RAILGUN', skill: 'rail', blurb: 'Punches through lines', color: '#9fe8ff' },
+  beretta: { name: 'AKIMBO', skill: 'akimbo', blurb: 'Dual Berettas, twin volleys', color: '#ffd9a0' }
 };
 
-const WEAPON_ORDER = ['ak', 'smg', 'spas', 'dmr', 'rail'];
+const WEAPON_ORDER = ['ak', 'smg', 'spas', 'dmr', 'rail', 'beretta'];
 
 const MAPS = {
   desert: {
@@ -1258,6 +1269,7 @@ const EVOLUTIONS = {
   shotgun: { id: 'breaker', name: 'BREAKER', needs: 'damage', desc: '+4 pellets, piercing shells' },
   dmr: { id: 'reaper', name: 'REAPER', needs: 'lifesteal', desc: '+3 pierce, +30% damage, double leech' },
   rail: { id: 'lancer', name: 'LANCER', needs: 'bulletSpeed', desc: 'Infinite pierce, +40% damage, faster' },
+  akimbo: { id: 'duelist', name: 'DUELIST', needs: 'crit', desc: '4-round burst, +30% damage' },
   blades: { id: 'tempest', name: 'TEMPEST', needs: 'dashPower', desc: '+2 blades, +50% spin and damage' },
   grenade: { id: 'cluster', name: 'CLUSTER', needs: 'damage', desc: 'Twin grenades, +30% blast' },
   turret: { id: 'overwatch', name: 'OVERWATCH', needs: 'crit', desc: 'Third turret, +30% fire rate and life' },
@@ -1270,6 +1282,7 @@ const WEAPON_ARCHETYPE = {
   rifle: 'precision',
   dmr: 'precision',
   rail: 'precision',
+  akimbo: 'spread',
   smg: 'spread',
   shotgun: 'spread'
 };
@@ -2001,7 +2014,7 @@ function startRun(options) {
     decals: [],
     bombs: [],
     skills: freshSkills(),
-    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, rail: 0.9, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
+    cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, rail: 0.9, akimbo: 0.3, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
     dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false },
     bomb: { cd: 0, max: 6, held: false },
     shield: { charges: 0, t: 0 },
@@ -2067,7 +2080,7 @@ function startRun(options) {
     bannerSub: '',
     bannerT: 0,
     stats: {
-      shots: { rifle: 0, smg: 0, shotgun: 0, dmr: 0, rail: 0, turret: 0, soldier: 0, enemy: 0 },
+      shots: { rifle: 0, smg: 0, shotgun: 0, dmr: 0, rail: 0, akimbo: 0, turret: 0, soldier: 0, enemy: 0 },
       bladeHits: 0,
       grenadeHits: 0,
       bombs: 0,
@@ -3107,12 +3120,34 @@ function railStats() {
   return st;
 }
 
+function akimboStats() {
+  const lvl = G.skills.akimbo;
+  const st = {
+    dmg: (5 + 1.6 * (lvl - 1)) * damageMult(),
+    cd: Math.max(0.14, 0.3 - 0.014 * lvl),
+    range: 480,
+    speed: 900,
+    color: '#ffd9a0',
+    sfx: 'smg',
+    shots: 2,
+    spread: 0.09
+  };
+  if (hasEvolution('akimbo')) {
+    st.dmg *= 1.3;
+    st.shots = 4;
+    st.spread = 0.12;
+    st.label = 'DUELIST';
+  }
+  return st;
+}
+
 function weaponStats(id) {
   if (id === 'rifle') return rifleStats();
   if (id === 'smg') return smgStats();
   if (id === 'shotgun') return shotgunStats();
   if (id === 'dmr') return dmrStats();
   if (id === 'rail') return railStats();
+  if (id === 'akimbo') return akimboStats();
   return null;
 }
 
@@ -3179,7 +3214,7 @@ function updateSkills(dt) {
   const target = nearestEnemy(G.player.x, G.player.y, 620);
   if (target) G.player.angle = Math.atan2(target.y - G.player.y, target.x - G.player.x);
 
-  for (const id of ['rifle', 'smg', 'shotgun', 'dmr', 'rail']) fireWeapon(id, dt);
+  for (const id of ['rifle', 'smg', 'shotgun', 'dmr', 'rail', 'akimbo']) fireWeapon(id, dt);
 
   if (G.skills.grenade > 0) {
     G.cds.grenade -= dt;
@@ -8224,27 +8259,27 @@ function drawSetupScreen() {
   WEAPON_ORDER.forEach((id, i) => {
     const w = WEAPONS[id];
     const chosen = setup.weapon === id;
-    const x = 36 + i * 178;
+    const x = 36 + i * 148;
     const y = 128;
-    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 170, h: 72, page: 0 });
+    uiButtons.push({ id: 'weapon-' + id, label: w.name, x, y, w: 140, h: 72, page: 0 });
     if (setupTab !== 0) return;
-    const hover = mouse.x >= x && mouse.x <= x + 170 && mouse.y >= y && mouse.y <= y + 72;
+    const hover = mouse.x >= x && mouse.x <= x + 140 && mouse.y >= y && mouse.y <= y + 72;
     if (chosen) {
       ctx.strokeStyle = 'rgba(255,210,122,' + (0.25 + 0.15 * Math.sin(uiT * 4)) + ')';
       ctx.lineWidth = 4;
-      rr(x - 2, y - 2, 174, 76, 8);
+      rr(x - 2, y - 2, 144, 76, 8);
       ctx.stroke();
     }
     ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.92)';
     ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 170, 72, 6);
+    rr(x, y, 140, 72, 6);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = chosen ? 'rgba(255,240,210,0.10)' : 'rgba(255,240,210,0.04)';
-    rr(x + 1.5, y + 1.5, 167, 14, 4);
+    rr(x + 1.5, y + 1.5, 137, 14, 4);
     ctx.fill();
-    drawSkillGlyph(w.skill, x + 170 - 26, y + 36, 13, w.color);
+    drawSkillGlyph(w.skill, x + 140 - 26, y + 36, 13, w.color);
     ctx.textAlign = 'left';
     ctx.fillStyle = w.color;
     ctx.font = '700 15px Consolas, monospace';
@@ -9305,6 +9340,17 @@ function drawSkillGlyph(id, cx, cy, size, color) {
     ctx.beginPath();
     ctx.arc(s * 0.5, 0, s * 0.14, 0, TAU);
     ctx.fill();
+  } else if (id === 'akimbo') {
+    ctx.save();
+    ctx.rotate(-0.5);
+    ctx.fillRect(-s * 0.7, -s * 0.12, s * 1.1, s * 0.24);
+    ctx.fillRect(s * 0.1, s * 0.02, s * 0.24, s * 0.5);
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(0.5);
+    ctx.fillRect(-s * 0.7, -s * 0.12, s * 1.1, s * 0.24);
+    ctx.fillRect(s * 0.1, s * 0.02, s * 0.24, s * 0.5);
+    ctx.restore();
   } else if (id === 'blades') {
     for (let i = 0; i < 3; i++) {
       ctx.save();

@@ -4062,6 +4062,52 @@ test('P2-1 promotion callout fires on the exact kill (playtest)', () => {
   assert.strictEqual(s.callout.text, 'PROMOTED · GENERAL', 'promotion is announced');
 });
 
+test('P2-2 akimbo joins the unified arsenal and starts its own line (playtest)', () => {
+  const g = boot({ seed: 75 });
+  enterSetup(g);
+  const ids = g.api.snapshot().buttons.map((b) => b.id);
+  for (const weapon of ['ak', 'smg', 'spas', 'dmr', 'rail', 'beretta']) assert.ok(ids.includes('weapon-' + weapon), weapon);
+  const cards = g.api.snapshot().buttons.filter((b) => b.id.indexOf('weapon-') === 0);
+  assert.strictEqual(cards.length, 6, 'six weapons on one roof');
+  for (let i = 0; i < cards.length - 1; i++) {
+    assert.ok(cards[i].x + cards[i].w <= cards[i + 1].x, 'weapon cards do not overlap');
+  }
+  assert.ok(cards[cards.length - 1].x + cards[cards.length - 1].w <= 960, 'akimbo stays on screen');
+  g.api.clickButton('weapon-beretta');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play');
+  assert.strictEqual(s.weapon, 'beretta');
+  assert.strictEqual(s.skills.akimbo, 1);
+  assert.strictEqual(s.skills.rifle, 0);
+});
+
+test('P2-2c akimbo card draws on the unified arsenal tab (playtest visual)', () => {
+  const g = boot({ seed: 79, record: true });
+  enterSetup(g);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('AKIMBO'), 'akimbo shows next to the other weapons');
+  assert.ok(labels.includes('OPERATOR'), 'class and weapon share one roof');
+});
+
+test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
+  const g = boot({ seed: 77 });
+  deploy(g, { weapon: 'beretta' });
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('grunt', 150, 0);
+  g.steps(30);
+  let s = g.api.snapshot();
+  assert.ok(s.shots.akimbo >= 2, 'akimbo fires, got ' + s.shots.akimbo);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('akimbo');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('crit');
+  assert.strictEqual(g.api.snapshot().evolved.akimbo, undefined, 'duelist waits for the pick');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:akimbo');
+  assert.ok(g.api.chooseUpgrade(0));
+  assert.strictEqual(g.api.snapshot().evolved.akimbo, 'duelist');
+});
+
 test('P2-1b HUD shows the current rank short (playtest visual)', () => {
   const g = boot({ seed: 73, record: true });
   deploy(g);

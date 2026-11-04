@@ -400,4 +400,12 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Status**: Accepted
 - **Context**: Playtest asked for military ranks by kill count with an unlock per rank (`Private dan başlar General a kadar`, `her rütbede yeni bir özellik açılır`), like the reference game's progression pull.
 - **Decision**: Per-run 8-rank track on total kills — PVT 0, CPL 25, SGT 75, LT 150, CPT 300, MAJ 500, COL 750, GEN 1000 — reusing the milestone pattern (`RANKS` table, `checkRank`/`grantRankReward`, `rankIdx` in run state, no save change). Unlocks reuse existing levers only: +1 reroll (CPL), supply medkits (SGT), +50 shards (LT), +1 reroll/+1 banish (CPT), +100 shards (MAJ), +2 rerolls (COL), +200 shards (GEN), each plus 100x index score. HUD shows `KILLS · <short>`; promotion callout `PROMOTED · <RANK>` plus news. Precedence rule: milestones win callout ties on the same kill jump (rank keeps news/score/rewards); the pure promotion callout fires on exact-threshold kills.
-- **Consequences**: 225/225 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table, one checker, one read-only snapshot field, one HUD label. No save, seed, or damage-number change. Next P2: unified class+weapon select with akimbo.
+- **Consequences**: 225/225 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table, one checker, one read-only snapshot field, one HUD label. No save, seed, or damage-number change.
+Next P2: unified class+weapon select with akimbo.
+
+### ADR-052: P2 akimbo dual Berettas on the unified arsenal tab (playtest P2-2)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted classes and weapons under one roof instead of two categories, plus an akimbo class with dual Berettas. The arsenal tab already shows WEAPON and OPERATOR rows together, so the missing half was the akimbo content itself.
+- **Decision**: New primary weapon AKIMBO (setup id `beretta`) bound to a new full `akimbo` skill line: L1 5x2 dmg at 0.29s (35 DPS, rifle/smg tier), L10 19.4x2 at 0.16s, range 480, spread archetype. Evolution DUELIST at 10 + crit (table-driven through the choice flow): 4-round burst, +30% damage. Extension points all generic: `akimboStats`, `weaponStats` dispatch, fire loop, cds, stats, `RANKS`-style `EVOLUTIONS` row, archetype, stat line, details, crossed-pistols glyph. Weapon cards shrink 170->140px step (6 fit in 916px). Measured: L1 35 DPS vs rifle 28 / smg 34; L10 243 vs smg 368.
+- **Consequences**: 228/228 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One skill, one weapon, one evolution; layout-only setup change; no save, seed, or damage-number change to existing lines. Next P2: round minimap bottom-right.
