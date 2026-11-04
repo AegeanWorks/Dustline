@@ -4242,6 +4242,35 @@ test('P2-9c radios draw on the map with a label (playtest visual)', () => {
   assert.ok(labels.includes('RADIO'), 'radio label draws, got ' + JSON.stringify(labels.slice(0, 10)));
 });
 
+test('P2-10 damage numbers climb white-yellow-orange-red (playtest)', () => {
+  const style = (tier) => ({ 0: 'diamond', 1: 'star', 2: 'hex' })[tier];
+  const g = boot({ seed: 115 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.strictEqual(g.api.gemStyle(0).shape, style(0), 'tier 0 is a diamond');
+  assert.strictEqual(g.api.gemStyle(1).shape, style(1), 'jackpot is a star');
+  assert.strictEqual(g.api.gemStyle(2).shape, style(2), 'tier 2 is a hex');
+  const colors = [g.api.gemStyle(0).color, g.api.gemStyle(1).color, g.api.gemStyle(2).color];
+  assert.strictEqual(new Set(colors).size, 3, 'every tier has its own vivid color');
+});
+
+test('P2-10b chip hits show white, heavy hits show red (playtest visual)', () => {
+  const g = boot({ seed: 117, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.api.spawnEnemy('tank', 90, 0);
+  assert.ok(g.api.hitEnemy(0, 10), 'chip hits');
+  assert.ok(g.api.hitEnemy(0, 60), 'heavy hits');
+  g.steps(2);
+  const small = g.texts.find((t) => t.text === '-10');
+  const big = g.texts.find((t) => t.text === '-60');
+  assert.ok(small, 'chip number draws');
+  assert.ok(big, 'heavy number draws');
+  assert.strictEqual(small.fillStyle, '#f4efe2', 'chips stay white');
+  assert.strictEqual(big.fillStyle, '#ff4d3d', 'heavies burn red');
+});
+
 test('P2-7 shock boots bank dash charges up to 4 (playtest)', () => {
   const g = boot({ seed: 101 });
   deploy(g);

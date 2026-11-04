@@ -458,3 +458,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted the plane called from a found field radio instead of a random-feeling streak trigger (`yerde telsiz... bulunca kullansın, uçak geçsin`). The streak-30 auto strike stays as the progression path; the radio adds the scavenged path.
 - **Decision**: New `G.radios` pickup list (cap 10, magnet collection): champions 25%, normal kills 0.3%, pips cosmetic-streamed. Collecting arms one strike (`T` key, footer hint added); `fireRadioStrike` reuses the streak-30 strike body with its own callout/score. HUD bomb panel shows the armed count; `snapshot().radioArmed` + `radios` pinned; test-only `spawnRadio` seam.
 - **Consequences**: 243/243 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One list, one key, one refactor-free reuse; `stats.radio` + read-only snapshot fields. Next P2: damage/XP visuals.
+
+### ADR-060: P2 damage ramp + XP gem rework (playtest P2-10)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted damage numbers ramping white→yellow→orange→red as hits grow, and sharper, more vivid XP gem shapes (the old palette read as muddy).
+- **Decision**: `dmgColorFor(dealt, maxHp)`: <8% white, <20% yellow, <40% orange, above red, size 11→16; crits keep `!` and floor size 16. Pink/gold two-state retired (hit sparks match). Floaters already carry a dark shadow, so white stays legible on sand. Gems via `gemStyleFor(tier)`: T0 vivid-teal diamond, T1 jackpot gold star, T2 violet hex, stronger tier glows.
+- **Consequences**: 245/245 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Two helpers, no balance or seed change (colors only). Evidence: `shots/s5-visuals-before.png` vs `s5-visuals-after.png` (~25s live runs, red -14 + gold star vs gold-only numbers). Next P2: 3-4 minute wave structure.

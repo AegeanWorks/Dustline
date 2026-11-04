@@ -4261,6 +4261,20 @@ function throwBomb() {
   return true;
 }
 
+function dmgColorFor(dealt, maxHp) {
+  const frac = maxHp > 0 ? dealt / maxHp : 0;
+  if (frac >= 0.4) return { color: '#ff4d3d', size: 16 };
+  if (frac >= 0.2) return { color: '#ff9a3c', size: 14 };
+  if (frac >= 0.08) return { color: '#ffd27a', size: 12 };
+  return { color: '#f4efe2', size: 11 };
+}
+
+function gemStyleFor(tier) {
+  if (tier === 1) return { shape: 'star', color: '#ffd76a', size: 7.5, glow: 0.3 };
+  if (tier === 2) return { shape: 'hex', color: '#b78cff', size: 6, glow: 0.22 };
+  return { shape: 'diamond', color: '#2fe8b0', size: 4.5, glow: 0.12 };
+}
+
 function damageEnemy(e, dmg, x, y, crit, splash) {
   if (e.dead) return;
   if (e.burrowed) return;
@@ -4276,9 +4290,10 @@ function damageEnemy(e, dmg, x, y, crit, splash) {
   G.damageDealt += dealt;
   if (settings.damageNumbers) {
     const value = Math.round(dealt);
-    spawnFloater(x, y - e.r, (crit ? '!' : '') + '-' + value, crit ? '#ff8ad8' : '#ffd27a', crit ? 16 : 12);
+    const dc = dmgColorFor(dealt, e.maxHp);
+    spawnFloater(x, y - e.r, (crit ? '!' : '') + '-' + value, dc.color, crit ? Math.max(16, dc.size) : dc.size);
   }
-  burst(x, y, 2, crit ? '#ff8ad8' : '#ffcf7a', 200, 2.6, 0.22, 'spark');
+  burst(x, y, 2, dmgColorFor(dealt, e.maxHp).color, 200, 2.6, 0.22, 'spark');
   if (crit) sfx.crit();
   if (G.skills.lifesteal > 0 || hasRelic('bloodstone')) {
     const heal = lifestealHeal(dealt);
@@ -6180,23 +6195,44 @@ function drawPickups() {
     ctx.save();
     ctx.translate(gem.x, gem.y + Math.sin(uiT * 3.2 + gem.spin) * 2.5);
     ctx.rotate(gem.spin);
-    const jackpot = gem.tier === 1;
-    const color = jackpot ? '#ffd27a' : gem.tier === 2 ? '#c9a8ff' : gem.value > 1 ? '#ffd27a' : '#7fe8c8';
+    const gs = gemStyleFor(gem.tier);
+    const color = gs.color;
     ctx.fillStyle = color;
     ctx.strokeStyle = 'rgba(10,20,18,0.6)';
     ctx.lineWidth = 1.5;
-    const s = jackpot ? 7.5 : gem.value > 1 ? 6 : 4.5;
-    ctx.globalAlpha = jackpot ? 0.3 : gem.tier === 2 ? 0.22 : 0.12;
+    const s = gs.size;
+    ctx.globalAlpha = gs.glow;
     ctx.beginPath();
-    ctx.arc(0, 0, jackpot ? 12 : s * 2, 0, TAU);
+    ctx.arc(0, 0, s * 2, 0, TAU);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.beginPath();
-    ctx.moveTo(0, -s);
-    ctx.lineTo(s, 0);
-    ctx.lineTo(0, s);
-    ctx.lineTo(-s, 0);
-    ctx.closePath();
+    if (gs.shape === 'star') {
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * TAU - Math.PI / 2;
+        const r = i % 2 === 0 ? s : s * 0.45;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    } else if (gs.shape === 'hex') {
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        const x = Math.cos(a) * s;
+        const y = Math.sin(a) * s;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    } else {
+      ctx.moveTo(0, -s);
+      ctx.lineTo(s, 0);
+      ctx.lineTo(0, s);
+      ctx.lineTo(-s, 0);
+      ctx.closePath();
+    }
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -11554,12 +11590,13 @@ if (window.__DUSTLINE_TEST__) {
     spawnBullet(Number(x) || 0, Number(y) || 0, Number(ang) || 0, Number(speed) || 300, Number(dmg) || 10, owner || 'e', '#ff3b30', { life: 2 });
     return true;
   };
-  window.Dustline.spawnGems = (n) => {
+  window.Dustline.spawnGems = (n, tier) => {
     if (!G) return false;
     const count = Math.max(0, Math.min(600, Math.floor(Number(n) || 0)));
-    for (let i = 0; i < count; i++) G.gems.push({ x: G.player.x + (i % 20) * 8, y: G.player.y + Math.floor(i / 20) * 8, value: 1, tier: 0, spin: 0, vx: 0, vy: 0 });
+    for (let i = 0; i < count; i++) G.gems.push({ x: G.player.x + (i % 20) * 8, y: G.player.y + Math.floor(i / 20) * 8, value: 1, tier: Math.max(0, Math.min(2, Math.floor(Number(tier) || 0))), spin: 0, vx: 0, vy: 0 });
     return true;
   };
+  window.Dustline.gemStyle = (tier) => gemStyleFor(Math.max(0, Math.min(2, Math.floor(Number(tier) || 0))));
   window.Dustline.chooseUpgrade = (index) => {
     if (!G || screen !== 'levelup') return false;
     if (!G.offers[Number(index) || 0]) return false;
