@@ -1055,6 +1055,13 @@ test('maxing a weapon and its partner evolves it', () => {
   assert.ok(!g.api.snapshot().evolved.rifle, 'a maxed weapon alone does not evolve');
   for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
   let s = g.api.snapshot();
+  assert.ok(!s.evolved.rifle, 'evolution waits for the player to pick it');
+  assert.ok(s.bannerT > 0, 'readiness is announced');
+  g.api.giveXp(s.xpNext);
+  assert.strictEqual(g.api.snapshot().screen, 'levelup');
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:rifle', 'the evolve card leads the choice');
+  assert.ok(g.api.chooseUpgrade(0), 'player picks the evolution');
+  s = g.api.snapshot();
   assert.strictEqual(s.evolved.rifle, 'ripper');
   assert.ok(s.bannerT > 0, 'the evolution is announced');
   g.api.spawnEnemy('tank', 200, 0);
@@ -1374,6 +1381,10 @@ test('the railgun evolves into the lancer', () => {
   for (let i = 0; i < 9; i++) g.api.applyUpgrade('rail');
   assert.strictEqual(g.api.snapshot().evolved.rail, undefined);
   for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  assert.strictEqual(g.api.snapshot().evolved.rail, undefined, 'evolution waits for the pick');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:rail');
+  assert.ok(g.api.chooseUpgrade(0));
   assert.strictEqual(g.api.snapshot().evolved.rail, 'lancer');
 });
 
@@ -1525,6 +1536,11 @@ test('active skills evolve into tempest, cluster, overwatch and solar crown', ()
   for (const [skill, partner, evo] of plans) {
     for (let i = 0; i < 10; i++) g.api.applyUpgrade(skill);
     for (let i = 0; i < 3; i++) g.api.applyUpgrade(partner);
+    assert.strictEqual(g.api.snapshot().evolved[skill], undefined, skill + ' waits for the pick');
+    g.api.giveXp(g.api.snapshot().xpNext);
+    const offers = g.api.snapshot().offers;
+    assert.strictEqual(offers[0], 'evo:' + skill, skill + ' leads the choice');
+    assert.ok(g.api.chooseUpgrade(0), skill + ' evolves on pick');
     assert.strictEqual(g.api.snapshot().evolved[skill], evo, skill + ' should evolve');
   }
   const s = g.api.snapshot();
@@ -2651,6 +2667,10 @@ test('maxing ricochet and crit evolves it into carom', () => {
   for (let i = 0; i < 10; i++) assert.ok(g.api.applyUpgrade('ricochet'));
   assert.strictEqual(g.api.snapshot().evolved.ricochet, undefined);
   for (let i = 0; i < 3; i++) assert.ok(g.api.applyUpgrade('crit'));
+  assert.strictEqual(g.api.snapshot().evolved.ricochet, undefined, 'evolution waits for the pick');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:ricochet');
+  assert.ok(g.api.chooseUpgrade(0));
   assert.strictEqual(g.api.snapshot().evolved.ricochet, 'carom');
 });
 
@@ -3878,9 +3898,129 @@ test('P1-3 squad evolves into legion at 10 with vitality 3 (playtest)', () => {
   deploy(g);
   for (let i = 0; i < 10; i++) g.api.applyUpgrade('squad');
   for (let i = 0; i < 3; i++) g.api.applyUpgrade('vitality');
+  assert.strictEqual(g.api.snapshot().evolved.squad, undefined, 'squad waits for the pick');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:squad');
+  assert.ok(g.api.chooseUpgrade(0));
   const s = g.api.snapshot();
   assert.strictEqual(s.evolved.squad, 'legion', 'squad evolves like every other skill');
   assert.ok(s.bannerT > 0, 'the evolution is announced');
+});
+
+test('P1-5 evolutions are picked, never forced (playtest 3-way choice)', () => {
+  const g = boot({ seed: 47 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rifle');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().screen, 'levelup');
+  const offers = g.api.snapshot().offers;
+  assert.strictEqual(offers[0], 'evo:rifle', 'evolve card leads');
+  assert.ok(offers.length === 3, 'three cards to choose from, got ' + offers.length);
+  assert.ok(g.api.chooseUpgrade(1), 'player defers by picking a normal card');
+  assert.strictEqual(g.api.snapshot().evolved.rifle, undefined, 'rifle stays unevolved');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:rifle', 'evolution waits for the next level');
+  assert.ok(g.api.chooseUpgrade(0), 'player evolves when ready');
+  assert.strictEqual(g.api.snapshot().evolved.rifle, 'ripper');
+});
+
+test('P1-5b three ready evolutions fill all three cards (playtest)', () => {
+  const g = boot({ seed: 49 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rifle');
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('rail');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  const offers = g.api.snapshot().offers;
+  assert.strictEqual(offers[0], 'evo:rifle', 'first ready evolution leads, got ' + offers[0]);
+  assert.strictEqual(offers[1], 'evo:rail', 'second ready evolution follows, got ' + offers[1]);
+  assert.strictEqual(offers.length, 3, 'still three cards');
+});
+
+test('P1-5c evolve cards cannot be banished (playtest)', () => {
+  const g = boot({ seed: 51 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rifle');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:rifle');
+  assert.strictEqual(g.api.banish(0), false, 'evolve cards refuse banish');
+  assert.strictEqual(g.api.snapshot().banishes, 1, 'no banish spent');
+});
+
+test('P1-5d evolve cards render with name and desc (playtest visual)', () => {
+  const g = boot({ seed: 53, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rifle');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('⚡ EVOLVE'), 'evolve header draws, got ' + JSON.stringify(labels.slice(0, 8)));
+  assert.ok(labels.includes('RIPPER'), 'evolution name draws');
+  const btn = g.api.snapshot().buttons.find((b) => b.id === 'upgrade-0');
+  assert.ok(btn && btn.label === 'EVOLVE RIPPER', 'evolve card owns upgrade-0');
+});
+
+test('P1-6 off-archetype weapons stay rare for railgunners (playtest)', () => {
+  let offCount = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const g = boot({ seed });
+    deploy(g, { weapon: 'rail' });
+    g.api.giveXp(g.api.snapshot().xpNext);
+    const offers = g.api.snapshot().offers;
+    if (offers.includes('smg') || offers.includes('shotgun')) offCount++;
+  }
+  assert.ok(offCount <= 4, 'off-archetype offers halved (6/20 -> 3/20), got ' + offCount + '/20');
+});
+
+test('P1-7 first teammate is offered by level 3 (playtest)', () => {
+  const g = boot({ seed: 61 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let round = 0; round < 2; round++) {
+    g.api.giveXp(g.api.snapshot().xpNext);
+    assert.strictEqual(g.api.snapshot().screen, 'levelup');
+    const offers = g.api.snapshot().offers;
+    const idx = offers.findIndex((id) => id !== 'squad');
+    assert.ok(idx >= 0, 'a non-squad card exists');
+    assert.ok(g.api.chooseUpgrade(idx), 'player skips the teammate');
+  }
+  assert.strictEqual(g.api.snapshot().squad, 0, 'no soldier taken yet');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.ok(g.api.snapshot().offers.includes('squad'), 'pity offers the first teammate');
+});
+
+test('P1-8 cluster evolution doubles manual bombs (playtest)', () => {
+  const g = boot({ seed: 63 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('grenade');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('damage');
+  assert.strictEqual(g.api.snapshot().evolved.grenade, undefined, 'cluster waits for the pick');
+  g.api.giveXp(g.api.snapshot().xpNext);
+  assert.strictEqual(g.api.snapshot().offers[0], 'evo:grenade');
+  assert.ok(g.api.chooseUpgrade(0));
+  assert.strictEqual(g.api.snapshot().evolved.grenade, 'cluster');
+  for (let i = 0; i < 5; i++) g.api.spawnEnemy('grunt', 100 + (i % 5) * 10, (i % 5) * 10);
+  g.steps(1);
+  assert.ok(g.api.throwBomb(), 'bomb throws');
+  assert.strictEqual(g.api.snapshot().bombs, 2, 'cluster doubles the manual throw');
+});
+
+test('P1-9 horde pressure eases while a boss lives (playtest focus)', () => {
+  const g = boot({ seed: 65 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.strictEqual(g.api.snapshot().hordePressure, 1, 'full pressure with no boss');
+  g.api.spawnBoss('warlord');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().hordePressure, 0.55, 'pressure eases during the boss');
 });
 
 test('P1-4 boss waves never stack a second boss on a living one (playtest)', () => {

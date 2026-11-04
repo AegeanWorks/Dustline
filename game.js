@@ -1255,6 +1255,14 @@ const EVOLUTIONS = {
   squad: { id: 'legion', name: 'LEGION', needs: 'vitality', desc: 'Elite guard: +60% damage, faster volleys' }
 };
 
+const WEAPON_ARCHETYPE = {
+  rifle: 'precision',
+  dmr: 'precision',
+  rail: 'precision',
+  smg: 'spread',
+  shotgun: 'spread'
+};
+
 const BOSS_AFFIXES = [
   { id: 'frenzied', name: 'FRENZIED', color: '#ffcf5c', speed: 1.3 },
   { id: 'shielded', name: 'SHIELDED', color: '#9fd8ff' },
@@ -2029,6 +2037,7 @@ function startRun(options) {
     burnCd: 0,
     overchargeT: 0,
     evolved: {},
+    evoReady: {},
     rerolls: 2 + metaRank('luck'),
     banishes: 1,
     banned: [],
@@ -2949,18 +2958,33 @@ function hasEvolution(skill) {
 function checkEvolutions() {
   if (!G) return;
   for (const skill of Object.keys(EVOLUTIONS)) {
-    if (G.evolved[skill]) continue;
+    if (G.evolved[skill] || G.evoReady[skill]) continue;
     const evo = EVOLUTIONS[skill];
     if (G.skills[skill] >= SKILLS[skill].max && G.skills[evo.needs] >= 3) {
-      G.evolved[skill] = evo.id;
-      G.banner = 'EVOLVED · ' + evo.name;
-      G.bannerSub = SKILLS[skill].name + ' + ' + SKILLS[evo.needs].name;
+      G.evoReady[skill] = evo.id;
+      G.banner = 'EVOLUTION READY · ' + evo.name;
+      G.bannerSub = SKILLS[skill].name + ' · pick it on your next level-up';
       G.bannerT = 2.8;
-      G.news = SKILLS[skill].name + ' evolved into ' + evo.name + '.';
-      shake = Math.max(shake, settings.shake ? 6 : 0);
+      G.news = SKILLS[skill].name + ' can evolve into ' + evo.name + '.';
       sfx.victory();
     }
   }
+}
+
+function applyEvolution(skill) {
+  if (!G || G.evolved[skill] || !G.evoReady[skill]) return false;
+  const evo = EVOLUTIONS[skill];
+  if (!evo) return false;
+  G.evolved[skill] = evo.id;
+  delete G.evoReady[skill];
+  G.banner = 'EVOLVED · ' + evo.name;
+  G.bannerSub = SKILLS[skill].name + ' + ' + SKILLS[evo.needs].name;
+  G.bannerT = 2.8;
+  G.news = SKILLS[skill].name + ' evolved into ' + evo.name + '.';
+  shake = Math.max(shake, settings.shake ? 6 : 0);
+  sfx.victory();
+  checkAchievements();
+  return true;
 }
 
 function rifleStats() {
@@ -3449,15 +3473,23 @@ function spawnBoss() {
   return boss;
 }
 
+function bossActive() {
+  return !!(G && G.enemies.some((e) => e.boss && !e.dead));
+}
+
+function hordePressure() {
+  return bossActive() ? 0.55 : 1;
+}
+
 function updateSpawner(dt) {
   if (G.mode === 'bossrush') return;
   G.cds.spawn -= dt;
   if (G.cds.spawn > 0) return;
-  const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1) / (hasMutator('swarm') ? 1.5 : 1);
+  const ready = Math.max(0.2, 1.05 - G.time * 0.008) / (G.diff ? G.diff.spawn : 1) / (hasMutator('swarm') ? 1.5 : 1) / hordePressure();
   G.cds.spawn = ready;
   const cap = 150;
   if (G.enemies.length >= cap) return;
-  const batch = 1 + Math.min(3, Math.floor(G.time / 60));
+  const batch = Math.max(1, 1 + Math.min(3, Math.floor(G.time / 60)) - (bossActive() ? 1 : 0));
   for (let i = 0; i < batch && G.enemies.length < cap; i++) spawnWaveEnemy();
 }
 
@@ -4133,21 +4165,24 @@ function throwBomb() {
   const tx = best ? best.x : G.player.x + Math.cos(G.player.angle) * 220;
   const ty = best ? best.y : G.player.y + Math.sin(G.player.angle) * 220;
   const lvl = G.skills.grenade;
-  G.bombs.push({
-    x: G.player.x,
-    y: G.player.y,
-    tx,
-    ty,
-    t: 0.85,
-    max: 0.85,
-    radius: (95 + 8 * lvl) * blastMult(),
-    dmg: (70 + 12 * lvl) * damageMult() * (hasRelic('warhead') ? 1.2 : 1),
-    owner: 'p',
-    color: '#ffb066'
-  });
+  const throws = hasEvolution('grenade') ? 2 : 1;
+  for (let i = 0; i < throws; i++) {
+    G.bombs.push({
+      x: G.player.x,
+      y: G.player.y,
+      tx,
+      ty,
+      t: 0.85 + i * 0.15,
+      max: 0.85 + i * 0.15,
+      radius: (95 + 8 * lvl) * blastMult(),
+      dmg: (70 + 12 * lvl) * damageMult() * (hasRelic('warhead') ? 1.2 : 1),
+      owner: 'p',
+      color: '#ffb066'
+    });
+    G.stats.bombs++;
+  }
   G.bomb.max = Math.max(2.5, 6 - 0.4 * lvl);
   G.bomb.cd = G.bomb.max;
-  G.stats.bombs++;
   sfx.throwBomb();
   return true;
 }
@@ -4721,10 +4756,25 @@ function updateParticles(dt) {
 }
 
 function levelOffers() {
-  const copy = upgradablePool();
   const picks = [];
+  for (const skill of Object.keys(EVOLUTIONS)) {
+    if (G.evoReady[skill] && !G.evolved[skill]) picks.push('evo:' + skill);
+    if (picks.length >= 3) return picks;
+  }
+  const copy = upgradablePool();
+  const primary = primarySkill();
   while (picks.length < 3 && copy.length > 0) {
-    const weights = copy.map((id) => (G.skills[id] > 0 ? 2 : 1));
+    const weights = copy.map((id) => {
+      if (G.skills[id] > 0) return 2;
+      if (
+        SKILLS[id].kind === 'weapon' &&
+        WEAPON_ARCHETYPE[id] &&
+        WEAPON_ARCHETYPE[primary] &&
+        WEAPON_ARCHETYPE[id] !== WEAPON_ARCHETYPE[primary]
+      )
+        return 0.5;
+      return 1;
+    });
     let total = 0;
     for (const w of weights) total += w;
     let roll = Math.random() * total;
@@ -4738,6 +4788,15 @@ function levelOffers() {
     }
     picks.push(copy.splice(idx, 1)[0]);
   }
+  if (
+    picks.length === 3 &&
+    picks.every((p) => p.indexOf('evo:') !== 0) &&
+    G.soldiers.length === 0 &&
+    G.level >= 3 &&
+    upgradablePool().indexOf('squad') >= 0 &&
+    picks.indexOf('squad') < 0
+  )
+    picks[2] = 'squad';
   return picks;
 }
 
@@ -4763,6 +4822,11 @@ function banishOffer(index) {
   }
   const id = G.offers[index];
   if (!id) return false;
+  if (typeof id === 'string' && id.indexOf('evo:') === 0) {
+    G.news = 'Evolutions cannot be banished — evolve or reroll.';
+    sfx.denied();
+    return false;
+  }
   G.banishes--;
   if (G.banned.indexOf(id) < 0) G.banned.push(id);
   G.offers = levelOffers();
@@ -4894,7 +4958,11 @@ function applyUpgrade(id) {
 function chooseUpgrade(index) {
   const id = G.offers[index];
   if (!id) return;
-  applyUpgrade(id);
+  if (typeof id === 'string' && id.indexOf('evo:') === 0) {
+    applyEvolution(id.slice(4));
+  } else {
+    applyUpgrade(id);
+  }
   G.pending = Math.max(0, G.pending - 1);
   if (G.pending > 0) {
     G.offers = levelOffers();
@@ -4934,7 +5002,7 @@ function updateRun(dt) {
       G.bannerSub = 'THE HORDE GROWS';
       G.bannerT = 2.2;
       sfx.wave();
-      if (wave % BOSS_EVERY === 0 && !G.enemies.some((e) => e.boss && !e.dead)) spawnBoss();
+      if (wave % BOSS_EVERY === 0 && !bossActive()) spawnBoss();
       maybeSpawnWarChest(wave);
     }
   }
@@ -9538,6 +9606,49 @@ function drawLevelUpCelebration() {
   ctx.stroke();
 }
 
+function drawEvoCard(base, i, x, y, w, h) {
+  const evo = EVOLUTIONS[base];
+  const skill = SKILLS[base];
+  uiButtons.push({ id: 'upgrade-' + i, label: 'EVOLVE ' + evo.name, x, y, w, h });
+  const hover = mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
+  ctx.fillStyle = hover ? 'rgba(40,34,18,0.98)' : 'rgba(24,20,12,0.94)';
+  ctx.strokeStyle = hover ? '#ffd27a' : 'rgba(255,210,122,0.55)';
+  ctx.lineWidth = hover ? 2.5 : 1.5;
+  rr(x, y, w, h, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '700 13px Consolas, monospace';
+  ctx.fillText('⚡ EVOLVE', x + w / 2, y + 32);
+  ctx.fillStyle = skill.color;
+  ctx.font = '700 20px Consolas, monospace';
+  ctx.fillText(evo.name, x + w / 2, y + 58);
+  ctx.fillStyle = 'rgba(190,185,165,0.75)';
+  ctx.font = '600 10.5px Consolas, monospace';
+  ctx.fillText(skill.name + ' 10 + ' + SKILLS[evo.needs].name + ' 3', x + w / 2, y + 76);
+  drawSkillGlyph(base, x + w / 2, y + 102, 22, '#ffd27a');
+  ctx.fillStyle = 'rgba(220,215,200,0.88)';
+  ctx.font = '600 11.5px Consolas, monospace';
+  const words = evo.desc.split(' ');
+  let line = '';
+  let ly = y + 130;
+  for (const word of words) {
+    const next = line ? line + ' ' + word : word;
+    if (next.length > 26 && line) {
+      ctx.fillText(line, x + w / 2, ly);
+      ly += 15;
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) ctx.fillText(line, x + w / 2, ly);
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '700 34px Consolas, monospace';
+  ctx.fillText(String(i + 1), x + w / 2, y + h - 14);
+}
+
 function drawLevelUpScreen() {
   overlay(0.78);
   drawLevelUpCelebration();
@@ -9558,13 +9669,17 @@ function drawLevelUpScreen() {
   });
 
   G.offers.forEach((id, i) => {
-    const skill = SKILLS[id];
-    const lvl = G.skills[id];
-    const evo = EVOLUTIONS[id];
     const x = startX + i * 264;
     const y = cardY;
     const w = 240;
     const h = cardH;
+    if (typeof id === 'string' && id.indexOf('evo:') === 0) {
+      drawEvoCard(id.slice(4), i, x, y, w, h);
+      return;
+    }
+    const skill = SKILLS[id];
+    const lvl = G.skills[id];
+    const evo = EVOLUTIONS[id];
     uiButtons.push({ id: 'upgrade-' + i, label: skill.name, x, y, w, h });
     const hover = mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
     const cardGroup = skillGroup(id);
@@ -10798,6 +10913,7 @@ window.Dustline = {
       snap.rushBonus = G.rushBonus || 0;
       snap.news = G.news;
       snap.event = G.event ? { id: G.event.id, t: G.eventT } : null;
+      snap.hordePressure = hordePressure();
       snap.beacon = G.beacon ? { x: G.beacon.x, y: G.beacon.y, t: G.beacon.t } : null;
       snap.overdrive = { active: !!G.od.active, heat: G.od.heat };
       snap.damageMult = damageMult();
@@ -11020,6 +11136,12 @@ if (window.__DUSTLINE_TEST__) {
     if (!G) return false;
     const count = Math.max(0, Math.min(600, Math.floor(Number(n) || 0)));
     for (let i = 0; i < count; i++) G.gems.push({ x: G.player.x + (i % 20) * 8, y: G.player.y + Math.floor(i / 20) * 8, value: 1, tier: 0, spin: 0, vx: 0, vy: 0 });
+    return true;
+  };
+  window.Dustline.chooseUpgrade = (index) => {
+    if (!G || screen !== 'levelup') return false;
+    if (!G.offers[Number(index) || 0]) return false;
+    chooseUpgrade(Number(index) || 0);
     return true;
   };
   window.Dustline.spawnMedkit = (x, y) => {
