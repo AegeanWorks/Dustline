@@ -4372,6 +4372,25 @@ test('P2-16 player tracers skip the glow pass (playtest perf)', () => {
   assert.ok((loaded - base) / 50 < 9, 'single-pass tracers, got ' + ((loaded - base) / 50).toFixed(1) + ' ops/bullet');
 });
 
+test('P2-17 soldiers field the player weapon family (playtest)', () => {
+  const g = boot({ seed: 167 });
+  deploy(g, { weapon: 'beretta' });
+  g.api.setInvulnerable(true);
+  assert.strictEqual(g.api.soldierBulletColor(), '#ffd9a0', 'akimbo squad fires akimbo gold');
+  const h = boot({ seed: 169 });
+  deploy(h);
+  h.api.setInvulnerable(true);
+  assert.strictEqual(h.api.soldierBulletColor(), '#ffd27a', 'rifle squad fires rifle gold');
+  h.api.applyUpgrade('squad');
+  h.api.spawnEnemy('grunt', 280, 0);
+  let seen = false;
+  for (let i = 0; i < 24 && !seen; i++) {
+    h.steps(5);
+    seen = h.api.snapshot().bulletColors.includes('#ffd27a');
+  }
+  assert.ok(seen, 'volleys carry the family color');
+});
+
 test('P2-14 the boards seed house rivals to chase (playtest)', () => {
   const g = boot({ seed: 155, record: true });
   deploy(g);

@@ -514,3 +514,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: After the gem cull, player-bullet double strokes (glow + core, 11 ops each) were the next measured draw cost; enemy tracers stay double-pass so incoming fire keeps its halo.
 - **Decision**: Own bullets draw one core stroke widened 1.8 to 2.5; enemy bullets unchanged. Measured: 11.0 to 7.0 ops per player bullet (-36%, ~200 ops at 50 in flight) plus the fill-rate win of dropping the wide `lighter` pass.
 - **Consequences**: 260/260 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Pinned by a per-bullet op test (<9). Evidence: `shots/s5-perf-storm.png` doubles as the missing live sandstorm capture (streak lines, banner, ticker) for ADR-062.
+
+### ADR-068: Perf layer 3 finds no cheap enemy cuts; squads field the family color (playtest)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Enemy bodies (~24 ops each at the 150 cap) are the largest remaining draw block, but every part is load-bearing (body, shadow, HP bar already conditional, boss/champion rings rare). Cutting further would visibly degrade the horde, so no enemy-draw change ships. The same pass closed the deferred teammate-class promise from P1-7/P2-2: soldiers fired generic blue regardless of the player's class.
+- **Decision**: `soldierBulletColor()` maps the volley tracer to the equipped primary's skill color (akimbo gold, rifle gold, rail violet...), one-line hook in the existing volley spawn plus a skill-line note; default pixels unchanged when no squad exists. Pinned by seam unit tests per weapon plus a live-volley color assertion.
+- **Consequences**: 261/261 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One helper, one hook, one line of text, one test seam.

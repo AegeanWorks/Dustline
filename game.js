@@ -849,7 +849,7 @@ const SKILLS = {
     short: 'SQ',
     max: SKILL_MAX,
     kind: 'active',
-    desc: 'A squadmate joins and fires for you.',
+    desc: 'A squadmate joins and fires your weapon family for you.',
     color: '#7fd0ff'
   },
   speed: {
@@ -1964,6 +1964,11 @@ function progressContracts() {
 
 function primarySkill() {
   return G.weapon && WEAPONS[G.weapon] ? WEAPONS[G.weapon].skill : 'rifle';
+}
+
+function soldierBulletColor() {
+  const sk = SKILLS[primarySkill()];
+  return (sk && sk.color) || '#7fd0ff';
 }
 
 function addSoldier() {
@@ -3412,7 +3417,7 @@ function updateSoldiers(dt) {
     if (near && s.fireCd <= 0) {
       const legion = hasEvolution('squad');
       const dmg = (8 + 3 * G.skills.squad) * damageMult() * (legion ? 1.6 : 1);
-      spawnBullet(s.x + Math.cos(s.angle) * 13, s.y + Math.sin(s.angle) * 13, s.angle + rnd(-0.05, 0.05), 780, dmg, 's', '#7fd0ff');
+      spawnBullet(s.x + Math.cos(s.angle) * 13, s.y + Math.sin(s.angle) * 13, s.angle + rnd(-0.05, 0.05), 780, dmg, 's', soldierBulletColor());
       s.fireCd = Math.max(0.5, 0.9 - 0.05 * G.skills.squad) * (hasCombo('gunner') ? 0.75 : 1) * (legion ? 0.7 : 1);
       s.flash = 0.05;
       G.stats.shots.soldier++;
@@ -11944,6 +11949,7 @@ if (window.__DUSTLINE_TEST__) {
     writeStore(SAVE_KEY, save);
     return true;
   };
+  window.Dustline.soldierBulletColor = () => (G ? soldierBulletColor() : null);
   window.Dustline.spawnDie = (x, y) => {
     if (!G) return false;
     G.dice.push({ x: G.player.x + (Number(x) || 0), y: G.player.y + (Number(y) || 0), spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
