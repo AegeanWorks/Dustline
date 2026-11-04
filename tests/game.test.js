@@ -3643,3 +3643,83 @@ test('streak and lifesteal guards hold sane defaults (deferred K1-B12/B6)', () =
   assert.ok(s.hp > low, 'lifesteal heals on damage dealt, ' + low + ' -> ' + s.hp);
   assert.ok(Number.isFinite(s.streakMult) && s.streakMult >= 1, 'streak mult sane, got ' + s.streakMult);
 });
+
+test('bankNow banks floored unbanked and no-ops when empty (K8 gap)', () => {
+  const g = boot({ seed: 77 });
+  deploy(g);
+  assert.strictEqual(g.api.bankNow(), 0);
+  g.api.setUnbanked(100.9);
+  assert.strictEqual(g.api.bankNow(), 100);
+  assert.ok(Math.abs(g.api.snapshot().unbanked - 0.9) < 1e-9, 'fraction survives, got ' + g.api.snapshot().unbanked);
+});
+
+test('setMutators filters unknown ids and caps at two (K8 gap)', () => {
+  const g = boot({ seed: 76 });
+  deploy(g);
+  assert.strictEqual(g.api.setMutators(['glass', 'bogus', 'swarm', 'fog']), true);
+  assert.deepStrictEqual(g.api.snapshot().mutators, ['glass', 'swarm']);
+  assert.strictEqual(g.api.setMutators('glass'), false);
+});
+
+test('roomAt resolves the room under its own center (K8 gap)', () => {
+  const g = boot({ seed: 78 });
+  deploy(g);
+  const rooms = g.api.rooms(0, 0, 20000);
+  assert.ok(rooms.length > 0, 'world has rooms');
+  const r = rooms[0];
+  assert.strictEqual(g.api.roomAt(r.x, r.y).id, r.id);
+});
+
+test('triggerNuke refuses without a bunker and fires with one (K8 gap)', () => {
+  const g = boot({ seed: 79 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.strictEqual(g.api.triggerNuke(), false);
+  g.api.spawnBunker(40, 0);
+  assert.strictEqual(g.api.triggerNuke(), true);
+  assert.ok(g.api.snapshot().nuke !== null, 'nuke running');
+});
+
+test('remaining sector events trigger and unknown ids refuse (K8 gap)', () => {
+  const g = boot({ seed: 74 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (const id of ['sandstorm', 'blackout']) {
+    assert.strictEqual(g.api.triggerEvent(id), true, id);
+    assert.strictEqual(g.api.snapshot().event.id, id, id);
+  }
+  assert.strictEqual(g.api.triggerEvent('nope'), false);
+});
+
+test('all chip kinds spawn and pay out (K8 gap)', () => {
+  const g = boot({ seed: 75 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (const kind of ['shards', 'aegis', 'frenzy', 'bomb', 'repair']) g.api.spawnChip(kind, 10, 0);
+  g.steps(30);
+  assert.strictEqual(g.api.snapshot().stats.chips, 5);
+});
+
+test('snapshot publishes the full observable surface (K8 gap)', () => {
+  const g = boot({ seed: 80 });
+  deploy(g);
+  const s = g.api.snapshot();
+  assert.ok(Number.isFinite(s.market), 'market');
+  assert.strictEqual(s.streak, 0, 'streak');
+  assert.strictEqual(s.bestStreak, 0, 'bestStreak');
+  assert.strictEqual(typeof s.news, 'string', 'news');
+  assert.strictEqual(s.event, null, 'no event fresh');
+  assert.ok(Number.isFinite(s.hunterCd), 'hunterCd');
+  assert.strictEqual(s.floaters, 0, 'floaters');
+  assert.strictEqual(s.grenades, 0, 'grenades');
+  assert.strictEqual(s.dash.ready, true, 'dash ready');
+  assert.strictEqual(typeof s.ambience, 'string', 'ambience');
+  assert.ok(Number.isInteger(s.dailyDay), 'dailyDay');
+  assert.ok(s.diffMods && Number.isFinite(s.diffMods.spawn), 'diffMods');
+  assert.ok(Number.isFinite(s.save.damageDealt), 'save.damageDealt');
+  assert.ok(Number.isFinite(s.save.jackpots), 'save.jackpots');
+  assert.ok(Number.isFinite(s.save.bankedTotal), 'save.bankedTotal');
+  assert.ok(Number.isFinite(s.save.megaKills), 'save.megaKills');
+  assert.strictEqual(typeof s.save.killsByType, 'object', 'save.killsByType');
+  assert.ok(Number.isFinite(s.best.time), 'best.time');
+});

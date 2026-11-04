@@ -84,8 +84,9 @@ test('HEAD error responses carry no body (S13-B1)', async (t) => {
       sock.on('error', reject);
     });
   }
-  for (const path of ['/nope.js', '/.git/config', '/%E0%A4%A']) {
+  for (const [path, status] of [['/nope.js', 404], ['/.git/config', 404], ['/%E0%A4%A', 400]]) {
     const raw = await rawHead(path);
+    assert.match(raw.split('\r\n')[0], new RegExp(' ' + status + ' '), path + ' status');
     const body = raw.split('\r\n\r\n').slice(1).join('\r\n\r\n');
     assert.strictEqual(body, '', path + ' HEAD must be bodiless on the wire');
   }
@@ -99,6 +100,17 @@ test('backslash traversal cannot reach dot-directories (S13-B2)', async (t) => {
   }
   const legit = await fetch(base + '/game.js');
   assert.strictEqual(legit.status, 200, 'plain game.js still served');
+});
+
+test('traversal stays unserved and maps to 404 without a symlink (K8 gap)', async (t) => {
+  const base = await boot(t);
+  // '..' trips the hidden-segment guard before the outside-ROOT 403 branch,
+  // so plain HTTP traversal surfaces as 404; 403 needs a real symlink escape.
+  // (Single-encoded %2e is normalized to /game.js by the client itself.)
+  for (const path of ['/assets%5c..%5c.git%5cconfig', '/..%2f..%2fsecret']) {
+    const res = await fetch(base + path);
+    assert.strictEqual(res.status, 404, path + ' must not be served');
+  }
 });
 
 test('port and host resolve safely (deferred K7-B2/B3)', () => {
