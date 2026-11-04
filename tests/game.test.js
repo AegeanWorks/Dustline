@@ -683,7 +683,7 @@ test('upgrades and help screens are reachable from the menu', () => {
   const labels = g.texts.map((t) => t.text);
   assert.ok(labels.some((t) => t.indexOf('quicksand') >= 0 && t.indexOf('glass') >= 0), 'the hazard line lists every hazard');
   assert.ok(labels.some((t) => t.indexOf('prop-free') >= 0), 'the help explains arenas');
-  assert.ok(labels.some((t) => t.indexOf('AUTO mode') >= 0), 'the help mentions auto bombs');
+  assert.ok(labels.some((t) => t.indexOf('Pick E or Q') >= 0), 'the help mentions the key choice');
   assert.ok(labels.some((t) => t.indexOf('surge ring') >= 0), 'the help mentions surge waves');
   assert.ok(labels.includes('RANKS'), 'the help documents ranks');
   assert.ok(labels.includes('OPS'), 'the help documents ops mode');
@@ -4768,4 +4768,29 @@ test('P1-4 boss waves never stack a second boss on a living one (playtest)', () 
   assert.strictEqual(s.wave, 10, 'boss wave reached');
   const alive = s.enemies.filter((e) => e.boss);
   assert.strictEqual(alive.length, 1, 'no second boss while one lives, got ' + alive.length);
+});
+
+test('P2-8c the throw key is choosable and persists (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 111, storage: store });
+  assert.strictEqual(g.api.snapshot().settings.bombKey, 'e', 'E by default');
+  assert.ok(g.api.clickButton('settings'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('bomb-key'), 'key toggles to Q');
+  assert.strictEqual(g.api.snapshot().settings.bombKey, 'q', 'Q selected');
+  assert.ok(g.api.clickButton('back-settings'));
+  const g2 = boot({ seed: 113, storage: store });
+  assert.strictEqual(g2.api.snapshot().settings.bombKey, 'q', 'key choice persists');
+  deploy(g2);
+  g2.api.setInvulnerable(true);
+  for (let i = 0; i < 5; i++) g2.api.spawnEnemy('grunt', 100 + (i % 5) * 10, (i % 5) * 10);
+  g2.steps(1);
+  g2.key('e');
+  g2.steps(5);
+  g2.key('e', false);
+  assert.strictEqual(g2.api.snapshot().bombs, 0, 'E no longer throws');
+  g2.key('q');
+  g2.steps(5);
+  g2.key('q', false);
+  assert.ok(g2.api.snapshot().bombs > 0, 'Q throws');
 });

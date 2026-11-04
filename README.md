@@ -173,7 +173,8 @@ dustline/
 │   └── s5-perf-gems.png        <- perf after: clean diamonds (ADR-066)
 │   └── s5-perf-storm.png      <- live sandstorm, tracers (ADR-067)
 │   └── s5-manual-systems.png   <- manual SYSTEMS tab (ADR-069)
-│   └── s5-help-refresh.png     <- refreshed HOW TO PLAY (ADR-075)
+│   └── s5-help-refresh.png    <- refreshed HOW TO PLAY (ADR-075)
+│   └── s5-bombkey-settings.png <- bomb key choice (ADR-080)
 │   └── s5-career-rivals.png  <- career rivals row (ADR-071)
 │   └── s5-touch-minimap.png    <- touch minimap lift (ADR-072)
 │   └── s5-dogfood-run.png      <- live 3-min keyboard run, no defects found

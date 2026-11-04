@@ -158,7 +158,7 @@ function hash2(x, y) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true, outlines: false, flashes: true, bombMode: 'manual' };
+const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true, outlines: false, flashes: true, bombMode: 'manual', bombKey: 'e' };
 const SETTINGS_KEY = 'dustline.settings';
 const SAVE_KEY = 'dustline.save';
 const SAVE_VERSION = 2;
@@ -543,6 +543,7 @@ function loadSettings() {
     if (typeof raw.outlines === 'boolean') merged.outlines = raw.outlines;
     if (typeof raw.flashes === 'boolean') merged.flashes = raw.flashes;
     if (raw.bombMode === 'auto' || raw.bombMode === 'manual') merged.bombMode = raw.bombMode;
+    if (raw.bombKey === 'q' || raw.bombKey === 'e') merged.bombKey = raw.bombKey;
   }
   return merged;
 }
@@ -5494,7 +5495,8 @@ function updateRun(dt) {
     }
   }
   G.bomb.cd = Math.max(0, G.bomb.cd - dt);
-  const bombHeld = !!keys['e'];
+  const bombKey = settings.bombKey === 'q' ? 'q' : 'e';
+  const bombHeld = !!keys[bombKey];
   if (bombHeld && !G.bomb.held) throwBomb();
   G.bomb.held = bombHeld;
   const radioHeld = !!keys['t'];
@@ -8242,7 +8244,8 @@ function drawHUD() {
     ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
     ctx.fillText(dashReady ? 'SHIFT ' + dashLabel : dashLabel, left + dw / 2, by + 13);
     ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
-    const bombLabel = settings.bombMode === 'auto' ? 'AUTO' : 'E';
+    const keyLabel = (settings.bombKey === 'q' ? 'Q' : 'E');
+    const bombLabel = settings.bombMode === 'auto' ? 'AUTO' : keyLabel;
     const radioLabel = G.radioArmed > 0 ? ' T' + G.radioArmed : '';
     ctx.fillText(bombReady ? bombLabel + ' BOMB' + radioLabel : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
     const odX = left + (dw + gap) * 2;
@@ -9334,8 +9337,9 @@ function drawSettingsScreen() {
   drawButton('flashes', settings.flashes ? 'ON' : 'OFF', 668, 349, 116, 32);
   lamp(settings.flashes, 598, 365);
 
-  rowCard('BOMB MODE', 'E throws manually, AUTO throws at crowds', 396);
+  rowCard('BOMB MODE', 'Throw key or AUTO. Key: E/Q below', 396);
   drawButton('bomb-mode', settings.bombMode === 'auto' ? 'AUTO' : 'MANUAL', 668, 403, 116, 32);
+  drawButton('bomb-key', 'KEY: ' + (settings.bombKey === 'q' ? 'Q' : 'E'), 470, 403, 110, 32);
   lamp(settings.bombMode === 'auto', 598, 419);
 
   drawButton('back-settings', 'BACK', W / 2, 452, 180, 38);
@@ -9898,7 +9902,7 @@ function drawHelpScreen() {
   const col1 = [
     ['MOVE', 'WASD or arrows. Infinite map dotted with cover.'],
     ['DASH', 'Shift or Space bursts forward with invulnerability.'],
-    ['BOMB', 'E throws at crowds. AUTO mode lives in settings.'],
+    ['BOMB', 'Throw key lobs crowds. Pick E or Q in settings.'],
     ['OVERDRIVE', 'Press R to burn heat: +40% dmg, +50% dmg taken.'],
     ['FIGHT', 'Weapons auto-fire at the nearest hostile.'],
     ['LEVEL UP', 'Gems level you: pick 1 of 3 cards, evolutions too.'],
@@ -11359,6 +11363,11 @@ function pressButton(id) {
   }
   if (id === 'bomb-mode') {
     settings.bombMode = settings.bombMode === 'auto' ? 'manual' : 'auto';
+    writeStore(SETTINGS_KEY, settings);
+    return;
+  }
+  if (id === 'bomb-key') {
+    settings.bombKey = settings.bombKey === 'q' ? 'e' : 'q';
     writeStore(SETTINGS_KEY, settings);
     return;
   }
