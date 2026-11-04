@@ -2895,14 +2895,14 @@ test('player camouflage follows the map palette', () => {
 test('the slower xp curve keeps early level ups meaningful', () => {
   const g = boot({ seed: 3623 });
   deploy(g);
-  g.api.giveXp(56);
+  g.api.giveXp(44);
   g.steps(1);
-  assert.strictEqual(g.api.snapshot().level, 1, '56 xp is not enough');
+  assert.strictEqual(g.api.snapshot().level, 1, '44 xp is not enough');
   assert.strictEqual(g.api.snapshot().screen, 'play');
   g.api.giveXp(1);
   g.steps(1);
   const s = g.api.snapshot();
-  assert.strictEqual(s.level, 2, '57 xp levels the player');
+  assert.strictEqual(s.level, 2, '45 xp levels the player');
   assert.strictEqual(s.screen, 'levelup');
 });
 
@@ -3809,4 +3809,26 @@ test('P0-4 pickup lists stay capped on long runs (playtest min-10)', () => {
   g.steps(2);
   const s = g.api.snapshot();
   assert.ok(s.gems <= 400, 'gems capped at 400, got ' + s.gems);
+});
+
+test('P0-5 early levels arrive faster after the curve ease (playtest L2-4)', () => {
+  const g = boot({ seed: 3623 });
+  deploy(g);
+  g.api.giveXp(45 + 69 + 97);
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.ok(s.level >= 4, '211 xp reaches level 4 after the ease (was 257), got level ' + s.level);
+});
+
+test('P0-6 no phantom airstrike at deploy, streak 30 fires exactly once (playtest)', () => {
+  const g = boot({ seed: 21 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.strictEqual(g.api.snapshot().airstrike, false, 'fresh run has no airstrike');
+  g.api.setStreak(29);
+  assert.strictEqual(g.api.snapshot().airstrike, false, 'streak 29 fires nothing');
+  g.api.setStreak(30);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.airstrike, true, 'streak 30 fires the one-shot airstrike');
+  assert.strictEqual(JSON.stringify(s.streakRewards), JSON.stringify(['supply', 'airstrike']), 'supply then airstrike, exactly once each');
 });

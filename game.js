@@ -1385,7 +1385,7 @@ const FORMATION = [
 ];
 
 function levelNeed(level) {
-  return Math.round(32 + 24 * level + 1.2 * level * level);
+  return Math.round(24 + 20 * level + 1.2 * level * level);
 }
 
 function metaRank(id) {
