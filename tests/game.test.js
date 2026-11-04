@@ -4319,6 +4319,45 @@ test('P2-11c the ticker counts down to the next surge (playtest visual)', () => 
   assert.ok(labels.some((t) => t.indexOf('SURGE') === 0), 'surge ticker draws, got ' + JSON.stringify(labels.slice(0, 12)));
 });
 
+test('P2-15 a full combat frame stays inside the draw budget (playtest perf)', () => {
+  const g = boot({ seed: 777 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(600);
+  for (let i = 0; i < 140; i++) g.api.spawnEnemy(i % 2 ? 'grunt' : 'runner', (i % 20) * 30 - 300, Math.floor(i / 20) * 30 - 100);
+  for (let i = 0; i < 5; i++) g.api.spawnEnemy('tank', 150 + i * 12, 60);
+  g.api.spawnGems(400, 0);
+  g.steps(30);
+  g.step();
+  const total = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  assert.ok(total < 10000, 'loaded frame uses ' + total + ' canvas ops');
+});
+
+test('P2-15b off-screen pickups skip drawing (playtest perf)', () => {
+  const g = boot({ seed: 131 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnGems(100, 0);
+  g.steps(2);
+  g.step();
+  const near = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  g.api.setPlayer(5000, 0);
+  g.steps(2);
+  g.step();
+  const far = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  assert.ok(far < near, 'culled frame draws less: ' + far + ' vs ' + near);
+});
+
+test('P2-15c fast-path diamonds still paint teal (playtest visual)', () => {
+  const g = boot({ seed: 133, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.api.spawnGems(10, 0);
+  g.steps(2);
+  assert.ok(g.fills.some((f) => f.fillStyle === '#2fe8b0'), 'tier-0 diamonds draw');
+});
+
 test('P2-14 the boards seed house rivals to chase (playtest)', () => {
   const g = boot({ seed: 155, record: true });
   deploy(g);

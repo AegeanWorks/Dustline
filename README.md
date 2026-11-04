@@ -168,6 +168,7 @@ dustline/
 │   ├── s5-board-after.png    <- P2-14 after: 8 rivals (ADR-064)
 │   └── s5-board-rivals.png  <- P2-14 after: rivals + own runs (ADR-064)
 │   └── s5-ops-modes.png      <- P2-ops after: 3 mode cards (ADR-065)
+│   └── s5-perf-gems.png        <- perf after: clean diamonds (ADR-066)
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens

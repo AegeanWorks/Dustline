@@ -6244,6 +6244,7 @@ function drawProps(cam) {
 
 function drawPickups() {
   for (const s of G.salvage) {
+    if (s.x < G.cam.x - 40 || s.x > G.cam.x + W + 40 || s.y < G.cam.y - 40 || s.y > G.cam.y + H + 40) continue;
     ctx.save();
     ctx.translate(s.x, s.y);
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + s.spin);
@@ -6271,6 +6272,7 @@ function drawPickups() {
     ctx.textAlign = 'left';
   }
   for (const oc of G.overcharges) {
+    if (oc.x < G.cam.x - 30 || oc.x > G.cam.x + W + 30 || oc.y < G.cam.y - 30 || oc.y > G.cam.y + H + 30) continue;
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 5 + oc.spin);
     ctx.save();
     ctx.translate(oc.x, oc.y);
@@ -6296,20 +6298,23 @@ function drawPickups() {
     ctx.textAlign = 'left';
   }
   for (const gem of G.gems) {
+    if (gem.x < G.cam.x - 40 || gem.x > G.cam.x + W + 40 || gem.y < G.cam.y - 40 || gem.y > G.cam.y + H + 40) continue;
     ctx.save();
     ctx.translate(gem.x, gem.y + Math.sin(uiT * 3.2 + gem.spin) * 2.5);
     ctx.rotate(gem.spin);
     const gs = gemStyleFor(gem.tier);
     const color = gs.color;
     ctx.fillStyle = color;
-    ctx.strokeStyle = 'rgba(10,20,18,0.6)';
-    ctx.lineWidth = 1.5;
     const s = gs.size;
-    ctx.globalAlpha = gs.glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, s * 2, 0, TAU);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    if (gem.tier !== 0) {
+      ctx.strokeStyle = 'rgba(10,20,18,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = gs.glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 2, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     ctx.beginPath();
     if (gs.shape === 'star') {
       for (let i = 0; i < 10; i++) {
@@ -6331,17 +6336,14 @@ function drawPickups() {
       }
       ctx.closePath();
     } else {
-      ctx.moveTo(0, -s);
-      ctx.lineTo(s, 0);
-      ctx.lineTo(0, s);
-      ctx.lineTo(-s, 0);
-      ctx.closePath();
+      ctx.fillRect(-3.2, -3.2, 6.4, 6.4);
     }
     ctx.fill();
-    ctx.stroke();
+    if (gem.tier !== 0) ctx.stroke();
     ctx.restore();
   }
   for (const chip of G.chips) {
+    if (chip.x < G.cam.x - 30 || chip.x > G.cam.x + W + 30 || chip.y < G.cam.y - 30 || chip.y > G.cam.y + H + 30) continue;
     const def = CHIPS[chip.kind] || CHIPS.shards;
     ctx.save();
     ctx.translate(chip.x, chip.y);
@@ -6369,6 +6371,7 @@ function drawPickups() {
     ctx.restore();
   }
   for (const chest of G.chests) {
+    if (chest.x < G.cam.x - 30 || chest.x > G.cam.x + W + 30 || chest.y < G.cam.y - 30 || chest.y > G.cam.y + H + 30) continue;
     ctx.save();
     ctx.translate(chest.x, chest.y);
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + chest.spin);
@@ -6390,6 +6393,7 @@ function drawPickups() {
     ctx.restore();
   }
   for (const kit of G.medkits) {
+    if (kit.x < G.cam.x - 30 || kit.x > G.cam.x + W + 30 || kit.y < G.cam.y - 30 || kit.y > G.cam.y + H + 30) continue;
     const kitPulse = 0.5 + 0.5 * Math.sin(uiT * 4 + kit.x * 0.1);
     ctx.fillStyle = 'rgba(120,255,170,' + (0.10 + 0.08 * kitPulse) + ')';
     ctx.beginPath();
@@ -6402,6 +6406,7 @@ function drawPickups() {
     ctx.fillRect(kit.x - 5, kit.y - 1, 10, 3);
   }
   for (const die of G.dice) {
+    if (die.x < G.cam.x - 30 || die.x > G.cam.x + W + 30 || die.y < G.cam.y - 30 || die.y > G.cam.y + H + 30) continue;
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + die.spin);
     ctx.save();
     ctx.translate(die.x, die.y);
@@ -6433,6 +6438,7 @@ function drawPickups() {
     ctx.textAlign = 'left';
   }
   for (const radio of G.radios) {
+    if (radio.x < G.cam.x - 30 || radio.x > G.cam.x + W + 30 || radio.y < G.cam.y - 30 || radio.y > G.cam.y + H + 30) continue;
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + radio.spin);
     ctx.save();
     ctx.translate(radio.x, radio.y);

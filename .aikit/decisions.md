@@ -500,3 +500,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The P2 list named an ops mode with no further spec; the setup already had endless/time-limit runs plus boss rush, and extraction beacons already existed without a win path. OPS fills the gap as a timed extraction operation.
 - **Decision**: Third `MODES` entry (table-driven setup cards, shrunk to 3x160px to clear the limit row): 10:00 fixed clock overriding the limit row, extraction beacon at 9:30 (`G.opBeacon`), early extract banks + pays +200 and wins immediately, surviving to the horn wins normally. Over screen shows the OPS countdown line.
 - **Consequences**: 256/256 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table row, one flag, one beacon hook, one win branch; two mode-count tests re-pinned to three cards. Evidence: `shots/s5-ops-modes.png` (three mode cards). P2 list fully shipped; next is Stage 4 check.
+
+### ADR-066: Perf follow-up cuts full-combat draw 24% (Stage-4 watch item)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The 20-min check run showed live-combat frames at ~19.5k canvas ops vs the 7k static-mob pin (2.7x). Op profiling on a fixed 150-enemy + 420-gem + 30-bullet scene: gems alone cost ~4.6k ops (11 each: transform, glow arc, 4-10 segment path, fill, stroke).
+- **Decision**: Tier-0 diamonds drop the glow arc and outline (same silhouette as a rotated rect, which replaces the 4-segment path) and every pickup list culls off-screen draws at a 30-40px margin. Measured on the same scene: 11486 -> 8702 ops (-24%). Bullets keep both trail strokes (own-fire readability first).
+- **Consequences**: 259/259 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Pinned by a full-combat budget test (<10000 ops) and a cull test (far < near) plus a teal-fill render pin. Evidence: `shots/s5-visuals-after.png` (haloed diamonds) vs `shots/s5-perf-gems.png` (clean diamonds, gold star intact).
