@@ -542,3 +542,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Rivals lived only on the leaderboard and the over screen; the career page predated them, so long-term rivalry progress was invisible between runs.
 - **Decision**: One row `RIVALS BEATEN n / 14` on the statistics screen from the already-persisted `save.rivalsBeaten` (no migration, read-only display). 24 rows still fit the 3-column grid.
 - **Consequences**: 263/263 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One row. Evidence: `shots/s5-career-rivals.png` (live capture, `2 / 14` on a used profile).
+
+### ADR-072: Touch layout lifts the minimap off the buttons (phone UX)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The P2-3 minimap landed exactly where the touch DASH/BOMB/OD buttons draw (bottom-right circle over the same pixels) — the player's phone/tablet worry made real. Desktop layout is untouched.
+- **Decision**: `minimapGeom()` lifts the circle 116px on touch devices (bottom edge 464 vs button top 470); `snapshot().minimap` reads the same helper instead of its old literal (which had drifted). Pinned both ways: default geometry unchanged, touch geometry clear.
+- **Consequences**: 264/264 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One branch + one snapshot fix. Evidence: `shots/s5-touch-minimap.png` (live touch capture, buttons clear of the circle).

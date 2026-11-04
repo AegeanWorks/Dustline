@@ -7971,7 +7971,8 @@ function drawTouchControls() {
 }
 
 function minimapGeom() {
-  return { x: W - 84, y: H - 84, r: 64 };
+  const lift = typeof touchMode !== 'undefined' && touchMode ? 116 : 0;
+  return { x: W - 84, y: H - 84 - lift, r: 64 };
 }
 
 function drawMinimap() {
@@ -11742,7 +11743,7 @@ window.Dustline = {
       snap.event = G.event ? { id: G.event.id, t: G.eventT } : null;
       snap.hordePressure = hordePressure();
       snap.assault = { idx: G.surgeIdx, pending: G.surgePending, nextIn: Math.ceil(SURGE_EVERY - (G.time % SURGE_EVERY)) };
-      snap.minimap = { x: W - 84, y: H - 84, r: 64 };
+      snap.minimap = minimapGeom();
       snap.beacon = G.beacon ? { x: G.beacon.x, y: G.beacon.y, t: G.beacon.t } : null;
       snap.overdrive = { active: !!G.od.active, heat: G.od.heat };
       snap.damageMult = damageMult();

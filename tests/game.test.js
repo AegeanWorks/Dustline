@@ -4149,6 +4149,16 @@ test('P2-3 round minimap sits bottom-right clear of the HUD (playtest)', () => {
   assert.ok(m.x + m.r <= 960 && m.y - m.r >= 0, 'fully on screen');
 });
 
+test('P2-3b the minimap lifts clear of touch buttons (playtest)', () => {
+  const g = boot({ seed: 82 });
+  deploy(g);
+  g.handlers.touchstart({ preventDefault() {}, changedTouches: [] });
+  g.steps(1);
+  const m = JSON.parse(JSON.stringify(g.api.snapshot().minimap));
+  assert.deepStrictEqual(m, { x: 876, y: 400, r: 64 }, 'touch layout lifts the minimap');
+  assert.ok(m.y + m.r <= 504 - 34, 'clear of the DASH/BOMB/OD buttons, bottom edge at ' + (m.y + m.r));
+});
+
 test('P2-4 brutal pays +10% and nightmare +15% shards (playtest)', () => {
   const rates = {};
   for (const diff of ['normal', 'brutal', 'nightmare']) {
