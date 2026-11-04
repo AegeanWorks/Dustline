@@ -4091,6 +4091,16 @@ test('P2-2c akimbo card draws on the unified arsenal tab (playtest visual)', () 
   assert.ok(labels.includes('OPERATOR'), 'class and weapon share one roof');
 });
 
+test('P2-3 round minimap sits bottom-right clear of the HUD (playtest)', () => {
+  const g = boot({ seed: 81 });
+  deploy(g);
+  const m = g.api.snapshot().minimap;
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(m)), { x: 876, y: 516, r: 64 }, 'minimap geometry pinned');
+  assert.ok(m.x - m.r > 700, 'right side, clear of the center panels');
+  assert.ok(m.y + m.r <= 600 - 16, 'clear of the XP bar');
+  assert.ok(m.x + m.r <= 960 && m.y - m.r >= 0, 'fully on screen');
+});
+
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
   const g = boot({ seed: 77 });
   deploy(g, { weapon: 'beretta' });

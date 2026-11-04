@@ -7606,6 +7606,85 @@ function drawTouchControls() {
   ctx.restore();
 }
 
+function minimapGeom() {
+  return { x: W - 84, y: H - 84, r: 64 };
+}
+
+function drawMinimap() {
+  if (!G || (screen !== 'play' && screen !== 'paused')) return;
+  const g = minimapGeom();
+  const RANGE = 900;
+  const scale = g.r / RANGE;
+  const px = G.player.x;
+  const py = G.player.y;
+  const toMap = (x, y) => ({ x: g.x + (x - px) * scale, y: g.y + (y - py) * scale });
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(g.x, g.y, g.r, 0, TAU);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(6,8,10,0.82)';
+  ctx.fillRect(g.x - g.r, g.y - g.r, g.r * 2, g.r * 2);
+  const CELL = 120;
+  const ccx = Math.floor(px / CELL);
+  const ccy = Math.floor(py / CELL);
+  const reach = Math.ceil(RANGE / CELL);
+  ctx.fillStyle = 'rgba(224,178,92,0.14)';
+  for (let j = -reach; j <= reach; j++) {
+    for (let i = -reach; i <= reach; i++) {
+      if (!G.explored[(ccx + i) + ',' + (ccy + j)]) continue;
+      const p = toMap((ccx + i) * CELL, (ccy + j) * CELL);
+      ctx.fillRect(p.x, p.y, CELL * scale + 1, CELL * scale + 1);
+    }
+  }
+  for (const prop of propsNear(px, py, RANGE)) {
+    const p = toMap(prop.x, prop.y);
+    if (Math.hypot(p.x - g.x, p.y - g.y) > g.r) continue;
+    ctx.fillStyle = prop.kind === 'building' || prop.kind === 'room-wall' ? '#a58a5c' : prop.kind === 'rock' ? '#8d8375' : '#4d7a45';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(1.5, (prop.r || 10) * scale), 0, TAU);
+    ctx.fill();
+  }
+  for (const room of roomsNear(px, py, RANGE)) {
+    const p = toMap(room.x, room.y);
+    const state = G.rooms[room.id];
+    ctx.strokeStyle = state && state.cleared ? '#63dcc0' : state ? '#ffcf5c' : 'rgba(216,184,119,0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x - room.w * scale / 2, p.y - room.h * scale / 2, Math.max(2, room.w * scale), Math.max(2, room.h * scale));
+  }
+  let dots = 0;
+  for (const e of G.enemies) {
+    if (e.dead || dots >= 80) continue;
+    const dx = e.x - px;
+    const dy = e.y - py;
+    if (dx * dx + dy * dy > RANGE * RANGE) continue;
+    const p = toMap(e.x, e.y);
+    dots++;
+    if (e.boss) {
+      ctx.fillStyle = '#ff8a5c';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, TAU);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#ff5a4a';
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+    }
+  }
+  const pa = G.player.angle || 0;
+  ctx.fillStyle = '#ffd27a';
+  ctx.beginPath();
+  ctx.moveTo(g.x + Math.cos(pa) * 6, g.y + Math.sin(pa) * 6);
+  ctx.lineTo(g.x + Math.cos(pa + 2.5) * 4, g.y + Math.sin(pa + 2.5) * 4);
+  ctx.lineTo(g.x + Math.cos(pa - 2.5) * 4, g.y + Math.sin(pa - 2.5) * 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,210,122,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(g.x, g.y, g.r, 0, TAU);
+  ctx.stroke();
+}
+
 function drawHUD() {
   const xpPct = clamp(G.xp / G.xpNext, 0, 1);
 
@@ -7934,6 +8013,8 @@ function drawHUD() {
     ctx.font = '700 12px Consolas, monospace';
     ctx.fillText('LAST STAND · +50% DAMAGE · NO DEFENSE', W / 2, 142);
   }
+
+  drawMinimap();
 
   ctx.textAlign = 'left';
 }
@@ -11017,6 +11098,7 @@ window.Dustline = {
       snap.news = G.news;
       snap.event = G.event ? { id: G.event.id, t: G.eventT } : null;
       snap.hordePressure = hordePressure();
+      snap.minimap = { x: W - 84, y: H - 84, r: 64 };
       snap.beacon = G.beacon ? { x: G.beacon.x, y: G.beacon.y, t: G.beacon.t } : null;
       snap.overdrive = { active: !!G.od.active, heat: G.od.heat };
       snap.damageMult = damageMult();
