@@ -955,7 +955,7 @@ function skillStatLine(id, lvl) {
   if (id === 'magnet') return 'PICKUP +' + range(45 * cur, 45 * next);
   if (id === 'damage') return 'DAMAGE +' + range(12 * cur, 12 * next) + '%';
   if (id === 'bulletSpeed') return 'BULLET SPEED +' + range(10 * cur, 10 * next) + '%';
-  if (id === 'lifesteal') return 'LEECH ' + range((2.5 * cur).toFixed(1), (2.5 * next).toFixed(1)) + '%';
+  if (id === 'lifesteal') return 'LEECH ' + range((1.5 * cur).toFixed(1), (1.5 * next).toFixed(1)) + '%';
   if (id === 'dashPower') return 'DASH DMG ' + range(10 + 8 * cur, 10 + 8 * next);
   if (id === 'crit') return 'CRIT +' + range(7 * cur, 7 * next) + '%';
   if (id === 'ricochet') return 'BOUNCES ' + range(ricochetBounces(cur), ricochetBounces(next)) + ' · RANGE ' + range(220 + 12 * cur, 220 + 12 * next);
@@ -1251,7 +1251,8 @@ const EVOLUTIONS = {
   grenade: { id: 'cluster', name: 'CLUSTER', needs: 'damage', desc: 'Twin grenades, +30% blast' },
   turret: { id: 'overwatch', name: 'OVERWATCH', needs: 'crit', desc: 'Third turret, +30% fire rate and life' },
   aura: { id: 'crown', name: 'SOLAR CROWN', needs: 'vitality', desc: '+35% radius, pulses 60% faster' },
-  ricochet: { id: 'carom', name: 'CAROM', needs: 'crit', desc: '+2 ricochets and 25% more bounce damage' }
+  ricochet: { id: 'carom', name: 'CAROM', needs: 'crit', desc: '+2 ricochets and 25% more bounce damage' },
+  squad: { id: 'legion', name: 'LEGION', needs: 'vitality', desc: 'Elite guard: +60% damage, faster volleys' }
 };
 
 const BOSS_AFFIXES = [
@@ -1381,7 +1382,12 @@ const FORMATION = [
   [34, 30],
   [-58, 2],
   [58, 2],
-  [0, 56]
+  [0, 56],
+  [-54, 48],
+  [54, 48],
+  [-93, 3],
+  [93, 3],
+  [0, 90]
 ];
 
 function levelNeed(level) {
@@ -1556,7 +1562,7 @@ function lifestealHeal(dmg) {
   if (G.skills.lifesteal <= 0 && relicRate <= 0) return 0;
   if (!(dmg > 0)) return 0;
   const rate =
-    0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1) + relicRate;
+    0.015 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1) + relicRate;
   return Math.max(1, Math.round(dmg * rate));
 }
 
@@ -3255,9 +3261,10 @@ function updateSoldiers(dt) {
     const near = nearestEnemy(s.x, s.y, 440);
     if (near) s.angle = Math.atan2(near.y - s.y, near.x - s.x);
     if (near && s.fireCd <= 0) {
-      const dmg = (8 + 3 * G.skills.squad) * damageMult();
+      const legion = hasEvolution('squad');
+      const dmg = (8 + 3 * G.skills.squad) * damageMult() * (legion ? 1.6 : 1);
       spawnBullet(s.x + Math.cos(s.angle) * 13, s.y + Math.sin(s.angle) * 13, s.angle + rnd(-0.05, 0.05), 780, dmg, 's', '#7fd0ff');
-      s.fireCd = Math.max(0.5, 0.9 - 0.05 * G.skills.squad) * (hasCombo('gunner') ? 0.75 : 1);
+      s.fireCd = Math.max(0.5, 0.9 - 0.05 * G.skills.squad) * (hasCombo('gunner') ? 0.75 : 1) * (legion ? 0.7 : 1);
       s.flash = 0.05;
       G.stats.shots.soldier++;
       sfx.soldier();
@@ -4164,7 +4171,7 @@ function damageEnemy(e, dmg, x, y, crit, splash) {
   }
   burst(x, y, 2, crit ? '#ff8ad8' : '#ffcf7a', 200, 2.6, 0.22, 'spark');
   if (crit) sfx.crit();
-  if (G.skills.lifesteal > 0) {
+  if (G.skills.lifesteal > 0 || hasRelic('bloodstone')) {
     const heal = lifestealHeal(dealt);
     if (heal > 0 && G.hp < G.maxHp) {
       G.hp = Math.min(G.maxHp, G.hp + heal);
@@ -4927,7 +4934,7 @@ function updateRun(dt) {
       G.bannerSub = 'THE HORDE GROWS';
       G.bannerT = 2.2;
       sfx.wave();
-      if (wave % BOSS_EVERY === 0) spawnBoss();
+      if (wave % BOSS_EVERY === 0 && !G.enemies.some((e) => e.boss && !e.dead)) spawnBoss();
       maybeSpawnWarChest(wave);
     }
   }

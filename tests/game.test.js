@@ -3832,3 +3832,66 @@ test('P0-6 no phantom airstrike at deploy, streak 30 fires exactly once (playtes
   assert.strictEqual(s.airstrike, true, 'streak 30 fires the one-shot airstrike');
   assert.strictEqual(JSON.stringify(s.streakRewards), JSON.stringify(['supply', 'airstrike']), 'supply then airstrike, exactly once each');
 });
+
+test('P1-1 lifesteal heals 1.5% per level, no more idle-in-mobs (playtest)', () => {
+  const g = boot({ seed: 37 });
+  deploy(g);
+  g.api.killEnemies();
+  g.api.hurt(60);
+  for (let i = 0; i < 10; i++) assert.ok(g.api.applyUpgrade('lifesteal'), 'lifesteal rank ' + (i + 1));
+  const low = g.api.snapshot().hp;
+  const heal0 = g.api.snapshot().stats.healing;
+  g.api.spawnEnemy('tank', 90, 0);
+  assert.ok(g.api.hitEnemy(0, 100), 'hit lands');
+  const s = g.api.snapshot();
+  assert.strictEqual(s.stats.healing - heal0, 15, 'L10 leeches 15 per 100 dealt, got ' + (s.stats.healing - heal0));
+  assert.strictEqual(Math.round(s.hp - low), 15, 'heal reaches hp');
+});
+
+test('P1-1b bloodstone relic leeches alone (playtest relic fix)', () => {
+  const g = boot({ seed: 39 });
+  deploy(g);
+  g.api.killEnemies();
+  assert.ok(g.api.grantRelic('bloodstone'), 'bloodstone granted');
+  g.api.hurt(60);
+  const low = g.api.snapshot().hp;
+  const heal0 = g.api.snapshot().stats.healing;
+  g.api.spawnEnemy('tank', 90, 0);
+  assert.ok(g.api.hitEnemy(0, 100), 'hit lands');
+  const s = g.api.snapshot();
+  assert.strictEqual(s.stats.healing - heal0, 3, 'relic alone leeches 3 per 100, got ' + (s.stats.healing - heal0));
+  assert.strictEqual(Math.round(s.hp - low), 3, 'relic heal reaches hp');
+});
+
+test('P1-2 ten soldiers hold ten distinct formation slots (playtest)', () => {
+  const g = boot({ seed: 43 });
+  deploy(g);
+  for (let i = 0; i < 10; i++) assert.ok(g.api.applyUpgrade('squad'), 'soldier ' + (i + 1));
+  const s = g.api.snapshot();
+  assert.strictEqual(s.squad, 10, 'ten soldiers recruited');
+  const keys = s.soldiers.map((o) => Math.round(o.x) + ',' + Math.round(o.y));
+  assert.strictEqual(new Set(keys).size, 10, 'no two soldiers share a slot, got ' + JSON.stringify(keys));
+});
+
+test('P1-3 squad evolves into legion at 10 with vitality 3 (playtest)', () => {
+  const g = boot({ seed: 45 });
+  deploy(g);
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('squad');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('vitality');
+  const s = g.api.snapshot();
+  assert.strictEqual(s.evolved.squad, 'legion', 'squad evolves like every other skill');
+  assert.ok(s.bannerT > 0, 'the evolution is announced');
+});
+
+test('P1-4 boss waves never stack a second boss on a living one (playtest)', () => {
+  const g = boot({ seed: 53 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  g.api.setTime(360);
+  g.steps(4);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.wave, 10, 'boss wave reached');
+  const alive = s.enemies.filter((e) => e.boss);
+  assert.strictEqual(alive.length, 1, 'no second boss while one lives, got ' + alive.length);
+});
