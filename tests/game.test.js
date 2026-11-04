@@ -4158,6 +4158,46 @@ test('P2-5c old saves keep the three open maps (playtest migration)', () => {
   for (const id of ['desert', 'frost', 'ash']) assert.ok(maps.includes(id), id + ' stays open, got ' + JSON.stringify(maps));
 });
 
+test('P2-6 champions drop a lucky die that waits on the map (playtest)', () => {
+  const g = boot({ seed: 95 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 60, 0);
+  g.api.setPlayer(2000, 0);
+  g.api.forceChampion(0, 'swift');
+  g.api.setEnemyHp(0, 5);
+  g.api.hitEnemy(0, 999);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.dice, 1, 'the champion leaves a die behind');
+});
+
+test('P2-6b collecting a die grants a reroll or a banish (playtest)', () => {
+  const g = boot({ seed: 97 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  const r0 = g.api.snapshot().rerolls;
+  const b0 = g.api.snapshot().banishes;
+  assert.ok(g.api.spawnDie(10, 0), 'die spawned');
+  g.steps(5);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.dice, 0, 'the die is picked up');
+  assert.strictEqual(s.rerolls + s.banishes - r0 - b0, 1, 'one roll of fortune, got +' + (s.rerolls - r0) + ' reroll / +' + (s.banishes - b0) + ' banish');
+  assert.strictEqual(s.stats.dice, 1, 'die counted');
+});
+
+test('P2-6c dice draw on the map with pips and label (playtest visual)', () => {
+  const g = boot({ seed: 99, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  assert.ok(g.api.spawnDie(150, 0), 'die spawned in view');
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('DICE'), 'die label draws, got ' + JSON.stringify(labels.slice(0, 10)));
+});
+
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
   const g = boot({ seed: 77 });
   deploy(g, { weapon: 'beretta' });

@@ -2021,6 +2021,7 @@ function startRun(options) {
     medkits: [],
     chips: [],
     chests: [],
+    dice: [],
     interact: [],
     overcharges: [],
     bunker: null,
@@ -2115,6 +2116,7 @@ function startRun(options) {
       contracts: 0,
       champions: 0,
       chests: 0,
+      dice: 0,
       interact: 0,
       bunkers: 0,
       shieldSaves: 0,
@@ -4595,6 +4597,7 @@ function killEnemy(e) {
   if (e.champion) {
     G.stats.champions = (G.stats.champions || 0) + 1;
     G.chests.push({ x: e.x, y: e.y, spin: 0 });
+    G.dice.push({ x: e.x + rnd(-24, 24), y: e.y + rnd(-24, 24), spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
     const affix = CHAMPION_AFFIXES.find((a) => a.id === e.affix);
     spawnFloater(e.x, e.y - e.r - 26, (affix ? affix.name + ' CHAMPION DOWN' : 'CHAMPION DOWN'), '#ffd27a', 15);
     if (e.affix === 'volatile') {
@@ -4602,6 +4605,9 @@ function killEnemy(e) {
     }
   } else if (Math.random() < 0.006) {
     G.chests.push({ x: e.x, y: e.y, spin: 0 });
+  }
+  if (!e.champion && Math.random() < 0.004) {
+    G.dice.push({ x: e.x, y: e.y, spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
   }
 
   if (e.type === 'splitter') {
@@ -4716,6 +4722,20 @@ function damagePlayer(dmg) {
   evaluateLastStand();
 }
 
+function applyDie(die) {
+  G.stats.dice = (G.stats.dice || 0) + 1;
+  if (Math.random() < 0.65) {
+    G.rerolls++;
+    spawnFloater(die.x, die.y - 14, '+1 REROLL', '#ffd27a', 13);
+    G.news = 'Lucky die: +1 reroll.';
+  } else {
+    G.banishes++;
+    spawnFloater(die.x, die.y - 14, '+1 BANISH', '#ff8a5c', 13);
+    G.news = 'Lucky die: +1 banish.';
+  }
+  sfx.pick(G.streak);
+}
+
 function updatePickups(dt) {
   const pr = magnetRadius();
   for (const gem of G.gems) {
@@ -4780,6 +4800,24 @@ function updatePickups(dt) {
   }
   G.chests = G.chests.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
   if (G.chests.length > 20) G.chests.splice(0, G.chests.length - 20);
+  for (const die of G.dice) {
+    die.spin += dt * 2.6;
+    const dx = G.player.x - die.x;
+    const dy = G.player.y - die.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (d < pr) {
+      const pull = 170 + (1 - d / pr) * 260;
+      die.x += (dx / d) * pull * dt;
+      die.y += (dy / d) * pull * dt;
+    }
+    if (d < 26) {
+      die.dead = true;
+      fxBurst(die.x, die.y, 5, '#f4efe2', 170, 2.4, 0.32, 'spark');
+      applyDie(die);
+    }
+  }
+  G.dice = G.dice.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.dice.length > 20) G.dice.splice(0, G.dice.length - 20);
   for (const s of G.salvage) {
     s.spin += dt * 2.2;
     s.t -= dt;
@@ -6154,6 +6192,37 @@ function drawPickups() {
     ctx.fillStyle = '#c23a3a';
     ctx.fillRect(kit.x - 2, kit.y - 4, 4, 8);
     ctx.fillRect(kit.x - 5, kit.y - 1, 10, 3);
+  }
+  for (const die of G.dice) {
+    const pulse = 0.5 + 0.5 * Math.sin(uiT * 4 + die.spin);
+    ctx.save();
+    ctx.translate(die.x, die.y);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#f4efe2';
+    ctx.beginPath();
+    ctx.arc(0, 0, 15 + pulse * 3, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.rotate(die.spin * 0.5);
+    ctx.fillStyle = '#f4efe2';
+    rr(-8, -8, 16, 16, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,14,8,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-8, -8, 16, 16);
+    ctx.fillStyle = '#c23a3a';
+    const layout = { 1: [[0, 0]], 2: [[-4, -4], [4, 4]], 3: [[-4, -4], [0, 0], [4, 4]], 4: [[-4, -4], [4, -4], [-4, 4], [4, 4]], 5: [[-4, -4], [4, -4], [0, 0], [-4, 4], [4, 4]], 6: [[-4, -4], [4, -4], [-4, 0], [4, 0], [-4, 4], [4, 4]] }[die.pips] || [[0, 0]];
+    for (const [ox, oy] of layout) {
+      ctx.beginPath();
+      ctx.arc(ox, oy, 1.6, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(244,239,226,0.8)';
+    ctx.font = '700 9px Consolas, monospace';
+    ctx.fillText('DICE', die.x, die.y - 15);
+    ctx.textAlign = 'left';
   }
   if (G.beacon) {
     const pulse = 0.5 + 0.5 * Math.sin(uiT * 5);
@@ -11204,6 +11273,7 @@ window.Dustline = {
       snap.enemyTypes = Array.from(new Set(G.enemies.map((e) => e.type)));
       snap.gems = G.gems.length;
       snap.chests = G.chests.length;
+      snap.dice = G.dice.length;
       snap.turrets = G.turrets.length;
       snap.auraRadius = auraRadius();
       snap.medkits = G.medkits.length;
@@ -11241,6 +11311,7 @@ window.Dustline = {
         turrets: G.stats.turrets || 0,
         auraHits: G.stats.auraHits || 0,
         chests: G.stats.chests || 0,
+        dice: G.stats.dice || 0,
         shieldSaves: G.stats.shieldSaves || 0,
         banked: G.stats.banked,
         lost: G.stats.lost,
@@ -11380,6 +11451,11 @@ if (window.__DUSTLINE_TEST__) {
     if (!MAPS[id] || isMapUnlocked(id)) return false;
     save.unlocked.maps.push(id);
     writeStore(SAVE_KEY, save);
+    return true;
+  };
+  window.Dustline.spawnDie = (x, y) => {
+    if (!G) return false;
+    G.dice.push({ x: G.player.x + (Number(x) || 0), y: G.player.y + (Number(y) || 0), spin: 0, pips: 1 + Math.floor(fxRnd() * 6) });
     return true;
   };
   window.Dustline.spawnMedkit = (x, y) => {
