@@ -654,3 +654,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The README's harness contract named ~40 seams while the code exposes ~60, and the coverage paragraph stopped before ranks/ops/rivals/minimap/touch/shops.
 - **Decision**: Docs-only sync: full seam inventory plus the shipped-systems coverage tail. Verified each named seam exists in `game.js` before listing it.
 - **Consequences**: README 29.4k chars (under the 32.5k cap); 5/5 gates. No game or test change.
+
+### ADR-088: Accessibility audit finds redundant encoding throughout (no change)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Visual channels carry gameplay-critical distinctions (damage size, foe-vs-friendly fire, gem tiers, storm identity), so a color-vision audit was due before touching anything.
+- **Decision**: No change. Every critical distinction already pairs color with a second channel: damage numbers scale 11→16px and crits add `!`; enemy bullets keep the wide glow + bright core vs slim player tracers and travel toward the player; gems differ by shape/star/hex plus DICE/RADIO text labels; touch buttons, settings toggles, bosses/affixes, ranks and waves all carry text or shape alongside color.
+- **Consequences**: Audit only; next accessibility work should come from player reports, not speculation.
