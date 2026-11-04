@@ -437,3 +437,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted wandering dice on the map that grant level-up rerolls/banishes by luck (`haritada zarlar olsun... zar atarak şansına`).
 - **Decision**: New `G.dice` pickup list (cap 20, magnet collection like chests): champions always drop one, normal kills 0.4%. Collecting rolls 65% +1 reroll / 35% +1 banish with floater + news (`applyDie`). White die with red pips (spin from `fxRnd` cosmetic stream, seeded) + DICE label. Drop rate measured: champions 1/run-ish, normals ~1 per 250 kills.
 - **Consequences**: 236/236 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One list, one loop, one draw block, test-only `spawnDie` seam; `stats.dice` + read-only `snapshot().dice`. Next P2: dash upgrades to 3-5.
+
+### ADR-057: P2 dash charges to 4 plus longer dashes (playtest P2-7)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted the dash count upgraded to 3-5 and longer dash distance. The single 1.5s-cooldown dash was the only mobility lever.
+- **Decision**: Shock Boots now banks charges: `dashMax() = 1 + floor(dashPower/3)` (L3:2, L6:3, L9-10:4), one charge per 1.5s refill, burst-spendable. Dash duration `0.18 + 0.008/lvl` (L10: 0.26s, +44% distance at the same boost). HUD shows `SHIFT DASH xN` / refilling `DASH xN s.s`; `snapshot().dash` gains charges/max.
+- **Consequences**: 238/238 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One scalar pair, one pool, label + stat-line + details text. Next P2: manual/auto bomb key choice.

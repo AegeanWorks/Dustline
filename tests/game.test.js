@@ -4198,6 +4198,38 @@ test('P2-6c dice draw on the map with pips and label (playtest visual)', () => {
   assert.ok(labels.includes('DICE'), 'die label draws, got ' + JSON.stringify(labels.slice(0, 10)));
 });
 
+test('P2-7 shock boots bank dash charges up to 4 (playtest)', () => {
+  const g = boot({ seed: 101 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.dash.max, 1, 'one charge without boots');
+  assert.strictEqual(s.dash.charges, 1, 'starts charged');
+  for (let i = 0; i < 6; i++) g.api.applyUpgrade('dashPower');
+  assert.strictEqual(g.api.snapshot().dash.max, 3, 'six levels bank three charges');
+  for (let i = 0; i < 4; i++) g.api.applyUpgrade('dashPower');
+  assert.strictEqual(g.api.snapshot().dash.max, 4, 'ten levels cap at four charges');
+  g.steps(300);
+  assert.strictEqual(g.api.snapshot().dash.charges, 4, 'refills to the cap, got ' + g.api.snapshot().dash.charges);
+});
+
+test('P2-7b dashes spend charges and refill one at a time (playtest)', () => {
+  const g = boot({ seed: 103 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 6; i++) g.api.applyUpgrade('dashPower');
+  g.steps(200);
+  assert.strictEqual(g.api.snapshot().dash.charges, 3, 'banked three charges');
+  g.key('d');
+  g.key('shift');
+  g.steps(3);
+  g.key('shift', false);
+  assert.strictEqual(g.api.snapshot().dash.charges, 2, 'one dash spends one charge');
+  g.steps(100);
+  assert.strictEqual(g.api.snapshot().dash.charges, 3, 'refills over time');
+  g.key('d', false);
+});
+
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
   const g = boot({ seed: 77 });
   deploy(g, { weapon: 'beretta' });

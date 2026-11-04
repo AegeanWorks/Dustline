@@ -942,7 +942,7 @@ const SKILL_DETAILS = {
   damage: 'Multiplies every damage source: weapons, blades, grenades, turrets and the ember aura.',
   bulletSpeed: 'Makes bullets faster and extends their reach, which helps against fast and distant targets.',
   lifesteal: 'Heals a share of every hit you deal. The Vampire combo doubles the rate.',
-  dashPower: 'Turns your dash into a damaging pass that can crush a whole line of mobs.',
+  dashPower: 'Turns your dash into a damaging pass that can crush a whole line of mobs. Every 3 levels adds a dash charge (up to 4).',
   crit: 'Adds critical chance; crits deal double damage and feed the crit surge feedback.',
   ricochet: 'After a bullet hits, it reflects toward the nearest hostile it has not hit yet. Extra levels add bounces and range.'
 };
@@ -979,7 +979,7 @@ function skillStatLine(id, lvl) {
   if (id === 'damage') return 'DAMAGE +' + range(12 * cur, 12 * next) + '%';
   if (id === 'bulletSpeed') return 'BULLET SPEED +' + range(10 * cur, 10 * next) + '%';
   if (id === 'lifesteal') return 'LEECH ' + range((1.5 * cur).toFixed(1), (1.5 * next).toFixed(1)) + '%';
-  if (id === 'dashPower') return 'DASH DMG ' + range(10 + 8 * cur, 10 + 8 * next);
+  if (id === 'dashPower') return 'DASH DMG ' + range(10 + 8 * cur, 10 + 8 * next) + ' · CHARGES ' + range(1 + Math.floor(cur / 3), 1 + Math.floor(next / 3));
   if (id === 'crit') return 'CRIT +' + range(7 * cur, 7 * next) + '%';
   if (id === 'ricochet') return 'BOUNCES ' + range(ricochetBounces(cur), ricochetBounces(next)) + ' · RANGE ' + range(220 + 12 * cur, 220 + 12 * next);
   return 'LEVEL ' + cur + ' / ' + SKILL_MAX;
@@ -2036,7 +2036,7 @@ function startRun(options) {
     bombs: [],
     skills: freshSkills(),
     cds: { rifle: 0.25, smg: 0.2, shotgun: 0.6, dmr: 0.9, rail: 0.9, akimbo: 0.3, grenade: 1.6, bladeAngle: 0, spawn: 1.2, turret: 3, aura: 0 },
-    dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false },
+    dash: { t: 0, cd: 0, dx: 0, dy: 0, held: false, charges: 1 },
     bomb: { cd: 0, max: 6, held: false },
     shield: { charges: 0, t: 0 },
     slowT: 0,
@@ -5127,6 +5127,14 @@ function chooseUpgrade(index) {
   screen = 'play';
 }
 
+function dashMax() {
+  return 1 + Math.floor((G ? G.skills.dashPower : 0) / 3);
+}
+
+function dashTime() {
+  return 0.18 + 0.008 * (G ? G.skills.dashPower : 0);
+}
+
 function updateRun(dt) {
   if (G.hitStop > 0) {
     G.hitStop = Math.max(0, G.hitStop - dt);
@@ -5250,10 +5258,16 @@ function updateRun(dt) {
   }
 
   G.dash.cd = Math.max(0, G.dash.cd - dt);
+  if (G.dash.charges > dashMax()) G.dash.charges = dashMax();
+  if (G.dash.cd <= 0 && G.dash.charges < dashMax()) {
+    G.dash.charges++;
+    G.dash.cd = G.dash.charges < dashMax() ? 1.5 : 0;
+  }
   const dashHeld = !!(keys['shift'] || keys[' ']);
-  if (dashHeld && !G.dash.held && G.dash.cd <= 0 && len > 0) {
-    G.dash.t = 0.18;
-    G.dash.cd = 1.5;
+  if (dashHeld && !G.dash.held && G.dash.charges > 0 && len > 0) {
+    G.dash.charges--;
+    G.dash.t = dashTime();
+    if (G.dash.cd <= 0) G.dash.cd = 1.5;
     G.dash.dx = mx;
     G.dash.dy = my;
     G.invulnT = Math.max(G.invulnT, 0.3);
@@ -7937,10 +7951,11 @@ function drawHUD() {
     const gap = 8;
     const totalW = dw * 3 + gap * 2;
     const left = W / 2 - totalW / 2;
-    const dashReady = G.dash.cd <= 0;
+    const dashReady = G.dash.charges > 0;
     const bombReady = G.bomb.cd <= 0;
     const odOn = odActive();
     const by = H - 90;
+    const dashLabel = 'DASH x' + G.dash.charges + (dashReady ? '' : ' ' + G.dash.cd.toFixed(1));
     const bh = 30;
     panel(left, by, dw, bh, 6);
     panel(left + dw + gap, by, dw, bh, 6);
@@ -7948,7 +7963,7 @@ function drawHUD() {
     ctx.font = '700 10.5px Consolas, monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
-    ctx.fillText(dashReady ? 'SHIFT DASH' : 'DASH ' + G.dash.cd.toFixed(1), left + dw / 2, by + 13);
+    ctx.fillText(dashReady ? 'SHIFT ' + dashLabel : dashLabel, left + dw / 2, by + 13);
     ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
     ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
     const odX = left + (dw + gap) * 2;
@@ -11322,7 +11337,7 @@ window.Dustline = {
       snap.bulletColors = Array.from(new Set(G.bullets.map((b) => b.color)));
       snap.bulletPierce = G.bullets.filter((b) => b.owner === 'p').map((b) => b.pierce || 0);
       snap.bannerT = G.bannerT;
-      snap.dash = { ready: G.dash.cd <= 0, cd: G.dash.cd, t: G.dash.t };
+      snap.dash = { ready: G.dash.charges > 0, cd: G.dash.cd, t: G.dash.t, charges: G.dash.charges, max: dashMax() };
       snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
       snap.shield = { charges: G.shield.charges, max: shieldMax(), t: G.shield.t };
       snap.slow = G.slowT;
