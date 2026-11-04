@@ -4446,7 +4446,13 @@ function damageEnemy(e, dmg, x, y, crit, splash) {
 function announceCallout(text, sub, color, dur) {
   if (!G) return;
   const max = dur || 2.4;
-  G.callout = { text, sub: sub || '', color: color || '#ffd27a', t: max, max };
+  const item = { text, sub: sub || '', color: color || '#ffd27a', t: max, max };
+  if (G.callout && G.callout.t > 0) {
+    G.calloutQueue = G.calloutQueue || [];
+    if (G.calloutQueue.length < 24) G.calloutQueue.push(item);
+    return;
+  }
+  G.callout = item;
 }
 
 function flashScreen(color, time) {
@@ -5366,7 +5372,12 @@ function updateRun(dt) {
   G.streakT = Math.max(0, G.streakT - dt);
   if (G.streakT <= 0 && G.streak > 0) G.streak = 0;
   G.momentum = Math.max(0, (G.momentum || 0) - 0.4 * dt);
-  if (G.callout) G.callout.t = Math.max(0, G.callout.t - dt);
+  if (G.callout) {
+    G.callout.t -= dt;
+    if (G.callout.t <= 0) {
+      G.callout = G.calloutQueue && G.calloutQueue.length ? G.calloutQueue.shift() : null;
+    }
+  }
   G.flashT = Math.max(0, G.flashT - dt);
   evaluateLastStand();
   G.surgeT = Math.max(0, G.surgeT - dt);

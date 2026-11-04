@@ -2763,8 +2763,25 @@ test('total kill milestones fire escalating callouts and score', () => {
   for (const name of ['KILLING SPREE', 'RAMPAGE', 'WAR MACHINE', 'UNSTOPPABLE', 'ONE MAN ARMY', 'LEGENDARY']) {
     assert.ok(s.milestones.includes(name), name + ' milestone');
   }
-  assert.strictEqual(s.callout.text, 'LEGENDARY');
   assert.ok(s.score > firstScore, 'later tiers add score');
+  const seen = [];
+  for (let i = 0; i < 16 && seen.indexOf('LEGENDARY') < 0; i++) {
+    const cur = g.api.snapshot().callout;
+    if (cur) seen.push(cur.text);
+    g.steps(200);
+  }
+  const inOrder = (list) => {
+    let at = -1;
+    for (const name of list) {
+      at = seen.indexOf(name, at + 1);
+      if (at < 0) return false;
+    }
+    return true;
+  };
+  const ranks = ['PROMOTED · CORPORAL', 'PROMOTED · SERGEANT', 'PROMOTED · LIEUTENANT', 'PROMOTED · CAPTAIN', 'PROMOTED · MAJOR'];
+  const tiers = ['KILLING SPREE', 'RAMPAGE', 'WAR MACHINE', 'UNSTOPPABLE', 'ONE MAN ARMY', 'LEGENDARY'];
+  assert.ok(inOrder(ranks), 'rank callouts play first, saw ' + JSON.stringify(seen));
+  assert.ok(inOrder(tiers), 'milestone callouts follow in order, saw ' + JSON.stringify(seen));
 });
 
 test('kills and bosses build a score that saves a personal best', () => {
@@ -2815,16 +2832,24 @@ test('kill streak rewards unlock supply drops, airstrikes, a helicopter and miss
   assert.ok(s.streakRewards.includes('supply'));
   assert.ok(s.medkits >= before + 3, 'supply drop scatters medkits');
 
+  const awaitCallout = (name) => {
+    for (let i = 0; i < 8; i++) {
+      const cur = g.api.snapshot().callout;
+      if (cur && cur.text === name) return true;
+      g.steps(120);
+    }
+    return false;
+  };
   g.api.setStreak(30);
-  assert.strictEqual(g.api.snapshot().callout.text, 'AIRSTRIKE');
-  assert.strictEqual(g.api.snapshot().airstrike, true);
+  assert.strictEqual(g.api.snapshot().airstrike, true, 'the strike fires');
+  assert.ok(awaitCallout('AIRSTRIKE'), 'airstrike announces in turn');
   g.api.setStreak(60);
-  assert.strictEqual(g.api.snapshot().callout.text, 'ATTACK HELICOPTER');
-  assert.strictEqual(g.api.snapshot().heli, true);
+  assert.strictEqual(g.api.snapshot().heli, true, 'the heli launches');
+  assert.ok(awaitCallout('ATTACK HELICOPTER'), 'heli announces in turn');
   g.api.setStreak(120);
+  assert.strictEqual(g.api.snapshot().missiles, true, 'the barrage fires');
+  assert.ok(awaitCallout('MISSILE BARRAGE'), 'missiles announce in turn');
   s = g.api.snapshot();
-  assert.strictEqual(s.callout.text, 'MISSILE BARRAGE');
-  assert.strictEqual(s.missiles, true);
   assert.strictEqual(s.streakRewards.length, 4);
 });
 
@@ -4112,7 +4137,13 @@ test('P2-1 promotion callout fires on the exact kill (playtest)', () => {
   assert.ok(g.api.hitEnemy(0, 50), 'kill 1000 lands');
   const s = g.api.snapshot();
   assert.strictEqual(s.rank.id, 'general', 'kill 1000 promotes');
-  assert.strictEqual(s.callout.text, 'PROMOTED · GENERAL', 'promotion is announced');
+  let announced = s.callout && s.callout.text === 'PROMOTED · GENERAL';
+  for (let i = 0; i < 16 && !announced; i++) {
+    g.steps(200);
+    const cur = g.api.snapshot().callout;
+    announced = cur && cur.text === 'PROMOTED · GENERAL';
+  }
+  assert.ok(announced, 'promotion is announced in turn');
 });
 
 test('P2-2 akimbo joins the unified arsenal and starts its own line (playtest)', () => {
