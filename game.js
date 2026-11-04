@@ -1189,6 +1189,14 @@ const LORE = [
   }
 ];
 
+const SYSTEMS_ROWS = [
+  { title: 'RANKS', text: 'Kills promote PVT to GEN. Every rank pays: rerolls, medkits, shards.' },
+  { title: 'OPS', text: '10:00 operation. Beacon at 9:30. Extract early for +200 or survive.' },
+  { title: 'RIVALS', text: 'Global and TR boards are seeded with house rivals. Beat one: +25 shards.' },
+  { title: 'SURGES + STORMS', text: 'A surge ring assaults every 200s. Each map rolls its own storm.' },
+  { title: 'SHOP + PICKUPS', text: 'Dice roll rerolls or banishes. Radios call the plane (T). Skins are looks only.' }
+];
+
 const WEAPONS = {
   ak: { name: 'AK-47', skill: 'rifle', blurb: 'Balanced auto rifle', color: '#ffd27a' },
   smg: { name: 'SMG-45', skill: 'smg', blurb: 'Fast and frantic', color: '#ffcf5c' },
@@ -9653,7 +9661,8 @@ function drawManualScreen() {
     ['manual-enemies', 'HOSTILES · ' + Object.keys(ENEMY_TYPES).length, 'enemies'],
     ['manual-bosses', 'BOSSES · ' + Object.keys(BOSS_TYPES).length, 'bosses'],
     ['manual-relics', 'RELICS · ' + RELICS.length, 'relics'],
-    ['manual-lore', 'NOTES · ' + LORE.length, 'lore']
+    ['manual-lore', 'NOTES · ' + LORE.length, 'lore'],
+    ['manual-systems', 'SYSTEMS · ' + SYSTEMS_ROWS.length, 'systems']
   ];
   const tabW = 166;
   const tabGap = 8;
@@ -9798,6 +9807,23 @@ function drawManualScreen() {
     ctx.fillStyle = 'rgba(190,185,170,0.6)';
     ctx.font = '600 9.5px Consolas, monospace';
     ctx.fillText('OWN ALL TEN AND CRATES PAY 30 SHARDS INSTEAD', W / 2, 496);
+  } else if (manualTab === 'systems') {
+    SYSTEMS_ROWS.forEach((row, i) => {
+      const y = 126 + i * 76;
+      ctx.fillStyle = 'rgba(14,18,22,0.92)';
+      ctx.strokeStyle = 'rgba(99,220,192,0.25)';
+      ctx.lineWidth = 1;
+      rr(110, y, 740, 68, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#63dcc0';
+      ctx.font = '700 12px Consolas, monospace';
+      ctx.fillText(String(i + 1) + ' · ' + row.title, 130, y + 24);
+      ctx.fillStyle = 'rgba(215,210,195,0.85)';
+      ctx.font = '600 10.5px Consolas, monospace';
+      ctx.fillText(row.text, 130, y + 46);
+    });
   } else {
     LORE.forEach((note, i) => {
       const col = i % 3;
@@ -11656,6 +11682,7 @@ window.Dustline = {
         bosses: Object.keys(BOSS_TYPES).length,
         relics: RELICS.length,
         lore: LORE.length,
+        systems: SYSTEMS_ROWS.length,
         enemyTips: Object.keys(ENEMY_TIPS).length,
         bossTips: Object.keys(BOSS_TIPS).length
       },

@@ -521,3 +521,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Enemy bodies (~24 ops each at the 150 cap) are the largest remaining draw block, but every part is load-bearing (body, shadow, HP bar already conditional, boss/champion rings rare). Cutting further would visibly degrade the horde, so no enemy-draw change ships. The same pass closed the deferred teammate-class promise from P1-7/P2-2: soldiers fired generic blue regardless of the player's class.
 - **Decision**: `soldierBulletColor()` maps the volley tracer to the equipped primary's skill color (akimbo gold, rifle gold, rail violet...), one-line hook in the existing volley spawn plus a skill-line note; default pixels unchanged when no squad exists. Pinned by seam unit tests per weapon plus a live-volley color assertion.
 - **Consequences**: 261/261 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One helper, one hook, one line of text, one test seam.
+
+### ADR-069: Field manual documents the shipped systems (player gap)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Fifteen shipped systems (ranks, ops, rivals, surges, storms, shop, dice, radio, minimap, bomb mode, dash charges, akimbo, maps, difficulties, evolutions choice) had no in-game documentation; the manual only knew hostiles, bosses, relics, and lore. New players met mechanics with no explanation.
+- **Decision**: Fifth manual tab SYSTEMS with five compact rows (ranks, ops, rivals, surges+storms, shop+pickups), table-driven like the other tabs. Akimbo/choice-evolutions/difficulties are already covered by the skill codex and setup cards, so they stay out of this tab.
+- **Consequences**: 261/261 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table, one branch, tab-count test re-pinned 4→5. Evidence: `shots/s5-manual-systems.png` (live capture, all rows visible).

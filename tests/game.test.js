@@ -2110,9 +2110,9 @@ test('the field manual documents every mob, boss, relic and field note', () => {
   assert.strictEqual(s.screen, 'manual');
   assert.strictEqual(s.manual.tab, 'enemies');
   const ids = s.buttons.map((b) => b.id);
-  for (const id of ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore', 'back-manual']) assert.ok(ids.includes(id), id);
-  const allTabs = s.buttons.filter((b) => ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore'].includes(b.id));
-  assert.strictEqual(allTabs.length, 4);
+  for (const id of ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore', 'manual-systems', 'back-manual']) assert.ok(ids.includes(id), id);
+  const allTabs = s.buttons.filter((b) => ['manual-enemies', 'manual-bosses', 'manual-relics', 'manual-lore', 'manual-systems'].includes(b.id));
+  assert.strictEqual(allTabs.length, 5);
   for (let i = 0; i < allTabs.length - 1; i++) {
     assert.ok(allTabs[i].x + allTabs[i].w <= allTabs[i + 1].x, 'manual tabs do not overlap');
   }
@@ -2137,6 +2137,12 @@ test('the field manual documents every mob, boss, relic and field note', () => {
   assert.ok(labels.includes('THE SIGNAL'), 'the NetWatch note renders');
   assert.ok(labels.includes('DEAD ZONE'), 'every map note renders');
   assert.ok(labels.includes('GLASS WASTES'), 'the new map note renders');
+  g.api.clickButton('manual-systems');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().manual.tab, 'systems');
+  assert.strictEqual(g.api.snapshot().manual.systems, 5, 'five system rows');
+  const sysLabels = g.texts.map((t) => t.text);
+  for (const title of ['1 · RANKS', '2 · OPS', '3 · RIVALS', '4 · SURGES + STORMS', '5 · SHOP + PICKUPS']) assert.ok(sysLabels.includes(title), title + ' documents a shipped system');
   g.steps(2);
   g.api.clickButton('back-manual');
   g.steps(1);
