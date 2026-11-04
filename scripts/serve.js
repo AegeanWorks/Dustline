@@ -17,7 +17,7 @@ const TYPES = {
 };
 
 function hasHiddenSegment(rel) {
-  return rel.split('/').some((segment) => segment.startsWith('.'));
+  return rel.split(/[/\\]+/).some((segment) => segment.startsWith('.'));
 }
 
 function readPath(req) {
@@ -38,27 +38,27 @@ function handler(req, res) {
   let rel = readPath(req);
   if (rel === null) {
     res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Bad request');
+    res.end(req.method === 'HEAD' ? undefined : 'Bad request');
     return;
   }
   if (rel === '/') rel = '/index.html';
   if (hasHiddenSegment(rel)) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Not found');
+    res.end(req.method === 'HEAD' ? undefined : 'Not found');
     return;
   }
 
   const file = path.resolve(ROOT, '.' + rel);
   if (!file.startsWith(ROOT + path.sep)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Forbidden');
+    res.end(req.method === 'HEAD' ? undefined : 'Forbidden');
     return;
   }
 
   fs.readFile(file, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not found');
+      res.end(req.method === 'HEAD' ? undefined : 'Not found');
       return;
     }
     res.writeHead(200, {

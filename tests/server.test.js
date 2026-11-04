@@ -68,3 +68,35 @@ test('refuses dot-directories, missing files and non-GET methods', async (t) => 
   assert.ok(Number(head.headers.get('content-length')) > 0);
   assert.strictEqual(await head.text(), '');
 });
+
+test('HEAD error responses carry no body (S13-B1)', async (t) => {
+  const base = await boot(t);
+  const net = require('node:net');
+  const port = new URL(base).port;
+  async function rawHead(path) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      const sock = net.connect(Number(port), '127.0.0.1', () => {
+        sock.write('HEAD ' + path + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n');
+      });
+      sock.on('data', (c) => chunks.push(c));
+      sock.on('end', () => resolve(Buffer.concat(chunks).toString('latin1')));
+      sock.on('error', reject);
+    });
+  }
+  for (const path of ['/nope.js', '/.git/config', '/%E0%A4%A']) {
+    const raw = await rawHead(path);
+    const body = raw.split('\r\n\r\n').slice(1).join('\r\n\r\n');
+    assert.strictEqual(body, '', path + ' HEAD must be bodiless on the wire');
+  }
+});
+
+test('backslash traversal cannot reach dot-directories (S13-B2)', async (t) => {
+  const base = await boot(t);
+  for (const path of ['/assets%5c..%5c.git%5cconfig', '/.aikit%5ctask_ledger.json', '/%252e%252e/game.js']) {
+    const res = await fetch(base + path);
+    assert.notStrictEqual(res.status, 200, path + ' must not be served');
+  }
+  const legit = await fetch(base + '/game.js');
+  assert.strictEqual(legit.status, 200, 'plain game.js still served');
+});
