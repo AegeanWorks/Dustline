@@ -535,3 +535,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Beating a house rival paid +25 shards with no on-screen moment; the board showed it later, but the run's climax stayed silent about the rivalry the report asked for.
 - **Decision**: Submit records per-run `G.rivalsBeatenRun` names; the after-action report prints `RIVALS BEATEN · ... (+N)` between the rewards line and the footer, pushing combos one row down (panel still fits). No live capture: the line needs a 5k+ run no scripted browser drive can reach, so the recorder fillText pin is the visual proof.
 - **Consequences**: 262/262 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One run-scoped list, one report line.
+
+### ADR-071: Career stats track the rivalry (player visibility)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Rivals lived only on the leaderboard and the over screen; the career page predated them, so long-term rivalry progress was invisible between runs.
+- **Decision**: One row `RIVALS BEATEN n / 14` on the statistics screen from the already-persisted `save.rivalsBeaten` (no migration, read-only display). 24 rows still fit the 3-column grid.
+- **Consequences**: 263/263 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One row. Evidence: `shots/s5-career-rivals.png` (live capture, `2 / 14` on a used profile).

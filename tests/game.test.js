@@ -4465,6 +4465,28 @@ test('P2-14c the over screen names the rivals you just beat (playtest visual)', 
   assert.ok(labels.some((t) => t.indexOf('RIVALS BEATEN') === 0), 'beaten rivals get their moment, got ' + JSON.stringify(labels.slice(0, 12)));
 });
 
+test('P2-14d career stats track the rivalry (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 173, storage: store, record: true });
+  assert.ok(g.api.clickButton('statistics'));
+  g.steps(1);
+  assert.ok(g.texts.some((t) => t.text === 'RIVALS BEATEN'), 'rivalry has a career row');
+  assert.ok(g.api.clickButton('back-stats'));
+  g.steps(1);
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.api.setKills(1000);
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('menu-pause'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('statistics'));
+  g.steps(1);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('6 / 14'), 'six beaten rivals on record, got ' + JSON.stringify(labels.slice(0, 20)));
+});
+
 test('P2-13 the shop sells looks, never power (playtest)', () => {
   const store = makeStore();
   const g = boot({ seed: 151, storage: store });

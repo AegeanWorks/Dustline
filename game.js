@@ -9197,6 +9197,7 @@ function drawStatisticsScreen() {
     ['RUSH CLEARS', String(save.rushClears || 0)],
     ['BEST RUSH', save.rushBest > 0 ? fmtTime(save.rushBest) : '—'],
     ['BEST WAVE', String(save.bestWave || 1)],
+    ['RIVALS BEATEN', (save.rivalsBeaten || []).length + ' / ' + (RIVALS.global.length + RIVALS.turkiye.length)],
     ['ACHIEVEMENTS', achievementUnlocked() + ' / ' + ACHIEVEMENTS.length],
     ['ARMORY RANKS', String(META_ORDER.reduce((sum, id) => sum + metaRank(id), 0))]
   ];
