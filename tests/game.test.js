@@ -3709,11 +3709,47 @@ test('remaining sector events trigger and unknown ids refuse (K8 gap)', () => {
   const g = boot({ seed: 74 });
   deploy(g);
   g.api.setInvulnerable(true);
-  for (const id of ['sandstorm', 'blackout']) {
+  for (const id of ['sandstorm', 'blizzard', 'downpour', 'dustchoke']) {
     assert.strictEqual(g.api.triggerEvent(id), true, id);
     assert.strictEqual(g.api.snapshot().event.id, id, id);
   }
   assert.strictEqual(g.api.triggerEvent('nope'), false);
+  assert.strictEqual(g.api.triggerEvent('blackout'), false, 'blackout is retired');
+});
+
+test('P2-12 every map rolls its own disaster, never blackout (playtest)', () => {
+  const table = { desert: 'sandstorm', frost: 'blizzard', ash: 'sandstorm', jungle: 'downpour', crater: 'dustchoke', toxic: 'downpour', glass: 'sandstorm' };
+  for (const map of Object.keys(table)) {
+    const g = boot({ seed: 131 });
+    if (!g.api.unlockMap(map)) assert.ok(['desert', 'frost', 'ash'].includes(map), map + ' open by default');
+    g.api.startRun({ map });
+    g.steps(1);
+    assert.strictEqual(g.api.snapshot().map, map, map + ' runs');
+    assert.ok(g.api.triggerEvent(table[map]), map + ' rolls ' + table[map]);
+    assert.strictEqual(g.api.snapshot().event.id, table[map]);
+  }
+  const pool = { desert: 'sandstorm', frost: 'blizzard', jungle: 'downpour', crater: 'dustchoke', toxic: 'downpour', glass: 'sandstorm', ash: 'sandstorm' };
+  for (const map of Object.keys(pool)) {
+    const g = boot({ seed: 143 });
+    if (!g.api.unlockMap(map)) assert.ok(['desert', 'frost', 'ash'].includes(map), map + ' open by default');
+    g.api.startRun({ map });
+    g.steps(1);
+    const ids = g.api.eventPool();
+    assert.deepStrictEqual(JSON.stringify(ids.slice().sort()), JSON.stringify(['bounty', 'supply', 'surge', pool[map]].sort()), map + ' pool carries its own disaster');
+    assert.ok(!ids.includes('blackout'), map + ' never rolls blackout');
+  }
+});
+
+test('P2-12b each disaster paints its own storm (playtest visual)', () => {
+  const strokes = { sandstorm: 'rgba(230,210,170,0.18)', blizzard: 'rgba(240,248,255,0.22)', downpour: 'rgba(150,210,240,0.20)', dustchoke: 'rgba(200,162,216,0.16)' };
+  for (const id of Object.keys(strokes)) {
+    const g = boot({ seed: 145, record: true });
+    deploy(g);
+    g.api.setInvulnerable(true);
+    assert.ok(g.api.triggerEvent(id), id + ' triggers');
+    g.steps(2);
+    assert.ok(g.strokes.some((s) => s.strokeStyle === strokes[id]), id + ' paints its palette');
+  }
 });
 
 test('all chip kinds spawn and pay out (K8 gap)', () => {

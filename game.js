@@ -1394,9 +1394,23 @@ const EVENTS = [
   { id: 'surge', name: 'HORDE SURGE', news: 'Mass migration detected on the basin floor' },
   { id: 'supply', name: 'SUPPLY DROP', news: 'Airdrop inbound: medkits and tech' },
   { id: 'sandstorm', name: 'SANDSTORM', news: 'Visibility collapsing, hostiles closing' },
-  { id: 'blackout', name: 'BLACKOUT', news: 'Grid offline: optics degraded' },
+  { id: 'blizzard', name: 'BLIZZARD', news: 'Whiteout descending, hostiles closing' },
+  { id: 'downpour', name: 'ACID DOWNPOUR', news: 'Chemical rain sheeting down, hostiles closing' },
+  { id: 'dustchoke', name: 'DUST CHOKE', news: 'Crater dust choking the field, hostiles closing' },
   { id: 'bounty', name: 'BOUNTY', news: 'NetWatch hunter deployed to your sector' }
 ];
+
+const WEATHER_IDS = ['sandstorm', 'blizzard', 'downpour', 'dustchoke'];
+
+const MAP_DISASTER = {
+  desert: 'sandstorm',
+  frost: 'blizzard',
+  ash: 'sandstorm',
+  jungle: 'downpour',
+  crater: 'dustchoke',
+  toxic: 'downpour',
+  glass: 'sandstorm'
+};
 
 const CONTRACTS = [
   { id: 'cull', name: 'CULL THE HORDE', target: 45, reward: 12, goal: (g) => g.kills },
@@ -1899,7 +1913,7 @@ function triggerEvent(id) {
     G.event = { id, name: def.name, t: 14, max: 14 };
     G.eventT = 14;
     G.banner = def.name;
-    G.bannerSub = id === 'sandstorm' ? 'ENEMIES CLOSE IN FAST' : 'OPTICS DEGRADED';
+    G.bannerSub = WEATHER_IDS.indexOf(id) >= 0 ? 'ENEMIES CLOSE IN FAST' : 'OPTICS DEGRADED';
     G.bannerT = 2.4;
   }
   sfx.wave();
@@ -3573,6 +3587,10 @@ function spawnSurge() {
   sfx.victory();
 }
 
+function eventPool() {
+  return ['surge', 'supply', 'bounty', MAP_DISASTER[(G && G.map) || 'desert'] || 'sandstorm'];
+}
+
 function updateSurge() {
   if (!G || G.mode === 'bossrush') return;
   const idx = Math.floor(G.time / SURGE_EVERY);
@@ -3621,7 +3639,7 @@ function updateEnemies(dt) {
     }
   }
 
-  const sandstorm = !!(G.event && G.event.id === 'sandstorm');
+  const storm = !!(G.event && WEATHER_IDS.indexOf(G.event.id) >= 0);
   const px = G.player.x;
   const py = G.player.y;
   for (const e of G.enemies) {
@@ -3648,7 +3666,7 @@ function updateEnemies(dt) {
     let speed = e.speed * (e.rageT > 0 ? 1.3 : 1);
     const eHz = HAZARDS[hazardAt(e.x, e.y)];
     if (eHz && eHz.enemySpeed) speed *= eHz.enemySpeed;
-    if (sandstorm) speed *= 1.2;
+    if (storm) speed *= 1.2;
 
     if (e.type === 'tunneler') {
       if (e.burrowed) {
@@ -5293,7 +5311,7 @@ function updateRun(dt) {
   }
   if (G.eventCd <= 0) {
     G.eventCd = rnd(30, 46);
-    const ids = EVENTS.map((ev) => ev.id);
+    const ids = eventPool();
     triggerEvent(ids[Math.floor(srnd() * ids.length)]);
   }
   if (G.beacon) {
@@ -8320,15 +8338,45 @@ function drawWeather() {
       ctx.lineTo(x - 28, y + 9);
     }
     ctx.stroke();
-  } else if (G.event.id === 'blackout') {
-    const px = G.player.x - G.cam.x;
-    const py = G.player.y - G.cam.y;
-    const g = ctx.createRadialGradient(px, py, 70, px, py, 370);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.55, 'rgba(0,0,0,0.45)');
-    g.addColorStop(1, 'rgba(0,0,0,0.86)');
-    ctx.fillStyle = g;
+  } else if (G.event.id === 'blizzard') {
+    ctx.fillStyle = 'rgba(210,228,242,0.12)';
     ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(240,248,255,0.22)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 149 + uiT * 60) % (W + 40);
+      const y = (i * 97 + uiT * 300) % (H + 30);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 6, y + 26);
+    }
+    ctx.stroke();
+  } else if (G.event.id === 'downpour') {
+    ctx.fillStyle = 'rgba(120,180,220,0.10)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(150,210,240,0.20)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 50; i++) {
+      const x = (i * 167 + uiT * 40) % (W + 20);
+      const y = (i * 71 + uiT * 380) % (H + 30);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 2, y + 22);
+    }
+    ctx.stroke();
+  } else if (G.event.id === 'dustchoke') {
+    ctx.fillStyle = 'rgba(160,120,180,0.12)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(200,162,216,0.16)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 30; i++) {
+      const x = (i * 191 + uiT * 90) % (W + 60);
+      const y = (i * 113 + uiT * 45) % (H + 20);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 44, y + 6);
+    }
+    ctx.stroke();
   }
 }
 
@@ -11662,6 +11710,7 @@ if (window.__DUSTLINE_TEST__) {
     G.radios.push({ x: G.player.x + (Number(x) || 0), y: G.player.y + (Number(y) || 0), spin: 0 });
     return true;
   };
+  window.Dustline.eventPool = () => eventPool().slice();
   window.Dustline.spawnMedkit = (x, y) => {
     if (G) G.medkits.push({ x: G.player.x + x, y: G.player.y + y });
   };
