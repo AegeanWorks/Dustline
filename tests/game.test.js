@@ -1833,12 +1833,13 @@ test('salvage crates expire and grant shards once all relics are owned', () => {
   assert.strictEqual(g.api.snapshot().salvage, 0, 'uncollected salvage expires');
 });
 
-test('the setup screen offers survivors and boss rush modes', () => {
+test('the setup screen offers survivors, boss rush and ops modes', () => {
   const g = boot({ seed: 801 });
   enterSetup(g);
   const ids = g.api.snapshot().buttons.map((b) => b.id);
   assert.ok(ids.includes('mode-survivors'));
   assert.ok(ids.includes('mode-bossrush'));
+  assert.ok(ids.includes('mode-ops'));
   assert.strictEqual(g.api.snapshot().setup.mode, 'survivors');
   g.api.clickButton('setup-tab-1');
   g.steps(1);
@@ -3278,7 +3279,7 @@ test('setup MODE and TIME LIMIT groups keep separation (V3)', () => {
   const s = g.api.snapshot();
   const mode = s.buttons.filter((b) => b.id.indexOf('mode-') === 0).sort((a, b) => a.x - b.x);
   const limits = s.buttons.filter((b) => b.id.indexOf('limit-') === 0).sort((a, b) => a.x - b.x);
-  assert.strictEqual(mode.length, 2, 'two mode cards');
+  assert.strictEqual(mode.length, 3, 'three mode cards');
   assert.strictEqual(limits.length, 4, 'four limit cards');
   const modeRight = Math.max(...mode.map((b) => b.x + b.w));
   const limitLeft = Math.min(...limits.map((b) => b.x));
@@ -4409,6 +4410,43 @@ test('P2-13b VIP packs show prices but sell nothing (playtest)', () => {
   const vip = g.api.snapshot().save.cosmetics.vip;
   assert.strictEqual(vip.premium, false, 'no premium flag without checkout');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(vip.items)), [], 'no VIP entitlements');
+});
+
+test('P2-15 ops is a 10-minute operation with a paid extraction (playtest)', () => {
+  const g = boot({ seed: 161 });
+  enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  assert.ok(g.api.clickButton('mode-ops'), 'ops mode selects');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.mode, 'ops');
+  assert.strictEqual(s.limitSec, 600, 'ops fixes the clock at ten minutes');
+  assert.strictEqual(s.beacon, null, 'no window before 9:30');
+  g.api.setInvulnerable(true);
+  g.api.setKills(150);
+  g.api.setTime(570);
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.ok(s.beacon, 'extraction window opens at 9:30');
+  g.api.setPlayer(Math.round(s.beacon.x), Math.round(s.beacon.y));
+  g.steps(2);
+  s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over', 'reaching the beacon extracts');
+  assert.strictEqual(s.victory, true, 'extraction wins the op');
+  assert.ok(s.save.shards >= 200, 'clean extract pays the bonus, got ' + s.save.shards);
+});
+
+test('P2-15b ops without extraction still wins at the horn (playtest)', () => {
+  const g = boot({ seed: 163 });
+  deploy(g, { mode: 'ops' });
+  g.api.setInvulnerable(true);
+  g.api.setTime(600);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over', 'the horn ends the op');
+  assert.strictEqual(s.victory, true, 'surviving wins');
 });
 
 test('P2-10 damage numbers climb white-yellow-orange-red (playtest)', () => {

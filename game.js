@@ -1389,7 +1389,8 @@ const RUSH_ORDER = BOSS_ORDER.concat(MEGA_ORDER);
 const RUSH_TARGET = 8;
 const MODES = [
   { id: 'survivors', name: 'SURVIVORS', blurb: 'Endless horde waves' },
-  { id: 'bossrush', name: 'BOSS RUSH', blurb: 'Eight bosses, no waves' }
+  { id: 'bossrush', name: 'BOSS RUSH', blurb: 'Eight bosses, no waves' },
+  { id: 'ops', name: 'OPS', blurb: '10:00 op · extract for +200' }
 ];
 
 const OPERATORS = [
@@ -2032,8 +2033,9 @@ function startRun(options) {
     map: setup.map,
     difficulty: diff.id,
     diff,
-    limitSec: limit.sec,
-    limitLabel: limit.label,
+    limitSec: setup.mode === 'ops' ? 600 : limit.sec,
+    limitLabel: setup.mode === 'ops' ? '10 MIN OP' : limit.label,
+    opBeacon: false,
     victory: false,
     seed,
     rng: seed,
@@ -4981,6 +4983,12 @@ function updatePickups(dt) {
       G.bannerT = 2;
       G.beacon = null;
       sfx.victory();
+      if (G.mode === 'ops' && G.time >= 570) {
+        addUnbanked(200);
+        G.news = 'Clean extract: +200 shards.';
+        winRun();
+        return;
+      }
     }
   }
   for (const kit of G.medkits) {
@@ -5286,6 +5294,15 @@ function updateRun(dt) {
   }
   G.time += dt;
   updateRooms();
+  if (G.mode === 'ops' && !G.opBeacon && G.time >= 570) {
+    G.opBeacon = true;
+    const a = rnd(0, TAU);
+    spawnBeacon(G.player.x + Math.cos(a) * 250, G.player.y + Math.sin(a) * 250);
+    G.news = 'Extraction window open: reach the beacon.';
+    G.banner = 'EXTRACT NOW';
+    G.bannerSub = 'EARLY EXTRACT +200 SHARDS';
+    G.bannerT = 2.8;
+  }
   if (G.limitSec > 0 && G.time >= G.limitSec) {
     winRun();
     return;
@@ -8820,15 +8837,15 @@ function drawSetupScreen() {
   if (setupTab === 1) ctx.fillText('MODE', 36, 224);
   MODES.forEach((mode, i) => {
     const chosen = setup.mode === mode.id;
-    const x = 36 + i * 248;
+    const x = 36 + i * 168;
     const y = 232;
-    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 240, h: 48, page: 1 });
+    uiButtons.push({ id: 'mode-' + mode.id, label: mode.name, x, y, w: 160, h: 48, page: 1 });
     if (setupTab !== 1) return;
-    const hover = mouse.x >= x && mouse.x <= x + 240 && mouse.y >= y && mouse.y <= y + 48;
+    const hover = mouse.x >= x && mouse.x <= x + 160 && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = chosen ? 'rgba(99,220,192,0.2)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = chosen ? '#63dcc0' : 'rgba(224,178,92,0.22)';
     ctx.lineWidth = chosen ? 2 : 1;
-    rr(x, y, 240, 48, 5);
+    rr(x, y, 160, 48, 5);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'left';
@@ -10948,7 +10965,9 @@ function drawOverScreen() {
   const modeLine =
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
-      : 'SURVIVORS · WAVE ' + G.wave;
+      : G.mode === 'ops'
+        ? 'OPS · ' + fmtTime(Math.max(0, 600 - G.time)) + ' LEFT'
+        : 'SURVIVORS · WAVE ' + G.wave;
   const mut = MUTATIONS.find((m) => m.id === G.mutation);
   ctx.fillStyle = 'rgba(190,185,165,0.7)';
   ctx.font = '600 10px Consolas, monospace';
