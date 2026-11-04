@@ -2278,6 +2278,7 @@ function recordRun(outcome) {
         save.rivalsBeaten.push(id);
         G.rivalsBeatenRun.push(r.name);
         save.shards += 25;
+        sfx.reward();
       }
     }
   }
