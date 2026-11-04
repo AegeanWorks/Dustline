@@ -591,3 +591,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: OPS wins showed the generic SURVIVORS victory line; boss rush already had its own header, ops did not.
 - **Decision**: `OPERATION COMPLETE` header on ops wins (both timeout and early extract share `winRun`). Pinned by recorder text in the existing timeout-win test.
 - **Consequences**: 267/267 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One ternary branch.
+
+### ADR-079: README catches up with the shipped game (stale docs)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The README still described the pre-ship game: 5 weapons, no akimbo, no OPS, +35%/+80% income, no ranks, pre-choice evolutions, instant 40s waves, blackout still listed, gold-only level-ups, no shop/rivals/dice/radios/minimap/bomb-mode.
+- **Decision**: Docs-only pass over the README: 6th weapon, OPS mode, +10%/+15% income, evo choice + Legion/Duelist, surge cadence, per-map storms (blackout removed), EVOLVE cards, shop + VIP-flags-only, rivals, dice/radios, minimap, manual/auto bombs, unlockable-map bonuses, 21 skills, SYSTEMS tab. No game-code change.
+- **Consequences**: README 28.6k chars (under the 32.5k cap); 5/5 gates. Evidence: the diff itself — every claim traces to a shipped, tested ADR.

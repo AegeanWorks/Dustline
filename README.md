@@ -6,7 +6,7 @@
 <!-- aegean:media:end -->
 
 
-Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world with open combat arenas, auto-firing weapons, seven maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 20 skills across 6 offense and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker, a permanent out-of-run armory and a nine-entry field-notes codex.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world with open combat arenas, auto-firing weapons, seven maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, a 10-minute OPS extraction mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 21 skills across 6 offense and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker, a permanent out-of-run armory and a nine-entry field-notes codex.
 
 A century after the sky burned, the dust never settled. NetWatch calls the quarantine belt the Dustline; the people still inside call it home. Every run is a salvage shift: recover what the dead left, stay ahead of the horde, and extract before the signal closes. The Field Manual records what is known about each sector, and the pause screen carries the current map's note.
 
@@ -44,12 +44,12 @@ You only move; your weapon, your blades, your bombs and any recruited squadmates
 
 Before every run you pick:
 
-- **Weapon**: AK-47 (balanced), SMG-45 (fast spray), SPAS-12 (pellet spread), DMR-308 (slow, piercing) or RAILGUN (slow, punches through whole lines).
+- **Weapon**: AK-47 (balanced), SMG-45 (fast spray), SPAS-12 (pellet spread), DMR-308 (slow, piercing), RAILGUN (slow, punches through whole lines) or AKIMBO dual Berettas (twin volleys).
 - **Operator**: Ranger (baseline), Vanguard (+30 health, −10% damage taken), Marksman (+15% bullet speed, +8% crit), Engineer (turrets live 60% longer, +15% aura radius), Scavenger (+20% shards, four relic picks instead of three) or Arcanist (violet piercing rounds; every fourth kill arcs into a nearby hostile).
-- **Mode**: Survivors (endless waves) or Boss Rush (eight bosses back to back, cleared in order with a 4-second intermission and a 30% heal between fights).
-- **Map**: Dust Basin, Whiteout Ridge, Ashfall, Greenfall, Crater Field, Dead Zone or Glass Wastes. Each has its own palette, cover and hazard.
+- **Mode**: Survivors (endless waves), OPS (a 10:00 operation: extract at the 9:30 beacon for +200 shards or survive to the horn) or Boss Rush (eight bosses back to back, cleared in order with a 4-second intermission and a 30% heal between fights).
+- **Map**: Dust Basin, Whiteout Ridge, Ashfall, Greenfall, Crater Field, Dead Zone or Glass Wastes. Each has its own palette, cover and hazard. The first three are open; the rest unlock with shards and pay shard-income bonuses.
 - **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
-- **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +35% loot) or Nightmare (+90% health, +50% spawns, +80% loot).
+- **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +10% shards) or Nightmare (much tougher, +15% shards).
 - **Mutators**: pick up to two run modifiers — Glass Cannon, Swarm, Elite Hunt, Fog, Vampiric Horde or Bounty — each raising shard loot.
 - **Mutation**: pick one run-long twist — Standard, Explosive Blood (a death blast), Berserker (+45% damage under 35% health), Overclock (+20% fire rate) or War Veteran (+10% damage per boss kill).
 - **Map hazard**: every map has terrain that changes the fight: quicksand slows you, ice speeds everyone up, ember vents burn, vines slow the horde, tar pits slow both sides, toxic gas burns and glass fallout slows and cuts.
@@ -58,16 +58,17 @@ Before every run you pick:
 
 ### Modes and screens
 
-- **Main menu**: Deploy, Armory, Daily, Stats, Upgrades codex, Field Manual, Settings, How to play, plus lifetime progress.
+- **Main menu**: Deploy, Armory, Daily, Stats, Upgrades codex, Field Manual, Settings, How to play, Shop, Leaderboards, plus lifetime progress.
 - **Armory**: spend shards earned in runs on permanent Ballistics, Plate Carrier, Running Shoes, Scavenger Kit, Power Magnet, Loaded Dice, Loadout Rig (extra offense and defense slots), Hyper Velocity, Salvage Rig and Combat Stim ranks.
-- **Statistics**: runs, total kills, bosses slain, victories, best survival, most kills in a run, damage dealt, rush clears, best rush time, best wave and kills by mob type.
-- **Upgrades codex**: all 20 skills, their 10 ranks and per-level stat previews, their slot group, evolutions, and what activates the seven skill combos.
-- **Field Manual**: tabbed reference for all 19 hostiles (HP, speed, touch damage, XP, a behaviour tip and your lifetime kill count), all 8 bosses (base stats and how each fight works), all 10 salvage relics and 9 field notes covering the setting, every map and the NetWatch signal.
+- **Shop**: game-currency cosmetics only — player skins for looks, plus a VIP tab that lists real-money packs as coming soon with no billing code in this build.
+- **Statistics**: runs, total kills, bosses slain, victories, best survival, most kills in a run, damage dealt, rivals beaten, rush clears, best rush time, best wave and kills by mob type.
+- **Upgrades codex**: all 21 skills, their 10 ranks and per-level stat previews, their slot group, evolutions, and what activates the seven skill combos.
+- **Field Manual**: tabbed reference for all 19 hostiles (HP, speed, touch damage, XP, a behaviour tip and your lifetime kill count), all 8 bosses (base stats and how each fight works), all 10 salvage relics, 9 field notes covering the setting, every map and the NetWatch signal, plus a SYSTEMS tab documenting ranks, ops, rivals, surges and shops.
 - **Daily Challenge**: one shared run per UTC day. The day picks the operator, weapon, map, difficulty, mode and mutator, and the seed is fixed, so every attempt plays the same run. The best attempt of the day is kept (wins beat losses, then fastest rush or most kills) for 30 days.
-- **Settings**: master volume (0-100%), screen shake, damage numbers, hostile outlines and reduced flash, saved immediately. Hostile outlines draw a bright ring around every mob for readability; reduced flash suppresses full-screen colour pulses and steadies the low-health vignette.
+- **Settings**: master volume (0-100%), screen shake, damage numbers, hostile outlines, reduced flash and manual/auto bombs, saved immediately. Hostile outlines draw a bright ring around every mob for readability; reduced flash suppresses full-screen colour pulses and steadies the low-health vignette.
 - **Pause menu**: Resume, Map, Upgrades, Settings, Restart run, Main menu, plus the current map's field note at the bottom. Restarting or quitting ends the run like death: half of the unbanked shards are burned.
-- **Map viewer**: explored territory, buildings, rocks, trees, hostiles and your facing.
-- **Level up**: three distinct cards from skills below their level cap.
+- **Map viewer**: explored territory, buildings, rocks, trees, hostiles and your facing. A round minimap (bottom-right, lifted clear of touch buttons) shows the streets around you during play.
+- **Level up**: three distinct cards from skills below their level cap; ready evolutions appear as gold EVOLVE cards you can take now or defer.
 - **Presentation**: all art is Canvas 2D drawn at runtime, at up to 2x device pixel ratio so text and thin strokes stay crisp. Ground tiles share one base colour per map and are pre-rendered into eight cached detail variants before being blitted, so cached tiles never seam; hazard pools are soft cached gradient sprites with a bright rim and dashed warning ring instead of hard ellipses, and the vignette is cached. Biome ambience layers dust motes, snow, embers and fireflies over each map, combat particles are shape-coded sparks with long velocity trails, shards, smoke, rings, flashes, explosion glow cores and glows, dashes leave afterimages with a stretched-sprite dash pose, and low health adds a pulsing red vignette. Procedural ground decor (grass, bones, ice, ferns, flowers and mushrooms), layered trees, rim-lit rocks, accent-lit building windows, roof shading and canopy rim light give each map its own identity; explosions leave fading scorch decals, the player has a walk-cycle leg stride, idle breathing, a rim light and an overdrive aura, enemies spawn with a scale-in pop, walk bob and hit squash, bosses carry a pulsing ground ring plus a spinning low-health enrage warning, orbitals trail motion streaks, and boss entrances burst rings and sparks. The HUD counts down the next wave, and offscreen bosses and champions get edge direction markers. Priority threats use their own silhouettes (plated shielder, tendrilled leech, spiked screamer, legged widower, barrelled mortar, cracked husk, ghost-tailed phantom, plated hunter, spiked bomber). Boss affixes are shape coded on top of colour: frenzied chevrons, shielded plates and volatile sparks; level-up, relic and codex cards draw procedural skill and relic glyphs.
 
 ### The run
@@ -76,10 +77,11 @@ Before every run you pick:
 - **Enemies**: Crawler (chase), Stalker (fast weave), Bulwark (armored), Hexer (ranged), Spitter (acid), Bomber (suicide blast), Swarmling (fast swarm), Warden (plated), Weaver (blinks), Splitter (splits into swarmlings), Leech (drains health and shards), Shielder (damage aura), Tunneler (burrows and ambushes), Screamer (enrages packs), Phantom (phases out of damage), Mortar (lobs telegraphed shells), Widower (webs slow you) and Husk (dies into an acid pool that also burns the horde). Health, touch damage and spawn rates scale with time and difficulty.
 - **Champions**: ~3% of mobs spawn as champions with a Volatile, Shielded or Swift affix, triple XP and a guaranteed supply cache.
 - **Supply caches**: elite drops and rare finds. The first ten grant a free field upgrade; after that they pay shards.
-- **Evolutions**: max a skill at level 10 and raise its partner to level 3 to evolve it. Weapons: Ripper (rifle), Storm (SMG), Breaker (SPAS), Reaper (DMR), Lancer (railgun). Actives: Tempest (blades), Cluster (grenades), Overwatch (turret), Solar Crown (aura). Support: Carom (ricochet).
+- **Evolutions**: max a skill at level 10 and raise its partner to level 3 to evolve it. Weapons: Ripper (rifle), Storm (SMG), Breaker (SPAS), Reaper (DMR), Lancer (railgun), Duelist (akimbo). Actives: Tempest (blades), Cluster (grenades), Overwatch (turret), Solar Crown (aura), Legion (squad). Support: Carom (ricochet).
 - **Rerolls and banishes**: each run starts with 2 rerolls (more with Loaded Dice) and 1 banish, usable on the level-up screen.
-- **Waves**: every 40 seconds the horde grows and new mob types unlock.
+- **Waves**: every 40 seconds the horde grows and new mob types unlock. Every 200 seconds a surge ring assaults your position (held while a boss lives).
 - **Score and kill milestones**: every kill pays score, with boss bonuses and cache payouts. Total kills fire escalating callouts at 10 (KILLING SPREE), 25 (RAMPAGE), 50 (WAR MACHINE), 100 (UNSTOPPABLE), 250 (ONE MAN ARMY) and 500 (LEGENDARY). The run score and personal best are kept.
+- **Kill ranks**: kills promote PVT to GEN mid-run; every rank pays rerolls, medkits or shards.
 - **LAST STAND**: drop below 10% health to enter LAST STAND: a red screen, a warning tone, +50% damage, +15% fire rate and a slight speed boost, with no extra invulnerability. Recover above 12% to leave it.
 - **Kill streak rewards**: a 15-kill streak calls a supply drop, 30 an airstrike, 60 an attack helicopter and 120 a missile barrage. Each fires once per run.
 - **War chests**: hidden military caches appear from wave 3. Touch one to see how many more kills it needs; cracking it pays shards, repairs, chips and a supply chest.
@@ -93,17 +95,17 @@ Before every run you pick:
 - **Variable rewards**: each kill rolls standard data (70%), a 2.5x critical data jackpot (20%) or a hardware chip (10%) that grants shards, an Aegis shield, Frenzy, ordnance or repairs.
 - **Near-miss surge**: an enemy left alive under 6% health triggers a near-miss and, once per window, a crit surge.
 - **Sector alert and hunters**: kills raise alert; at 60% NetWatch hunters deploy and chase you across the map. Alert decays over time.
-- **Sector events**: horde surges, supply drops, sandstorms, blackouts and bounty hunters fire on a seeded schedule and change visibility, speed and loot. A seeded market multiplier scales loot, and a news line reports the sector.
+- **Sector events**: surge rings, supply drops, per-map storms (sandstorm, blizzard, downpour, dust choke) and bounty hunters fire on a seeded schedule and change visibility, speed and loot. A seeded market multiplier scales loot, and a news line reports the sector.
 - **Contracts**: three rotating run objectives (cull, survive, salvage, demolition, evasion, chain kills) pay risky shards when completed.
 - **Combo stake**: your kill streak multiplies XP and shard gain up to +50%, but taking a hit breaks it.
-- **Weapons and skills**: five auto-firing weapons plus orbiting blades, frag grenades, sentry turrets, an ember aura, squad recruiting, and passives for speed, health, a regenerating Aegis shield, magnets, damage, bullet speed, lifesteal, dash damage, crits and ricochets. Everything caps at level 10.
+- **Weapons and skills**: six auto-firing weapons (including akimbo dual Berettas) plus orbiting blades, frag grenades, sentry turrets, an ember aura, squad recruiting, and passives for speed, health, a regenerating Aegis shield, magnets, damage, bullet speed, lifesteal, dash damage, crits and ricochets. Everything caps at level 10.
 - **Interactables**: supply crates (repairs, chips, shards, traps or ambushes), hidden stashes (+40 shards), and volatile barrels that explode when shot. A rare nuclear bunker can be found once per run; touching it clears the map for bonus shards.
 - **Touch controls**: on touch devices the left half of the canvas becomes a virtual move stick and the bottom-right holds DASH, BOMB and OD buttons, drawn only when touch input is used.
 - **Loadout slots**: 6 offense slots (weapons and actives) and 6 defense slots (passives). Filling a group stops new picks of that kind, so level-ups become upgrades of what you own; the Loadout Rig armory upgrade adds a slot to both groups per rank. Slot usage is shown in the HUD and on level-up cards.
 - **Level-up offers**: three cards, weighted toward skills you already own so builds deepen instead of scattering.
 - **Combos**: raise both halves of a pair to level 2 to unlock Overclocked, Riposte, Vampire, Shrapnel, Demolition, Scavenger or Bastion.
-- **Bombs**: `E` lobs a bomb at the densest cluster, with its own cooldown meter.
-- **Pickups**: XP gems and medkits are both pulled in by the magnet radius.
+- **Bombs**: `E` lobs a bomb at the densest cluster, with its own cooldown meter. Settings can switch the bomb to AUTO so it throws itself at crowds.
+- **Pickups**: XP gems and medkits are both pulled in by the magnet radius, plus reroll dice and field radios (press T to call the plane).
 - **Character growth**: your sprite gains veteran shoulder plates, an elite glow and a legend aura as you level, and its colors and gun follow your build.
 
 ### Progression saving
@@ -112,7 +114,7 @@ Progress is stored in `localStorage` under `dustline.save` with an explicit sche
 
 ### Leaderboard
 
-The menu LEADERBOARD screen has GLOBAL, FRIENDS and TÜRKIYE tabs. Until the online backend lands (see `ANDROID.md` for the API contract), all three run on the device board: your ranked run history, plus allies you add by their 8-character squad code. Friend scores show AWAITING SYNC until the server fills them in. The run-over report calls out your device board rank when a scoring run places in the top 10.
+The menu LEADERBOARD screen has GLOBAL, FRIENDS and TÜRKIYE tabs. Until the online backend lands (see `ANDROID.md` for the API contract), all three run on the device board: your ranked run history, plus allies you add by their 8-character squad code. Friend scores show AWAITING SYNC until the server fills them in. GLOBAL and TÜRKIYE are also seeded with house rivals to chase; beating one pays +25 shards and lands its name on the after-action report. The run-over report calls out your device board rank when a scoring run places in the top 10.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
