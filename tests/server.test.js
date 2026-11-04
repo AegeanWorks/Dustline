@@ -113,6 +113,27 @@ test('traversal stays unserved and maps to 404 without a symlink (K8 gap)', asyn
   }
 });
 
+test('symlink escape maps to 403 (K8 gap)', async (t) => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const outside = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dustline-outside-'));
+  t.after(() => fs.promises.rm(outside, { recursive: true, force: true }));
+  await fs.promises.writeFile(path.join(outside, 'secret.txt'), 'x');
+  const link = path.join(__dirname, '..', 't8n-symlink-probe');
+  await fs.promises.rm(link, { recursive: true, force: true });
+  try {
+    fs.symlinkSync(outside, link, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (err) {
+    t.skip('symlinks unavailable: ' + err.message);
+    return;
+  }
+  t.after(() => fs.promises.rm(link, { recursive: true, force: true }));
+  const base = await boot(t);
+  const res = await fetch(base + '/t8n-symlink-probe/secret.txt');
+  assert.strictEqual(res.status, 403, 'symlink escape must be forbidden');
+});
+
 test('port and host resolve safely (deferred K7-B2/B3)', () => {
   const { resolvePort, resolveHost } = require('../scripts/serve');
   assert.strictEqual(resolvePort(undefined), 5173);

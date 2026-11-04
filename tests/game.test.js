@@ -3723,3 +3723,16 @@ test('snapshot publishes the full observable surface (K8 gap)', () => {
   assert.strictEqual(typeof s.save.killsByType, 'object', 'save.killsByType');
   assert.ok(Number.isFinite(s.best.time), 'best.time');
 });
+
+test('mouse handlers dispatch without throwing (K8 gap)', () => {
+  const g = boot({ seed: 81 });
+  deploy(g);
+  assert.doesNotThrow(() => {
+    g.move(100, 100);
+    g.down(100, 100);
+    g.up();
+    g.key('escape');
+    g.key('escape', false);
+  });
+  assert.strictEqual(g.api.snapshot().screen, 'paused', 'escape pauses from play');
+});

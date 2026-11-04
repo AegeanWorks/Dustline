@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
+const ROOT_REAL = fs.realpathSync(ROOT);
 const DEFAULT_PORT = 5173;
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -55,7 +56,18 @@ function handler(req, res) {
     return;
   }
 
-  fs.readFile(file, (err, data) => {
+  fs.realpath(file, (err, real) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(req.method === 'HEAD' ? undefined : 'Not found');
+      return;
+    }
+    if (real !== ROOT_REAL && !real.startsWith(ROOT_REAL + path.sep)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(req.method === 'HEAD' ? undefined : 'Forbidden');
+      return;
+    }
+    fs.readFile(real, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(req.method === 'HEAD' ? undefined : 'Not found');
@@ -67,6 +79,7 @@ function handler(req, res) {
       'Cache-Control': 'no-store'
     });
     res.end(req.method === 'HEAD' ? undefined : data);
+    });
   });
 }
 
