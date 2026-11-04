@@ -228,6 +228,17 @@ const STREAK_REWARDS = [
   { at: 120, id: 'missile', name: 'MISSILE BARRAGE', color: '#ff8a5c' }
 ];
 
+const RANKS = [
+  { id: 'private', name: 'PRIVATE', short: 'PVT', kills: 0, blurb: 'Fresh boots. Earn 25 kills for Corporal.' },
+  { id: 'corporal', name: 'CORPORAL', short: 'CPL', kills: 25, blurb: '+1 REROLL' },
+  { id: 'sergeant', name: 'SERGEANT', short: 'SGT', kills: 75, blurb: 'SUPPLY DROP · +2 MEDKITS' },
+  { id: 'lieutenant', name: 'LIEUTENANT', short: 'LT', kills: 150, blurb: '+50 SHARDS' },
+  { id: 'captain', name: 'CAPTAIN', short: 'CPT', kills: 300, blurb: '+1 REROLL · +1 BANISH' },
+  { id: 'major', name: 'MAJOR', short: 'MAJ', kills: 500, blurb: '+100 SHARDS' },
+  { id: 'colonel', name: 'COLONEL', short: 'COL', kills: 750, blurb: '+2 REROLLS' },
+  { id: 'general', name: 'GENERAL', short: 'GEN', kills: 1000, blurb: '+200 SHARDS · LIVING LEGEND' }
+];
+
 const MUTATIONS = [
   { id: 'none', name: 'STANDARD', blurb: 'No mutation', color: '#8f9ba4' },
   { id: 'explosive', name: 'EXPLOSIVE BLOOD', blurb: 'Death blast', color: '#ff8a5c' },
@@ -2003,6 +2014,7 @@ function startRun(options) {
     score: 0,
     milestoneIdx: 0,
     rewardIdx: 0,
+    rankIdx: 0,
     streakRewards: [],
     callout: null,
     flashT: 0,
@@ -4287,6 +4299,50 @@ function checkStreakRewards() {
   }
 }
 
+function grantRankReward(rank) {
+  if (!G) return;
+  switch (rank.id) {
+    case 'corporal':
+      G.rerolls++;
+      break;
+    case 'sergeant':
+      for (let i = 0; i < 2; i++) G.medkits.push({ x: G.player.x + rnd(-50, 50), y: G.player.y + rnd(-50, 50) });
+      break;
+    case 'lieutenant':
+      addUnbanked(50);
+      break;
+    case 'captain':
+      G.rerolls++;
+      G.banishes++;
+      break;
+    case 'major':
+      addUnbanked(100);
+      break;
+    case 'colonel':
+      G.rerolls += 2;
+      break;
+    case 'general':
+      addUnbanked(200);
+      break;
+    default:
+      break;
+  }
+}
+
+function checkRank() {
+  if (!G) return;
+  while (G.rankIdx + 1 < RANKS.length && G.kills >= RANKS[G.rankIdx + 1].kills) {
+    G.rankIdx++;
+    const rank = RANKS[G.rankIdx];
+    G.score += 100 * G.rankIdx;
+    grantRankReward(rank);
+    announceCallout('PROMOTED · ' + rank.name, rank.blurb + ' · +' + 100 * G.rankIdx + ' SCORE', '#ffd27a', 3);
+    G.news = 'Promoted to ' + rank.name + ': ' + rank.blurb + '.';
+    if (rank.id === 'general') flashScreen('#ffd27a', 0.5);
+    sfx.reward();
+  }
+}
+
 function triggerStreakReward(reward) {
   G.score += 150;
   G.streakRewards.push(reward.id);
@@ -4406,6 +4462,7 @@ function killEnemy(e) {
   G.streakT = 2.6;
   G.score += Math.round((8 + e.xp * 3) * (1 + G.streak * 0.01));
   if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+  checkRank();
   checkKillMilestones();
   checkStreakRewards();
   G.recentKills = (G.recentKills || []).filter((t) => G.time - t < 1);
@@ -7524,7 +7581,7 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.fillStyle = '#c2cdd2';
   ctx.font = '10px Consolas, monospace';
-  ctx.fillText('KILLS', 58, 30);
+  ctx.fillText('KILLS · ' + RANKS[G.rankIdx].short, 58, 30);
   ctx.fillStyle = '#f4efe2';
   ctx.font = '700 22px Consolas, monospace';
   ctx.fillText(String(G.kills), 58, 52);
@@ -11043,7 +11100,8 @@ window.Dustline = {
   snap.mutation = G.mutation;
   snap.camo = CAMO[G.map] || '#2f6fb5';
   snap.lastStand = !!G.lastStand;
-  snap.milestones = STREAK_TIERS.filter((t) => G.kills >= t.kills).map((t) => t.name);
+      snap.milestones = STREAK_TIERS.filter((t) => G.kills >= t.kills).map((t) => t.name);
+      snap.rank = { index: G.rankIdx, id: RANKS[G.rankIdx].id, name: RANKS[G.rankIdx].name, short: RANKS[G.rankIdx].short };
   snap.streakRewards = G.streakRewards.slice();
   snap.callout = G.callout && G.callout.t > 0 ? { text: G.callout.text, sub: G.callout.sub, color: G.callout.color } : null;
   snap.heli = !!G.heli;
@@ -11300,6 +11358,7 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.setKills = (value) => {
     if (!G) return 0;
     G.kills = Math.max(0, Math.floor(Number(value) || 0));
+    checkRank();
     checkKillMilestones();
     return G.kills;
   };

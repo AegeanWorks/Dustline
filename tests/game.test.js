@@ -4023,6 +4023,55 @@ test('P1-9 horde pressure eases while a boss lives (playtest focus)', () => {
   assert.strictEqual(g.api.snapshot().hordePressure, 0.55, 'pressure eases during the boss');
 });
 
+test('P2-1 kills promote through ranks with unlocks (playtest)', () => {
+  const g = boot({ seed: 71 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  let s = g.api.snapshot();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(s.rank)), { index: 0, id: 'private', name: 'PRIVATE', short: 'PVT' }, 'every run starts a Private');
+  g.api.setKills(25);
+  s = g.api.snapshot();
+  assert.strictEqual(s.rank.id, 'corporal', '25 kills make Corporal');
+  assert.strictEqual(s.rerolls, 3, 'corporal unlocks +1 reroll');
+  g.api.setKills(150);
+  s = g.api.snapshot();
+  assert.strictEqual(s.rank.id, 'lieutenant', '150 kills make Lieutenant');
+  assert.ok(s.medkits >= 2, 'sergeant dropped medkits');
+  const ltBanked = s.unbanked;
+  assert.ok(ltBanked > 0, 'lieutenant pays shards');
+  g.api.setKills(1000);
+  s = g.api.snapshot();
+  assert.strictEqual(s.rank.id, 'general', '1000 kills make General');
+  assert.strictEqual(s.rerolls, 6, 'captain and colonel rerolls stack');
+  assert.strictEqual(s.banishes, 2, 'captain unlocks +1 banish');
+  assert.ok(Math.abs(s.unbanked / ltBanked - 7) < 1e-9, 'shard rewards stack 50+100+200 = 7x lieutenant');
+  assert.ok(s.news.indexOf('GENERAL') >= 0, 'promotion is recorded, got ' + s.news);
+});
+
+test('P2-1 promotion callout fires on the exact kill (playtest)', () => {
+  const g = boot({ seed: 72 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setKills(999);
+  assert.strictEqual(g.api.snapshot().rank.id, 'colonel', '999 kills hold Colonel');
+  g.api.spawnEnemy('grunt', 90, 0);
+  g.api.setEnemyHp(0, 1);
+  assert.ok(g.api.hitEnemy(0, 50), 'kill 1000 lands');
+  const s = g.api.snapshot();
+  assert.strictEqual(s.rank.id, 'general', 'kill 1000 promotes');
+  assert.strictEqual(s.callout.text, 'PROMOTED · GENERAL', 'promotion is announced');
+});
+
+test('P2-1b HUD shows the current rank short (playtest visual)', () => {
+  const g = boot({ seed: 73, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setKills(150);
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('KILLS · LT'), 'rank shows in the HUD, got ' + JSON.stringify(labels.slice(0, 10)));
+});
+
 test('P1-4 boss waves never stack a second boss on a living one (playtest)', () => {
   const g = boot({ seed: 53 });
   deploy(g);
