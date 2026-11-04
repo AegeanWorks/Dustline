@@ -3787,3 +3787,26 @@ test('P0-2 bomb targets the densest cluster near the player (playtest)', () => {
   const nearAlive = s.enemies.filter((e) => !e.dead && Math.hypot(e.x - 2000, e.y) < 200).length;
   assert.strictEqual(nearAlive, 0, 'bomb explodes on the nearby cluster, got ' + nearAlive + ' survivors');
 });
+
+test('P0-3 explosions stay inside the particle budget (playtest perf)', () => {
+  const g = boot({ seed: 11 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.steps(2);
+  const before = g.api.snapshot().particles;
+  assert.ok(g.api.explode(0, 0, 80, 0), 'explosion fires');
+  const after = g.api.snapshot().particles;
+  assert.ok(after - before <= 24, 'one explosion emits at most 24 particles, got ' + (after - before));
+  assert.ok(after <= 420, 'particle cap holds, got ' + after);
+});
+
+test('P0-4 pickup lists stay capped on long runs (playtest min-10)', () => {
+  const g = boot({ seed: 13 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  assert.ok(g.api.spawnGems(500), 'gems spawned');
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.ok(s.gems <= 400, 'gems capped at 400, got ' + s.gems);
+});

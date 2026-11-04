@@ -2932,7 +2932,7 @@ function muzzle(x, y, ang, color) {
     rot: 0,
     spin: 0
   });
-  burst(fx, fy, 3, color || '#ffe28a', 220, 2.6, 0.14, 'spark', ang);
+  burst(fx, fy, 2, color || '#ffe28a', 220, 2.6, 0.14, 'spark', ang);
   if (G.particles.length > 420) G.particles.splice(0, G.particles.length - 420);
 }
 
@@ -4029,9 +4029,9 @@ function addDecal(x, y, r) {
 function explodeAt(x, y, radius, dmg, color, owner) {
   addDecal(x, y, radius * 0.6);
   burst(x, y, 1, '#ffd27a', 0, radius * 0.85, 0.35, 'ring');
-  burst(x, y, 2, '#fff3d0', 60, radius * 0.5, 0.22, 'glow');
-  burst(x, y, 26, color || '#ffb066', 320, 3.4, 0.45, 'spark');
-  burst(x, y, 11, '#4a4038', 150, 8.5, 0.85, 'smoke');
+  burst(x, y, 1, '#fff3d0', 60, radius * 0.5, 0.22, 'glow');
+  burst(x, y, 14, color || '#ffb066', 320, 3.4, 0.45, 'spark');
+  burst(x, y, 6, '#4a4038', 150, 8.5, 0.85, 'smoke');
   shake = Math.max(shake, settings.shake ? 8 : 0);
   sfx.boom();
   if (owner === 'e') {
@@ -4589,6 +4589,7 @@ function updatePickups(dt) {
     }
   }
   G.gems = G.gems.filter((g) => !g.dead && dist2(g.x, g.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.gems.length > 400) G.gems.splice(0, G.gems.length - 400);
   for (const chip of G.chips) {
     chip.spin += dt * 3;
     const dx = G.player.x - chip.x;
@@ -4606,6 +4607,7 @@ function updatePickups(dt) {
     }
   }
   G.chips = G.chips.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.chips.length > 120) G.chips.splice(0, G.chips.length - 120);
   for (const chest of G.chests) {
     chest.spin += dt * 2.4;
     const dx = G.player.x - chest.x;
@@ -4623,6 +4625,7 @@ function updatePickups(dt) {
     }
   }
   G.chests = G.chests.filter((c) => !c.dead && dist2(c.x, c.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.chests.length > 20) G.chests.splice(0, G.chests.length - 20);
   for (const s of G.salvage) {
     s.spin += dt * 2.2;
     s.t -= dt;
@@ -4664,6 +4667,7 @@ function updatePickups(dt) {
     }
   }
   G.medkits = G.medkits.filter((k) => !k.dead && dist2(k.x, k.y, G.player.x, G.player.y) < 2200 * 2200);
+  if (G.medkits.length > 40) G.medkits.splice(0, G.medkits.length - 40);
   for (const oc of G.overcharges) {
     oc.spin = (oc.spin || 0) + dt * 3;
     const dx = G.player.x - oc.x;
@@ -11003,6 +11007,12 @@ if (window.__DUSTLINE_TEST__) {
   window.Dustline.spawnBulletAt = (x, y, ang, speed, dmg, owner) => {
     if (!G) return false;
     spawnBullet(Number(x) || 0, Number(y) || 0, Number(ang) || 0, Number(speed) || 300, Number(dmg) || 10, owner || 'e', '#ff3b30', { life: 2 });
+    return true;
+  };
+  window.Dustline.spawnGems = (n) => {
+    if (!G) return false;
+    const count = Math.max(0, Math.min(600, Math.floor(Number(n) || 0)));
+    for (let i = 0; i < count; i++) G.gems.push({ x: G.player.x + (i % 20) * 8, y: G.player.y + Math.floor(i / 20) * 8, value: 1, tier: 0, spin: 0, vx: 0, vy: 0 });
     return true;
   };
   window.Dustline.spawnMedkit = (x, y) => {
