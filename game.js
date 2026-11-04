@@ -9889,28 +9889,30 @@ function drawHelpScreen() {
   const col1 = [
     ['MOVE', 'WASD or arrows. Infinite map dotted with cover.'],
     ['DASH', 'Shift or Space bursts forward with invulnerability.'],
-    ['BOMB', 'Press E to throw bombs at the thickest horde.'],
+    ['BOMB', 'E throws at crowds. AUTO mode lives in settings.'],
     ['OVERDRIVE', 'Press R to burn heat: +40% dmg, +50% dmg taken.'],
     ['FIGHT', 'Weapons auto-fire at the nearest hostile.'],
-    ['LEVEL UP', 'Collect gems to pick one of 3 skills each level.'],
+    ['LEVEL UP', 'Gems level you: pick 1 of 3 cards, evolutions too.'],
     ['COMBOS', 'Some skill pairs unlock a bonus when both reach L2.'],
-    ['WAVES', 'Every 40s horde grows; new enemy types appear.'],
+    ['WAVES', 'Waves grow every 40s. A surge ring hits every 200s.'],
     ['BOSS', 'Bosses every 5th wave; every 4th is a MEGA boss.'],
     ['EVOLVE', 'Max a skill at 10 and partner at 3 to evolve it.'],
-    ['ARENAS', 'Worn rings mark prop-free clearings: use to kite.']
+    ['ARENAS', 'Worn rings mark prop-free clearings: use to kite.'],
+    ['RANKS', 'Kills promote PVT to GEN. Every rank pays out.']
   ];
   const col2 = [
-    ['DIFFICULTY', 'Normal, Brutal or Nightmare: tougher mobs pay more.'],
+    ['DIFFICULTY', 'Normal/Brutal/Nightmare: tougher pays more.'],
     ['HAZARDS', 'quicksand/ice/embers/vines/tar/gas/glass'],
-    ['MUTATORS', 'Take up to two run modifiers, plus one mutation.'],
-    ['SCORE', 'Kills and bosses build score; 10/25/50/100/250/500 callouts.'],
+    ['MUTATORS', 'Take two run modifiers, plus one mutation.'],
+    ['SCORE', 'Score milestones at 10/25/50/100/250/500.'],
     ['LAST STAND', 'Under 10% health: +50% dmg, no extra safety.'],
-    ['WAR CHEST', 'From wave 3, a hidden cache needs kills to open.'],
-    ['EXTRACT', 'Bosses drop beacons: bank shards or risk losing half.'],
-    ['EVENTS', 'Horde surges, supply drops and hunters hit the sector.'],
-    ['MAP', 'Press M to see live contracts, alerts and beacons.'],
+    ['WAR CHEST', 'From wave 3, caches need kills to open.'],
+    ['EXTRACT', 'Beacons bank shards. Death halves the rest.'],
+    ['EVENTS', 'Per-map storms, drops, hunters, radios.'],
+    ['MAP', 'Minimap bottom-right. M opens the full map.'],
     ['DAILY', 'One seeded run per day with a fixed loadout.'],
-    ['PAUSE', 'Esc opens the pause menu with settings and map.']
+    ['OPS', '10:00 op: extract at the 9:30 beacon.'],
+    ['PAUSE', 'Esc pauses. Resume, settings, map inside.']
   ];
 
   panel(36, 92, 436, 396, 8);
@@ -9918,7 +9920,7 @@ function drawHelpScreen() {
 
   ctx.textAlign = 'left';
   col1.forEach((item, i) => {
-    const y = 118 + i * 34;
+    const y = 116 + i * 31;
     ctx.fillStyle = 'rgba(224,178,92,0.14)';
     ctx.strokeStyle = 'rgba(224,178,92,0.3)';
     rr(48, y - 12, 84, 22, 4);
@@ -9933,7 +9935,7 @@ function drawHelpScreen() {
   });
 
   col2.forEach((item, i) => {
-    const y = 118 + i * 34;
+    const y = 116 + i * 31;
     ctx.fillStyle = 'rgba(224,178,92,0.14)';
     ctx.strokeStyle = 'rgba(224,178,92,0.3)';
     rr(500, y - 12, 88, 22, 4);

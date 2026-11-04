@@ -683,6 +683,11 @@ test('upgrades and help screens are reachable from the menu', () => {
   const labels = g.texts.map((t) => t.text);
   assert.ok(labels.some((t) => t.indexOf('quicksand') >= 0 && t.indexOf('glass') >= 0), 'the hazard line lists every hazard');
   assert.ok(labels.some((t) => t.indexOf('prop-free') >= 0), 'the help explains arenas');
+  assert.ok(labels.some((t) => t.indexOf('AUTO mode') >= 0), 'the help mentions auto bombs');
+  assert.ok(labels.some((t) => t.indexOf('surge ring') >= 0), 'the help mentions surge waves');
+  assert.ok(labels.includes('RANKS'), 'the help documents ranks');
+  assert.ok(labels.includes('OPS'), 'the help documents ops mode');
+  assert.ok(!labels.some((t) => t.endsWith('..')), 'no help line is cut off mid-word');
   assert.ok(g.api.clickButton('back-help'));
   g.steps(1);
   assert.strictEqual(g.api.snapshot().screen, 'menu');

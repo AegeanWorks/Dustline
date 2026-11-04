@@ -563,3 +563,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: ANDROID.md's backend contract predates house rivals; a future implementer could mistake DUSTKING's 45000 for a syncable player run and upload it.
 - **Decision**: Contract note — any board row whose code is not 8 hex chars is a local-only rival and must never be submitted or merged. Behavioral pin: typing DUSTKING into friend-add is rejected by the existing hex rule, so rival names cannot enter the code system from either side.
 - **Consequences**: 266/266 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Docs + one test, no game-code change.
+
+### ADR-075: Help screen documents the shipped controls (stale-help fix)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: HOW TO PLAY still described the pre-ship game: manual E bombs, instant 40s waves, no minimap, no auto mode. Five shipped controls (auto bomb, evo cards, surges, per-map storms, minimap, ops, ranks) had no entry, and seven long-standing rows were silently cut mid-word by the 46-char col2 cap.
+- **Decision**: Two new rows (RANKS, OPS), five refreshed rows (BOMB, LEVEL UP, WAVES, EVENTS, MAP), 34→31px row step for the 12-row fit, and shortened col-2 copy so no line truncates (also repairs the five pre-existing cutoffs).
+- **Consequences**: 266/266 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Pinned incl. an explicit no-`..` assertion. Evidence: `shots/s5-help-refresh.png` (live capture, all 24 rows legible).
