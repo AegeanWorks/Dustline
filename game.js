@@ -2003,6 +2003,8 @@ function startRun(options) {
     market: 0.9 + ((seed % 1000) / 1000) * 0.3,
     time: 0,
     wave: 1,
+    surgeIdx: 0,
+    surgePending: false,
     kills: 0,
     level: 1,
     xp: 0,
@@ -3553,6 +3555,39 @@ function bossActive() {
 
 function hordePressure() {
   return bossActive() ? 0.55 : 1;
+}
+
+const SURGE_EVERY = 200;
+
+function spawnSurge() {
+  const count = Math.min(10 + 2 * G.surgeIdx, 150 - G.enemies.length);
+  for (let i = 0; i < count; i++) {
+    const a = (i / Math.max(1, count)) * TAU + rnd(0, 0.2);
+    const r = rnd(460, 560);
+    spawnEnemyAt(pickEnemyType(G.time), G.player.x + Math.cos(a) * r, G.player.y + Math.sin(a) * r);
+  }
+  G.banner = 'SURGE · WAVE ' + G.surgeIdx;
+  G.bannerSub = count + ' HOSTILES INBOUND';
+  G.bannerT = 2.8;
+  G.news = 'Surge wave ' + G.surgeIdx + ': ' + count + ' hostiles inbound.';
+  sfx.victory();
+}
+
+function updateSurge() {
+  if (!G || G.mode === 'bossrush') return;
+  const idx = Math.floor(G.time / SURGE_EVERY);
+  if (idx > G.surgeIdx) {
+    G.surgeIdx = idx;
+    if (bossActive()) {
+      G.surgePending = true;
+      return;
+    }
+    spawnSurge();
+  }
+  if (G.surgePending && !bossActive()) {
+    G.surgePending = false;
+    spawnSurge();
+  }
 }
 
 function updateSpawner(dt) {
@@ -5385,6 +5420,7 @@ function updateRun(dt) {
   updateSoldiers(dt);
   updateRewards(dt);
   updateSpawner(dt);
+  updateSurge();
   updateEnemies(dt);
   if (screen !== 'play') return;
   updateBullets(dt);
@@ -7984,11 +8020,17 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.fillText('ALERT ' + Math.round(G.alert) + '%' + eventText, W / 2 - 96, 72);
     ctx.textAlign = 'center';
-    if (G.mode !== 'bossrush' && !G.enemies.some((e) => e.boss && !e.dead)) {
-      const waveIn = 40 - (G.time % 40);
-      ctx.fillStyle = waveIn <= 5 ? '#ff8a5c' : 'rgba(200,190,165,0.6)';
-      ctx.font = '700 9px Consolas, monospace';
-      ctx.fillText('NEXT WAVE ' + Math.ceil(waveIn) + 's', W / 2, 92);
+    if (G.mode !== 'bossrush' && !bossActive()) {
+      if (G.surgePending) {
+        ctx.fillStyle = '#ff8a5c';
+        ctx.font = '700 9px Consolas, monospace';
+        ctx.fillText('SURGE DELAYED · FINISH THE BOSS', W / 2, 92);
+      } else {
+        const surgeIn = SURGE_EVERY - (G.time % SURGE_EVERY);
+        ctx.fillStyle = surgeIn <= 10 ? '#ff8a5c' : 'rgba(200,190,165,0.6)';
+        ctx.font = '700 9px Consolas, monospace';
+        ctx.fillText('SURGE ' + Math.ceil(surgeIn) + 's', W / 2, 92);
+      }
     }
   }
 
@@ -11365,6 +11407,7 @@ window.Dustline = {
       snap.news = G.news;
       snap.event = G.event ? { id: G.event.id, t: G.eventT } : null;
       snap.hordePressure = hordePressure();
+      snap.assault = { idx: G.surgeIdx, pending: G.surgePending, nextIn: Math.ceil(SURGE_EVERY - (G.time % SURGE_EVERY)) };
       snap.minimap = { x: W - 84, y: H - 84, r: 64 };
       snap.beacon = G.beacon ? { x: G.beacon.x, y: G.beacon.y, t: G.beacon.t } : null;
       snap.overdrive = { active: !!G.od.active, heat: G.od.heat };

@@ -4242,6 +4242,46 @@ test('P2-9c radios draw on the map with a label (playtest visual)', () => {
   assert.ok(labels.includes('RADIO'), 'radio label draws, got ' + JSON.stringify(labels.slice(0, 10)));
 });
 
+test('P2-11 a surge ring assaults every 200 seconds (playtest)', () => {
+  const g = boot({ seed: 123 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(201);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.assault.idx, 1, 'first surge fired');
+  assert.strictEqual(s.assault.pending, false, 'no boss blocks it');
+  assert.ok(s.enemies.length >= 10, 'a full ring assaults, got ' + s.enemies.length);
+  assert.ok(s.bannerT > 0, 'the surge is announced');
+});
+
+test('P2-11b surges wait while a boss lives (playtest)', () => {
+  const g = boot({ seed: 125 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.spawnBoss('warlord');
+  g.api.setTime(201);
+  g.steps(2);
+  let s = g.api.snapshot();
+  assert.strictEqual(s.assault.idx, 1, 'surge counted');
+  assert.strictEqual(s.assault.pending, true, 'but held for the boss');
+  g.api.killEnemies();
+  g.steps(5);
+  s = g.api.snapshot();
+  assert.strictEqual(s.assault.pending, false, 'released after the kill');
+  assert.ok(s.enemies.length >= 10, 'the held ring assaults, got ' + s.enemies.length);
+});
+
+test('P2-11c the ticker counts down to the next surge (playtest visual)', () => {
+  const g = boot({ seed: 127, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.setTime(100);
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.some((t) => t.indexOf('SURGE') === 0), 'surge ticker draws, got ' + JSON.stringify(labels.slice(0, 12)));
+});
+
 test('P2-10 damage numbers climb white-yellow-orange-red (playtest)', () => {
   const style = (tier) => ({ 0: 'diamond', 1: 'star', 2: 'hex' })[tier];
   const g = boot({ seed: 115 });

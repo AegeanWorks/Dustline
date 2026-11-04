@@ -465,3 +465,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted damage numbers ramping white→yellow→orange→red as hits grow, and sharper, more vivid XP gem shapes (the old palette read as muddy).
 - **Decision**: `dmgColorFor(dealt, maxHp)`: <8% white, <20% yellow, <40% orange, above red, size 11→16; crits keep `!` and floor size 16. Pink/gold two-state retired (hit sparks match). Floaters already carry a dark shadow, so white stays legible on sand. Gems via `gemStyleFor(tier)`: T0 vivid-teal diamond, T1 jackpot gold star, T2 violet hex, stronger tier glows.
 - **Consequences**: 245/245 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Two helpers, no balance or seed change (colors only). Evidence: `shots/s5-visuals-before.png` vs `s5-visuals-after.png` (~25s live runs, red -14 + gold star vs gold-only numbers). Next P2: 3-4 minute wave structure.
+
+### ADR-061: P2 surge assaults every 200 seconds (playtest P2-11)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted waves every 3-4 minutes instead of the instant 40s trickle (`3-4 dakikada bir dalga gelsin`). The 40s `wave` counter is load-bearing (boss cadence, wave-20/30/40 tests), so it stays as the tactical clock.
+- **Decision**: Strategic SURGE assaults on top: every 200s a ring of 10+2*idx time-appropriate hostiles spawns with banner, callout-free news, and the HUD ticker retargeted from `NEXT WAVE 40s` to `SURGE Ns` (`SURGE DELAYED` while a boss lives; surges queue behind living bosses via the P1 no-stack rule). An 8s opening grace was tried and reverted: M1's 60-kill/80s gate was already marginal at 62 after the XP ease, and grace pushed it under — weakening the test was refused, so the surge structure alone answers the pacing ask.
+- **Consequences**: 248/248 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One scheduler, one ring spawner, one ticker, read-only `snapshot().assault`. Next P2: sandstorm/blizzard disasters instead of blackout.
