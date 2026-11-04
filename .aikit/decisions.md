@@ -640,3 +640,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Radios were collectible on touch but unfireable — no T key exists there and the touch row had only DASH/BOMB/OD. Same bug class as the touch bomb binding.
 - **Decision**: A fourth touch button appears only while a strike is armed (same draw loop and style); taps call `fireRadioStrike` directly on the play screen. Unarmed taps are no-ops by construction (button absent, `fireRadioStrike` guards at zero).
 - **Consequences**: 272/272 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One conditional button, one tap branch, one test. No live capture: the button reuses the proven draw path and the behavior is pinned headless.
+
+### ADR-086: Squad cards name the borrowed sidearm (teammate-class follow-up)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Soldiers already fired the player's family color, but nothing said so — the class link was invisible on the card that sells the skill.
+- **Decision**: The squad level-up line ends with the primary's weapon name (AK-47, DUAL BERETTAS, RAILGUN...), via the existing `skillStatLine` seam. Pinned for rifle and akimbo setups.
+- **Consequences**: 273/273 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One string segment, one test.

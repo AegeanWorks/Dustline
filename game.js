@@ -990,7 +990,7 @@ function skillStatLine(id, lvl) {
   if (id === 'grenade') return 'DMG ' + range(30 + 18 * cur, 30 + 18 * next) + ' · RADIUS ' + range(78 + 6 * cur, 78 + 6 * next);
   if (id === 'turret') return 'DMG ' + range(9 + 4 * cur, 9 + 4 * next) + ' · LIFE ' + range((10 + 1.5 * cur).toFixed(1), (10 + 1.5 * next).toFixed(1)) + 's';
   if (id === 'aura') return 'DMG ' + range(4 + 3 * cur, 4 + 3 * next) + ' · RADIUS ' + range(72 + 9 * cur, 72 + 9 * next);
-  if (id === 'squad') return 'DMG ' + range(8 + 3 * cur, 8 + 3 * next) + ' · RATE ' + range((0.9 - 0.05 * cur).toFixed(2), (0.9 - 0.05 * next).toFixed(2)) + 's';
+  if (id === 'squad') return 'DMG ' + range(8 + 3 * cur, 8 + 3 * next) + ' · RATE ' + range((0.9 - 0.05 * cur).toFixed(2), (0.9 - 0.05 * next).toFixed(2)) + 's · ' + (((SKILLS[primarySkill()] || {}).name) || 'SIDEARMS');
   if (id === 'speed') return 'MOVE +' + range(8 * cur, 8 * next) + '%';
   if (id === 'vitality') return 'MAX HP +' + range(25 * cur, 25 * next);
   if (id === 'aegis') return 'CHARGES ' + range(cur, next) + ' · RECHARGE ' + range(Math.max(4, 9 - 0.8 * cur).toFixed(1), Math.max(4, 9 - 0.8 * next).toFixed(1)) + 's';

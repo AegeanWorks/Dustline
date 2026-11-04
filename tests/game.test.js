@@ -4834,6 +4834,15 @@ test('P2-11d surge, boss and evolution collide without corruption (robustness)',
   assert.ok(s.enemies.every((e) => Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp >= 0), 'every entity stays sane');
 });
 
+test('P2-17b squad cards name the borrowed sidearm (playtest)', () => {
+  const g = boot({ seed: 193 });
+  deploy(g);
+  assert.ok(g.api.skillStatLine('squad', 1).endsWith('AK-47'), 'rifle squads field AK-47s, got ' + g.api.skillStatLine('squad', 1));
+  const h = boot({ seed: 195 });
+  deploy(h, { weapon: 'beretta' });
+  assert.ok(h.api.skillStatLine('squad', 1).endsWith('DUAL BERETTAS'), 'akimbo squads field Berettas, got ' + h.api.skillStatLine('squad', 1));
+});
+
 test('P2-16b touch BOMB button follows the key binding (playtest)', () => {
   for (const [seed, key, wantBombs] of [[183, 'e', true], [185, 'q', true]]) {
     const g = boot({ seed });
