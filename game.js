@@ -3933,6 +3933,11 @@ function updateBullets(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     if (b.owner === 'e') {
+      if (bulletBlocked(x0, y0, b.x, b.y)) {
+        b.dead = true;
+        burst(b.x, b.y, 4, '#c9b89a', 120, 1.6, 0.2);
+        continue;
+      }
       if (segHitsCircle(x0, y0, b.x, b.y, G.player.x, G.player.y, 18)) {
         b.dead = true;
         if (b.web) {
@@ -4102,9 +4107,24 @@ function drawShield() {
 
 function throwBomb() {
   if (!G || G.bomb.cd > 0) return false;
-  const cluster = clusterPoint(140);
-  const tx = cluster ? cluster.x : G.player.x + Math.cos(G.player.angle) * 220;
-  const ty = cluster ? cluster.y : G.player.y + Math.sin(G.player.angle) * 220;
+  const RANGE = 550;
+  let best = null;
+  let bestScore = 0;
+  for (const e of G.enemies) {
+    if (e.dead) continue;
+    if (dist2(e.x, e.y, G.player.x, G.player.y) > RANGE * RANGE) continue;
+    let score = 0;
+    for (const o of G.enemies) {
+      if (o.dead) continue;
+      if (dist2(e.x, e.y, o.x, o.y) < 140 * 140) score += o.boss ? 4 : 1;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = e;
+    }
+  }
+  const tx = best ? best.x : G.player.x + Math.cos(G.player.angle) * 220;
+  const ty = best ? best.y : G.player.y + Math.sin(G.player.angle) * 220;
   const lvl = G.skills.grenade;
   G.bombs.push({
     x: G.player.x,
@@ -10980,6 +11000,11 @@ if (window.__DUSTLINE_TEST__) {
     startRun(opts || {});
   };
   window.Dustline.throwBomb = () => (G ? throwBomb() : false);
+  window.Dustline.spawnBulletAt = (x, y, ang, speed, dmg, owner) => {
+    if (!G) return false;
+    spawnBullet(Number(x) || 0, Number(y) || 0, Number(ang) || 0, Number(speed) || 300, Number(dmg) || 10, owner || 'e', '#ff3b30', { life: 2 });
+    return true;
+  };
   window.Dustline.spawnMedkit = (x, y) => {
     if (G) G.medkits.push({ x: G.player.x + x, y: G.player.y + y });
   };

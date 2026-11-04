@@ -3736,3 +3736,54 @@ test('mouse handlers dispatch without throwing (K8 gap)', () => {
   });
   assert.strictEqual(g.api.snapshot().screen, 'paused', 'escape pauses from play');
 });
+
+test('P0-1 room walls block enemy bullets symmetrically (playtest)', () => {
+  const g = boot({ seed: 9111 });
+  deploy(g);
+  g.api.setInvulnerable(false);
+  const room = g.api.rooms(0, 0, 6000)[0];
+  assert.ok(room, 'room exists for wall test');
+  const walls = g.api.props(room.x, room.y, 900).filter((p) => p.kind === 'room-wall');
+  assert.ok(walls.length >= 4, 'room walls exist');
+  const wall = walls.slice().sort((a, b) => b.w * b.h - a.w * a.h)[0];
+  const horizontal = wall.w >= wall.h;
+  const px = wall.x;
+  const py = horizontal ? wall.y + wall.h / 2 + 70 : wall.y;
+  const sx = horizontal ? wall.x : wall.x + wall.w / 2 + 70;
+  const sy = horizontal ? wall.y - wall.h / 2 - 70 : wall.y;
+  const ang = Math.atan2(py - sy, px - sx);
+  g.api.killEnemies();
+  g.api.setPlayer(px, py);
+  const hp0 = g.api.snapshot().hp;
+  assert.ok(g.api.spawnBulletAt(sx, sy, ang, 300, 20, 'e'), 'enemy bullet spawned');
+  g.steps(60);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.hp, hp0, 'wall stops the enemy bullet, hp unchanged');
+  assert.strictEqual(s.bullets.length, 0, 'blocked bullet is dead');
+
+  const open = boot({ seed: 9111 });
+  deploy(open);
+  open.api.setInvulnerable(false);
+  open.api.killEnemies();
+  open.api.setPlayer(0, 0);
+  const hpOpen0 = open.api.snapshot().hp;
+  assert.ok(open.api.spawnBulletAt(0, -140, Math.PI / 2, 300, 20, 'e'), 'open bullet spawned');
+  open.steps(60);
+  assert.ok(open.api.snapshot().hp < hpOpen0, 'no wall means the bullet hits');
+});
+
+test('P0-2 bomb targets the densest cluster near the player (playtest)', () => {
+  const g = boot({ seed: 7 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 15; i++) g.api.spawnEnemy('grunt', -400 + (i % 5) * 10, (i % 5) * 10);
+  for (let i = 0; i < 5; i++) g.api.spawnEnemy('grunt', 400 + (i % 5) * 10, (i % 5) * 10);
+  g.api.setPlayer(2000, 0);
+  for (let i = 0; i < 3; i++) g.api.spawnEnemy('grunt', 50 + (i % 3) * 12, (i % 3) * 12);
+  g.steps(1);
+  assert.ok(g.api.throwBomb(), 'bomb throws after repositioning');
+  g.steps(60);
+  const s = g.api.snapshot();
+  const nearAlive = s.enemies.filter((e) => !e.dead && Math.hypot(e.x - 2000, e.y) < 200).length;
+  assert.strictEqual(nearAlive, 0, 'bomb explodes on the nearby cluster, got ' + nearAlive + ' survivors');
+});
