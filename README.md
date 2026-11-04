@@ -164,6 +164,9 @@ dustline/
 │   └── s5-visuals-after.png  <- P2-10 after: red ramp + star gem (ADR-060)
 │   ├── s5-shop-skins.png     <- P2-13 after: skin shop (ADR-063)
 │   └── s5-shop-vip.png       <- P2-13 after: VIP, no billing (ADR-063)
+│   ├── s5-board-before.png   <- P2-14 before: empty board (ADR-064)
+│   ├── s5-board-after.png    <- P2-14 after: 8 rivals (ADR-064)
+│   └── s5-board-rivals.png   <- P2-14 after: rivals + own runs (ADR-064)
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens

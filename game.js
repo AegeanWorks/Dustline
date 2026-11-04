@@ -402,6 +402,7 @@ function defaultSave() {
     achievements: {},
     boardBests: [],
     friends: [],
+    rivalsBeaten: [],
     deviceId: newDeviceId(),
     lastSeed: 20261029,
     killsByType: {},
@@ -520,6 +521,7 @@ function loadSave() {
     ? raw.deviceId.toLowerCase()
     : newDeviceId();
   merged.boardBests = cleanBoardBests(raw.boardBests);
+  if (!Array.isArray(merged.rivalsBeaten)) merged.rivalsBeaten = [];
   merged.friends = cleanFriends(raw.friends, merged.deviceId);
   return merged;
 }
@@ -2251,6 +2253,16 @@ function recordRun(outcome) {
   });
   save.boardBests = save.boardBests.slice(0, 25);
   save.boardBests = cleanBoardBests(save.boardBests);
+  if (!Array.isArray(save.rivalsBeaten)) save.rivalsBeaten = [];
+  for (const tab of ['global', 'turkiye']) {
+    for (const r of RIVALS[tab]) {
+      const id = (tab === 'global' ? 'g:' : 't:') + r.name;
+      if (save.rivalsBeaten.indexOf(id) < 0 && Math.round(G.score || 0) >= r.score) {
+        save.rivalsBeaten.push(id);
+        save.shards += 25;
+      }
+    }
+  }
   if (G.time >= save.bestTime) {
     save.bestTime = G.time;
     save.bestKills = G.kills;
@@ -9286,6 +9298,38 @@ const BOARD_TABS = [
   { id: 'turkiye', name: 'TÜRKIYE' }
 ];
 
+const RIVALS = {
+  global: [
+    { name: 'DUSTKING', score: 45000, kills: 1800, time: 1500 },
+    { name: 'VORTEX', score: 30000, kills: 1250, time: 1150 },
+    { name: 'MIRAGE', score: 20000, kills: 850, time: 900 },
+    { name: 'SABLE', score: 12000, kills: 520, time: 700 },
+    { name: 'COBALT', score: 8000, kills: 360, time: 540 },
+    { name: 'RAPTOR', score: 5000, kills: 230, time: 400 },
+    { name: 'FLINT', score: 2500, kills: 120, time: 260 },
+    { name: 'PEBBLE', score: 1000, kills: 55, time: 150 }
+  ],
+  turkiye: [
+    { name: 'ANADOLU', score: 30000, kills: 1250, time: 1150 },
+    { name: 'BOZKIR', score: 18000, kills: 780, time: 840 },
+    { name: 'EFE', score: 10000, kills: 440, time: 620 },
+    { name: 'LODOS', score: 6000, kills: 270, time: 450 },
+    { name: 'KARTAL', score: 3000, kills: 140, time: 300 },
+    { name: 'CAKIL', score: 1200, kills: 60, time: 170 }
+  ]
+};
+
+function rivalRows(tab) {
+  return (RIVALS[tab] || []).map((r) => ({
+    name: r.name,
+    code: r.name,
+    score: r.score,
+    kills: r.kills,
+    time: r.time,
+    you: false
+  }));
+}
+
 function ownBoardCode() {
   return (save.deviceId || '').toUpperCase();
 }
@@ -9308,7 +9352,7 @@ function boardEntries() {
     rows.sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score));
     return rows;
   }
-  return save.boardBests.map((e) => ({
+  const yourBest = save.boardBests.map((e) => ({
     name: 'YOU · ' + ownBoardCode().slice(0, 4),
     code: ownBoardCode(),
     score: e.s,
@@ -9318,6 +9362,10 @@ function boardEntries() {
     win: e.win,
     you: true
   }));
+  if (boardTab === 'global' || boardTab === 'turkiye') {
+    return rivalRows(boardTab).concat(yourBest).sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score));
+  }
+  return yourBest;
 }
 
 function tryAddFriend() {
@@ -11560,6 +11608,7 @@ window.Dustline = {
         killsByType: { ...save.killsByType },
         meta: { ...save.meta },
         boardBests: save.boardBests.map((e) => ({ ...e })),
+        rivalsBeaten: (save.rivalsBeaten || []).slice(),
         friends: save.friends.map((f) => ({ ...f })),
         cosmetics: { skins: save.cosmetics.skins.slice(), skin: save.cosmetics.skin, vip: { premium: !!save.cosmetics.vip.premium, items: save.cosmetics.vip.items.slice() } },
         deviceCode: ownBoardCode()

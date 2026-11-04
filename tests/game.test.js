@@ -4318,6 +4318,57 @@ test('P2-11c the ticker counts down to the next surge (playtest visual)', () => 
   assert.ok(labels.some((t) => t.indexOf('SURGE') === 0), 'surge ticker draws, got ' + JSON.stringify(labels.slice(0, 12)));
 });
 
+test('P2-14 the boards seed house rivals to chase (playtest)', () => {
+  const g = boot({ seed: 155, record: true });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('menu-pause'), 'abandon from pause');
+  g.steps(1);
+  assert.ok(g.api.clickButton('leaderboard'), 'leaderboard opens');
+  g.steps(1);
+  let labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('DUSTKING'), 'global legends stand above you');
+  assert.ok(g.api.clickButton('board-turkiye'), 'turkiye tab opens');
+  g.steps(1);
+  labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('ANADOLU'), 'turkiye has its own runners');
+});
+
+test('P2-14b beating rivals pays once and persists (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 157, storage: store });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.api.setKills(1000);
+  g.key('escape');
+  g.steps(1);
+  assert.ok(g.api.clickButton('menu-pause'), 'abandon the big run');
+  g.steps(1);
+  let s = g.api.snapshot();
+  const beaten = s.save.rivalsBeaten;
+  assert.ok(beaten.includes('g:RAPTOR'), 'raptor falls, got ' + JSON.stringify(beaten));
+  assert.ok(beaten.includes('t:LODOS'), 'lodos falls');
+  assert.ok(!beaten.includes('g:COBALT'), 'cobalt still stands');
+  assert.strictEqual(beaten.length, 6, 'six rivals beaten, got ' + beaten.length);
+  const afterFirst = s.save.shards;
+  assert.ok(afterFirst >= 150, 'first beatings pay 25 each, got ' + afterFirst);
+  const g2 = boot({ seed: 157, storage: store });
+  deploy(g2);
+  g2.api.setInvulnerable(true);
+  g2.api.killEnemies();
+  g2.api.setKills(1000);
+  g2.key('escape');
+  g2.steps(1);
+  assert.ok(g2.api.clickButton('menu-pause'), 'abandon an identical run');
+  g2.steps(1);
+  s = g2.api.snapshot();
+  assert.strictEqual(s.save.rivalsBeaten.length, 6, 'no second payout without new beatings');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(s.save.rivalsBeaten.slice().sort())), JSON.parse(JSON.stringify(beaten.slice().sort())), 'beaten list stable');
+});
+
 test('P2-13 the shop sells looks, never power (playtest)', () => {
   const store = makeStore();
   const g = boot({ seed: 151, storage: store });

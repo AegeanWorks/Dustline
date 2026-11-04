@@ -486,3 +486,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted a small in-game shop for kids plus a VIP shop feeding the money drive, with an explicit no-pay-to-win constraint (cosmetics only).
 - **Decision**: New SHOP screen (menu row + dossier shift): SKINS tab with 4 player colors (ranger free, crimson 500, gold 1500, void 3000 shards) — buy/equip/persist via `save.cosmetics`, worn as the player accent (`skinAccent`, default pixels untouched). VIP tab lists 3 packs with USD prices and COMING SOON badges as inert text: clicking is impossible (no buttons pushed), `save.cosmetics.vip` stays `{premium:false,items:[]}`. Shop states the gate on-screen: no billing code in this build; real-money checkout is a separately approved step.
 - **Consequences**: 252/252 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One screen, one save block, one accent hook. Evidence: `shots/s5-shop-skins.png` + `s5-shop-vip.png` (live captures). Next P2: leaderboards for score rivalry.
+
+### ADR-064: P2 house rivals make boards worth chasing (playtest P2-14)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted score rivalry (agar.io-style boards, global/TR/friends). Boards existed but showed only the player's own runs — nothing to chase. No backend exists in this pass, so rivalry is seeded locally with online sync explicitly deferred (the board footer already says so).
+- **Decision**: `RIVALS` tables (global 8, TR 6, megabonk-style beatable scores 1k-45k) merge above the player's bests on those tabs; friends tab unchanged. Beating a rival first-time pays +25 shards (`save.rivalsBeaten`, persisted, shown on the board). Score needed to clear the ladder (~33k for a 1k-kill run) stays below DUSTKING 45k, so the top stays aspirational.
+- **Consequences**: 254/254 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table, one merge, one grant; snapshot gains `rivalsBeaten`. Evidence: `shots/s5-board-before.png` (empty) vs `s5-board-after.png` (8 rivals) + `s5-board-rivals.png` (with own runs). P2 done; next is Stage 4 check.
