@@ -10946,7 +10946,7 @@ function drawOverScreen() {
   if (victory) {
     ctx.fillStyle = '#ffd27a';
     ctx.font = '700 40px Consolas, monospace';
-    ctx.fillText(G.mode === 'bossrush' ? 'BOSS RUSH CLEARED' : 'SURVIVED THE LIMIT', W / 2, 88);
+    ctx.fillText(G.mode === 'bossrush' ? 'BOSS RUSH CLEARED' : G.mode === 'ops' ? 'OPERATION COMPLETE' : 'SURVIVED THE LIMIT', W / 2, 88);
     ctx.fillStyle = '#e7eef3';
     ctx.font = '700 22px Consolas, monospace';
     ctx.fillText(fmtTime(G.time) + ' ON ' + MAPS[G.map].name, W / 2, 120);

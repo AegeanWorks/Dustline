@@ -4607,7 +4607,7 @@ test('P2-15 ops is a 10-minute operation with a paid extraction (playtest)', () 
 });
 
 test('P2-15b ops without extraction still wins at the horn (playtest)', () => {
-  const g = boot({ seed: 163 });
+  const g = boot({ seed: 163, record: true });
   deploy(g, { mode: 'ops' });
   g.api.setInvulnerable(true);
   g.api.setTime(600);
@@ -4615,6 +4615,7 @@ test('P2-15b ops without extraction still wins at the horn (playtest)', () => {
   const s = g.api.snapshot();
   assert.strictEqual(s.screen, 'over', 'the horn ends the op');
   assert.strictEqual(s.victory, true, 'surviving wins');
+  assert.ok(g.texts.some((t) => t.text === 'OPERATION COMPLETE'), 'the win names the operation');
   assert.strictEqual(s.save.achievements.operator, true, 'the op earns OPERATOR');
 });
 

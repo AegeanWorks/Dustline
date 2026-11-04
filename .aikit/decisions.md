@@ -584,3 +584,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The achievement list predated every shipped system, so none of the new progression (rivals, unlocks, ops) fed back into the career chase.
 - **Decision**: Three table-driven rows — RIVAL SLAYER (3 beaten), TREASURE HUNTER (4 maps), OPERATOR (1 ops win) — reusing the goal/merge/evaluate pipeline; `save.opsWins` counted in recordRun like rushClears, with default + clamp + a pre-loaded-career test plus a live ops-win unlock.
 - **Consequences**: 267/267 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Three rows, one counter, zero render changes.
+
+### ADR-078: OPS victory names the operation (header gap)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: OPS wins showed the generic SURVIVORS victory line; boss rush already had its own header, ops did not.
+- **Decision**: `OPERATION COMPLETE` header on ops wins (both timeout and early extract share `winRun`). Pinned by recorder text in the existing timeout-win test.
+- **Consequences**: 267/267 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One ternary branch.
