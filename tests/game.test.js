@@ -4358,6 +4358,20 @@ test('P2-15c fast-path diamonds still paint teal (playtest visual)', () => {
   assert.ok(g.fills.some((f) => f.fillStyle === '#2fe8b0'), 'tier-0 diamonds draw');
 });
 
+test('P2-16 player tracers skip the glow pass (playtest perf)', () => {
+  const g = boot({ seed: 777 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.steps(1);
+  g.step();
+  const base = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  for (let i = 0; i < 50; i++) g.api.spawnBulletAt((i % 10) * 40 - 200, Math.floor(i / 10) * 40 - 100, 0.5, 1, 10, 'p');
+  g.steps(1);
+  g.step();
+  const loaded = Object.keys(g.ops).reduce((sum, k) => sum + g.ops[k], 0);
+  assert.ok((loaded - base) / 50 < 9, 'single-pass tracers, got ' + ((loaded - base) / 50).toFixed(1) + ' ops/bullet');
+});
+
 test('P2-14 the boards seed house rivals to chase (playtest)', () => {
   const g = boot({ seed: 155, record: true });
   deploy(g);

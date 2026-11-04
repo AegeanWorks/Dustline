@@ -507,3 +507,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The 20-min check run showed live-combat frames at ~19.5k canvas ops vs the 7k static-mob pin (2.7x). Op profiling on a fixed 150-enemy + 420-gem + 30-bullet scene: gems alone cost ~4.6k ops (11 each: transform, glow arc, 4-10 segment path, fill, stroke).
 - **Decision**: Tier-0 diamonds drop the glow arc and outline (same silhouette as a rotated rect, which replaces the 4-segment path) and every pickup list culls off-screen draws at a 30-40px margin. Measured on the same scene: 11486 -> 8702 ops (-24%). Bullets keep both trail strokes (own-fire readability first).
 - **Consequences**: 259/259 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Pinned by a full-combat budget test (<10000 ops) and a cull test (far < near) plus a teal-fill render pin. Evidence: `shots/s5-visuals-after.png` (haloed diamonds) vs `shots/s5-perf-gems.png` (clean diamonds, gold star intact).
+
+### ADR-067: Perf layer 2 trims player tracer glow (watch item)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: After the gem cull, player-bullet double strokes (glow + core, 11 ops each) were the next measured draw cost; enemy tracers stay double-pass so incoming fire keeps its halo.
+- **Decision**: Own bullets draw one core stroke widened 1.8 to 2.5; enemy bullets unchanged. Measured: 11.0 to 7.0 ops per player bullet (-36%, ~200 ops at 50 in flight) plus the fill-rate win of dropping the wide `lighter` pass.
+- **Consequences**: 260/260 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Pinned by a per-bullet op test (<9). Evidence: `shots/s5-perf-storm.png` doubles as the missing live sandstorm capture (streak lines, banner, ticker) for ADR-062.

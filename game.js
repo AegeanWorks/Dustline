@@ -7730,17 +7730,20 @@ function drawBullets() {
     const enemy = b.owner === 'e';
     const tx = b.x - b.vx * (enemy ? 0.02 : 0.014);
     const ty = b.y - b.vy * (enemy ? 0.02 : 0.014);
-    ctx.globalCompositeOperation = 'lighter';
+    if (enemy) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = b.color;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+    }
     ctx.strokeStyle = b.color;
-    ctx.globalAlpha = enemy ? 0.42 : 0.26;
-    ctx.lineWidth = enemy ? 8 : 6;
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = enemy ? 3 : 1.8;
+    ctx.lineWidth = enemy ? 3 : 2.5;
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     ctx.lineTo(b.x, b.y);
