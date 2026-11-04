@@ -159,6 +159,7 @@ dustline/
 │   └── s4-game-touch.png     <- in-game touch-layout capture
 │   ├── s5-minimap-before.png <- P2-3 before: empty corner (ADR-053)
 │   └── s5-minimap-after.png  <- P2-3 after: round minimap (ADR-053)
+│   └── s5-maps-after.png     <- P2-5 after: LOCK badges + bonuses (ADR-055)
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens

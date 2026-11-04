@@ -406,7 +406,7 @@ function defaultSave() {
     lastSeed: 20261029,
     killsByType: {},
     meta: { power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0, rig: 0, velocity: 0, harvest: 0, resolve: 0 },
-    unlocked: { weapons: ['ak'], maps: ['desert'] }
+    unlocked: { weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }
   };
 }
 
@@ -479,7 +479,9 @@ function loadSave() {
   }
   merged.killsByType = Object.assign({}, raw.killsByType || {});
   merged.achievements = Object.assign({}, raw.achievements || {});
-  merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert'] }, raw.unlocked || {});
+  merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }, raw.unlocked || {});
+  if (!Array.isArray(merged.unlocked.maps)) merged.unlocked.maps = [];
+  for (const id of ['desert', 'frost', 'ash']) if (merged.unlocked.maps.indexOf(id) < 0) merged.unlocked.maps.push(id);
   for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
@@ -1218,6 +1220,8 @@ const MAPS = {
     sky: ['#93a567', '#77894f', '#55663c'],
     accent: '#9be59b',
     hazard: 'vines',
+    price: 500,
+    income: 1.05,
     props: { building: '#8a8158', rock: '#7a7862', tree: '#377033' }
   },
   crater: {
@@ -1226,6 +1230,8 @@ const MAPS = {
     sky: ['#9c8b9b', '#7f7080', '#5e5365'],
     accent: '#c8a2d8',
     hazard: 'tar',
+    price: 1500,
+    income: 1.1,
     props: { building: '#75616f', rock: '#877c86', tree: '#66745a' }
   },
   toxic: {
@@ -1234,6 +1240,8 @@ const MAPS = {
     sky: ['#8b9a6a', '#6f7f57', '#4e5c3e'],
     accent: '#a8ff8f',
     hazard: 'gas',
+    price: 3000,
+    income: 1.1,
     props: { building: '#707f66', rock: '#7f8166', tree: '#3f7d2e' }
   },
   glass: {
@@ -1242,11 +1250,21 @@ const MAPS = {
     sky: ['#b3c2b4', '#8fa094', '#6b7a70'],
     accent: '#bfe6e0',
     hazard: 'shards',
+    price: 5000,
+    income: 1.15,
     props: { building: '#87948c', rock: '#a8b8ae', tree: '#54806b' }
   }
 };
 
 const MAP_ORDER = ['desert', 'frost', 'ash', 'jungle', 'crater', 'toxic', 'glass'];
+
+function isMapUnlocked(id) {
+  return !!(MAPS[id] && save.unlocked && Array.isArray(save.unlocked.maps) && save.unlocked.maps.indexOf(id) >= 0);
+}
+
+function mapIncome(id) {
+  return (MAPS[id] && MAPS[id].income) || 1;
+}
 
 const TIME_LIMITS = [
   { id: 'endless', label: 'ENDLESS', sec: 0 },
@@ -1616,6 +1634,7 @@ function addUnbanked(value) {
     value *
     G.market *
     (G.diff ? G.diff.shard : 1) *
+    mapIncome(G.map) *
     mutatorShardMult() *
     (1 + 0.08 * (save.meta.harvest || 0)) *
     (hasRelic('greedengine') ? 1.2 : 1) *
@@ -1945,6 +1964,7 @@ function startRun(options) {
   const opts = options || {};
   if (opts.weapon && WEAPONS[opts.weapon]) setup.weapon = opts.weapon;
   if (opts.map && MAPS[opts.map]) setup.map = opts.map;
+  if (opts.daily == null && !isMapUnlocked(setup.map)) setup.map = 'desert';
   if (opts.limit) {
     const found = TIME_LIMITS.some((l) => l.id === opts.limit);
     if (found) setup.limit = opts.limit;
@@ -8387,7 +8407,7 @@ function drawSetupScreen() {
     ctx.fillStyle = m.sky[0];
     rr(x, y, mapW, 72, 6);
     ctx.fill();
-    ctx.globalAlpha = chosen ? 0.3 : 0.55;
+    ctx.globalAlpha = chosen ? 0.3 : isMapUnlocked(id) ? 0.55 : 0.72;
     ctx.fillStyle = '#06080a';
     rr(x, y, mapW, 72, 6);
     ctx.fill();
@@ -8403,6 +8423,15 @@ function drawSetupScreen() {
     ctx.fillStyle = 'rgba(235,230,215,0.75)';
     ctx.font = '600 8px Consolas, monospace';
     ctx.fillText('HAZARD · ' + HAZARDS[m.hazard].name.split(' ')[0], x + 8, y + 38);
+    if (!isMapUnlocked(id)) {
+      ctx.fillStyle = '#ff8a5c';
+      ctx.font = '700 8px Consolas, monospace';
+      ctx.fillText('LOCK ' + (m.price || 0) + ' · +' + Math.round(((m.income || 1) - 1) * 100) + '%', x + 8, y + 54);
+    } else if ((m.income || 1) > 1) {
+      ctx.fillStyle = '#63dcc0';
+      ctx.font = '700 8px Consolas, monospace';
+      ctx.fillText('+' + Math.round((m.income - 1) * 100) + '% SHARDS', x + 8, y + 54);
+    }
     ctx.fillStyle = m.props.building;
     ctx.fillRect(x + mapW - 32, y + 47, 7, 7);
     ctx.fillStyle = m.props.rock;
@@ -10529,7 +10558,23 @@ function pressButton(id) {
   }
   if (id.indexOf('map-') === 0 && id !== 'map-close' && id !== 'mapview-pause') {
     const map = id.slice(4);
-    if (MAPS[map]) setup.map = map;
+    if (!MAPS[map]) return;
+    if (isMapUnlocked(map)) {
+      setup.map = map;
+      return;
+    }
+    const price = MAPS[map].price || 0;
+    if (save.shards >= price) {
+      save.shards -= price;
+      save.unlocked.maps.push(map);
+      writeStore(SAVE_KEY, save);
+      setup.map = map;
+      if (G) G.news = MAPS[map].name + ' unlocked for ' + price + ' shards.';
+      sfx.upgrade();
+      return;
+    }
+    if (G) G.news = MAPS[map].name + ' needs ' + price + ' shards.';
+    sfx.denied();
     return;
   }
   if (id.indexOf('limit-') === 0) {
@@ -11034,6 +11079,7 @@ window.Dustline = {
         dailyBest: JSON.parse(JSON.stringify(save.dailyBest || {})),
         achievements: Object.assign({}, save.achievements || {}),
         achievementCount: achievementUnlocked(),
+        unlocked: { weapons: (save.unlocked.weapons || []).slice(), maps: (save.unlocked.maps || []).slice() },
         killsByType: { ...save.killsByType },
         meta: { ...save.meta },
         boardBests: save.boardBests.map((e) => ({ ...e })),
@@ -11328,6 +11374,12 @@ if (window.__DUSTLINE_TEST__) {
     if (!G || screen !== 'levelup') return false;
     if (!G.offers[Number(index) || 0]) return false;
     chooseUpgrade(Number(index) || 0);
+    return true;
+  };
+  window.Dustline.unlockMap = (id) => {
+    if (!MAPS[id] || isMapUnlocked(id)) return false;
+    save.unlocked.maps.push(id);
+    writeStore(SAVE_KEY, save);
     return true;
   };
   window.Dustline.spawnMedkit = (x, y) => {

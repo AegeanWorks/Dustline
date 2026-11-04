@@ -86,6 +86,7 @@ test('the setup screen offers weapons, maps and time limits that apply to the ru
   g.api.clickButton('weapon-dmr');
   g.api.clickButton('setup-tab-1');
   g.steps(1);
+  g.api.grantShards(500);
   g.api.clickButton('map-jungle');
   g.api.clickButton('limit-10');
   g.steps(1);
@@ -1252,6 +1253,7 @@ test('each map has a terrain hazard and embers burn', () => {
   for (const map of Object.keys(expectations)) {
     const g = boot({ seed: 433 });
     enterSetup(g);
+    g.api.grantShards(5000);
     g.api.clickButton('setup-tab-1');
     g.steps(1);
     g.api.clickButton('map-' + map);
@@ -2509,6 +2511,7 @@ test('each map declares its own ambient particle mode', () => {
   const expected = { desert: 'dust', frost: 'snow', ash: 'ember', jungle: 'firefly' };
   for (const map of Object.keys(expected)) {
     const g = boot({ seed: 2000 + map.length });
+    if (map === 'jungle') assert.ok(g.api.unlockMap('jungle'), 'test owns jungle');
     g.api.startRun({ map });
     g.step();
     const amb = g.api.ambience();
@@ -2550,6 +2553,7 @@ test('each map has ground decorations from its own palette', () => {
   };
   for (const map of Object.keys(expected)) {
     const g = boot({ seed: 2300 + map.length });
+    if (map === 'jungle') assert.ok(g.api.unlockMap('jungle'), 'test owns jungle');
     g.api.startRun({ map });
     const decor = g.api.decor(0, 0, 800);
     assert.ok(decor.length > 0, map + ' has ground decor');
@@ -2577,6 +2581,7 @@ test('crater, dead-zone and glass maps expose tar, gas and shard hazards', () =>
   const expectations = { crater: 'tar', toxic: 'gas', glass: 'shards' };
   for (const map of Object.keys(expectations)) {
     const g = boot({ seed: 3000 + map.length });
+    assert.ok(g.api.unlockMap(map), 'test owns ' + map);
     g.api.startRun({ map });
     g.steps(1);
     assert.strictEqual(g.api.snapshot().map, map);
@@ -2902,7 +2907,7 @@ test('player camouflage follows the map palette', () => {
   frost.api.startRun({ map: 'frost' });
   frost.steps(1);
   const toxic = boot({ seed: 3621 });
-  toxic.api.startRun({ map: 'toxic' });
+  toxic.api.startRun({ map: 'ash' });
   toxic.steps(1);
   const a = desert.api.snapshot().camo;
   const b = frost.api.snapshot().camo;
@@ -4112,6 +4117,45 @@ test('P2-4 brutal pays +10% and nightmare +15% shards (playtest)', () => {
   assert.ok(rates.normal > 0, 'baseline pays');
   assert.ok(Math.abs(rates.brutal / rates.normal - 1.1) < 1e-9, 'brutal +10%, got ' + rates.brutal / rates.normal);
   assert.ok(Math.abs(rates.nightmare / rates.normal - 1.15) < 1e-9, 'nightmare +15%, got ' + rates.nightmare / rates.normal);
+});
+
+test('P2-5 locked maps refuse clicks until bought with shards (playtest)', () => {
+  const g = boot({ seed: 89 });
+  enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  g.api.clickButton('map-glass');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'desert', 'glass stays locked without shards');
+  const before = g.api.snapshot().save.shards;
+  g.api.grantShards(5000);
+  g.api.clickButton('map-glass');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.map, 'glass', 'glass unlocks and selects');
+  assert.strictEqual(g.api.snapshot().save.shards, before + 5000 - 5000, 'price deducted');
+  assert.ok(g.api.snapshot().save.unlocked.maps.includes('glass'), 'unlock persists in the save');
+});
+
+test('P2-5b unlockable maps pay their income bonus (playtest)', () => {
+  const g = boot({ seed: 91 });
+  g.api.grantShards(500);
+  deploy(g, { map: 'jungle' });
+  g.api.setKills(150);
+  const jungle = g.api.snapshot().unbanked;
+  const h = boot({ seed: 91 });
+  deploy(h);
+  h.api.setKills(150);
+  const desert = h.api.snapshot().unbanked;
+  assert.ok(desert > 0, 'baseline pays');
+  assert.ok(Math.abs(jungle / desert - 1.05) < 1e-9, 'jungle +5%, got ' + jungle / desert);
+});
+
+test('P2-5c old saves keep the three open maps (playtest migration)', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({ v: 2, unlocked: { weapons: ['ak'], maps: ['desert'] } });
+  const g = boot({ seed: 93, storage: store });
+  const maps = g.api.snapshot().save.unlocked.maps;
+  for (const id of ['desert', 'frost', 'ash']) assert.ok(maps.includes(id), id + ' stays open, got ' + JSON.stringify(maps));
 });
 
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {

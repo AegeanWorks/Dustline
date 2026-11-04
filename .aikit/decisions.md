@@ -423,3 +423,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest priced harder modes at +10% (brutal) / +15% (nightmare) extra income; the table paid +35% / +80% shard multipliers on top of already-heavier spawn/HP/damage scaling.
 - **Decision**: `DIFFICULTIES` shard 1.35→1.10 (brutal) and 1.8→1.15 (nightmare); blurbs now state the premium explicitly. Spawn/HP/damage untouched. Measured per-100-base income: brutal 135→110 (-18.5%), nightmare 180→115 (-36%).
 - **Consequences**: 230/230 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Two numbers + two blurbs; existing brutal-tougher/pays-more tests still pass. Next P2: 7 maps with 3 open + 4 unlockable with income bonuses.
+
+### ADR-055: P2 map unlocks with income bonuses (playtest P2-5)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted 7 maps with 3 open, the rest bought with earned money and each granting extra income (+5%/+10%).
+- **Decision**: Desert/frost/ash open; jungle 500/+5%, crater 1500/+10%, toxic 3000/+10%, glass 5000/+15% (shard income via `mapIncome` in `addUnbanked`). Clicking a locked card buys it from `save.shards` when affordable (persisted), selects it, and announces; otherwise denied with the price. `startRun` falls back to desert for locked maps except dailies (daily rotation spans all 7 by design). Setup cards show `LOCK {price} +{pct}%` or the owned `+{pct}% SHARDS` badge with a dimmer overlay while locked. Old saves union the 3 open maps; `snapshot().save.unlocked` exposed read-only; test-only `unlockMap` seam for content tests.
+- **Consequences**: 233/233 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Four prices, one multiplier hook, one guard, one badge; 4 map-content tests re-pinned to owned maps, camo test moved toxic->ash. Evidence: `shots/s4-setup-map.png` (before, all open) vs `shots/s5-maps-after.png` (LOCK badges + owned bonus). Next P2: reroll dice pickups.
