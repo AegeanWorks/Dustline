@@ -7956,11 +7956,18 @@ function drawTouchControls() {
     ctx.stroke();
   }
   const bx = W - 86, by = H - 96;
-  const buttons = [
-    { x: bx, y: by, label: 'DASH', color: '#9fd8ff' },
-    { x: bx - 74, y: by, label: 'BOMB', color: '#ffcf5c' },
-    { x: bx - 148, y: by, label: 'OD', color: '#ff8a5c' }
-  ];
+  const buttons = G && G.radioArmed > 0
+    ? [
+      { x: bx, y: by, label: 'DASH', color: '#9fd8ff' },
+      { x: bx - 74, y: by, label: 'BOMB', color: '#ffcf5c' },
+      { x: bx - 148, y: by, label: 'OD', color: '#ff8a5c' },
+      { x: bx - 222, y: by, label: 'RADIO', color: '#9fd8ff' }
+    ]
+    : [
+      { x: bx, y: by, label: 'DASH', color: '#9fd8ff' },
+      { x: bx - 74, y: by, label: 'BOMB', color: '#ffcf5c' },
+      { x: bx - 148, y: by, label: 'OD', color: '#ff8a5c' }
+    ];
   for (const b of buttons) {
     ctx.globalAlpha = 0.52;
     ctx.fillStyle = 'rgba(20,24,28,0.85)';
@@ -11600,6 +11607,7 @@ cv.addEventListener('touchstart', (e) => {
       if (Math.hypot(p.x - bx, p.y - by) < 46) keys['shift'] = true;
       else if (Math.hypot(p.x - (bx - 74), p.y - by) < 46) keys[settings.bombKey === 'q' ? 'q' : 'e'] = true;
       else if (Math.hypot(p.x - (bx - 148), p.y - by) < 46) keys['r'] = true;
+      else if (G && G.radioArmed > 0 && Math.hypot(p.x - (bx - 222), p.y - by) < 46 && screen === 'play') fireRadioStrike();
     }
   }
 }, { passive: false });

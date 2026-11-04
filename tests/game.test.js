@@ -4855,3 +4855,24 @@ test('P2-16b touch BOMB button follows the key binding (playtest)', () => {
     g.steps(1);
   }
 });
+
+test('P2-9d touch players can call the plane from a RADIO button (playtest)', () => {
+  const g = boot({ seed: 191 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  g.api.killEnemies();
+  g.handlers.touchstart({ preventDefault() {}, changedTouches: [{ identifier: 9, clientX: 652, clientY: 504 }] });
+  g.steps(2);
+  g.handlers.touchend({ preventDefault() {}, changedTouches: [{ identifier: 9 }] });
+  assert.ok(!g.api.snapshot().airstrike, 'empty tap calls nothing');
+  assert.ok(g.api.spawnRadio(10, 0), 'radio spawned');
+  g.steps(5);
+  assert.strictEqual(g.api.snapshot().radioArmed, 1, 'radio armed');
+  g.handlers.touchstart({ preventDefault() {}, changedTouches: [{ identifier: 9, clientX: 652, clientY: 504 }] });
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.radioArmed, 0, 'tap calls the strike');
+  assert.ok(s.airstrike, 'the plane is inbound');
+  g.handlers.touchend({ preventDefault() {}, changedTouches: [{ identifier: 9 }] });
+  g.steps(1);
+});
