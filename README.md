@@ -176,6 +176,7 @@ dustline/
 │   └── s5-help-refresh.png     <- refreshed HOW TO PLAY (ADR-075)
 │   └── s5-career-rivals.png  <- career rivals row (ADR-071)
 │   └── s5-touch-minimap.png    <- touch minimap lift (ADR-072)
+│   └── s5-dogfood-run.png      <- live 3-min keyboard run, no defects found
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens
