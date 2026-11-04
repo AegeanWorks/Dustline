@@ -619,3 +619,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Ranks were earned mid-run and shown in the HUD, but the after-action report never said what the player discharged as.
 - **Decision**: Append `RANK <NAME>` to the existing over-screen footer line (mode, mutator, relics already live there). Zero layout change.
 - **Consequences**: 269/269 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One string segment, pinned in the fanfare death-run.
+
+### ADR-083: Surge-boss-evolution pileup stays sane (interaction robustness)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Three recent systems (surge gating, boss no-stack, evolution choice) had never been stressed in the same frame sequence; their overlap windows (boss wave x surge tick x ready evolution) were untested.
+- **Decision**: A scripted collision test: hive alive across the 200s line while an evolution sits ready, then mass-kill and level through. Asserts play continues, the held surge releases, the ring assaults, and every entity keeps finite coords and non-negative hp.
+- **Consequences**: 270/270 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only addition, no game change.

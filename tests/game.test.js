@@ -4810,3 +4810,26 @@ test('P2-15d ops defeat names the failed mission (playtest)', () => {
   const labels = g.texts.map((t) => t.text);
   assert.ok(labels.includes('MISSION FAILED'), 'defeat names the operation');
 });
+
+test('P2-11d surge, boss and evolution collide without corruption (robustness)', () => {
+  const g = boot({ seed: 222 });
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 9; i++) g.api.applyUpgrade('rifle');
+  for (let i = 0; i < 3; i++) g.api.applyUpgrade('bulletSpeed');
+  g.api.spawnBoss('hive');
+  g.api.setTime(201);
+  g.steps(2);
+  assert.strictEqual(g.api.snapshot().assault.pending, true, 'surge holds for the boss');
+  g.api.killEnemies();
+  for (let i = 0; i < 40; i++) {
+    g.steps(5);
+    const q = g.api.snapshot();
+    if (q.screen === 'levelup') g.api.chooseUpgrade(0);
+  }
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'play', 'the run survives the pileup');
+  assert.strictEqual(s.assault.pending, false, 'the held surge releases');
+  assert.ok(s.enemies.length > 0, 'the ring assaults');
+  assert.ok(s.enemies.every((e) => Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp >= 0), 'every entity stays sane');
+});
