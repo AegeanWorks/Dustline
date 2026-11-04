@@ -2049,6 +2049,7 @@ function startRun(options) {
     limitSec: setup.mode === 'ops' ? 600 : limit.sec,
     limitLabel: setup.mode === 'ops' ? '10 MIN OP' : limit.label,
     opBeacon: false,
+    rivalsBeatenRun: [],
     victory: false,
     seed,
     rng: seed,
@@ -2269,11 +2270,13 @@ function recordRun(outcome) {
   save.boardBests = save.boardBests.slice(0, 25);
   save.boardBests = cleanBoardBests(save.boardBests);
   if (!Array.isArray(save.rivalsBeaten)) save.rivalsBeaten = [];
+  G.rivalsBeatenRun = [];
   for (const tab of ['global', 'turkiye']) {
     for (const r of RIVALS[tab]) {
       const id = (tab === 'global' ? 'g:' : 't:') + r.name;
       if (save.rivalsBeaten.indexOf(id) < 0 && Math.round(G.score || 0) >= r.score) {
         save.rivalsBeaten.push(id);
+        G.rivalsBeatenRun.push(r.name);
         save.shards += 25;
       }
     }
@@ -11014,10 +11017,16 @@ function drawOverScreen() {
   ctx.fillText(operatorDef().name + ' · ' + modeLine + (mut && mut.id !== 'none' ? ' · ' + mut.name : '') + (G.relics.length ? ' · RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, panelY + 158);
 
   const combo = activeCombos();
+  const comboY = panelY + (G.rivalsBeatenRun && G.rivalsBeatenRun.length ? 196 : 178);
+  if (G.rivalsBeatenRun && G.rivalsBeatenRun.length) {
+    ctx.fillStyle = '#ffd27a';
+    ctx.font = '700 10px Consolas, monospace';
+    ctx.fillText('RIVALS BEATEN · ' + G.rivalsBeatenRun.slice(0, 4).join(' · ') + (G.rivalsBeatenRun.length > 4 ? ' +' + (G.rivalsBeatenRun.length - 4) + ' MORE' : '') + '  (+' + G.rivalsBeatenRun.length * 25 + ')', W / 2, panelY + 178);
+  }
   if (combo.length) {
     ctx.fillStyle = 'rgba(255,210,122,0.85)';
     ctx.font = '600 10px Consolas, monospace';
-    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, panelY + 178);
+    ctx.fillText('COMBOS: ' + combo.map((c) => c.name).join(' · '), W / 2, comboY);
   }
 
   drawButton('retry', 'REDEPLOY', W / 2 - 130, 368, 240, 44);

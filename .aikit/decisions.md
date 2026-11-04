@@ -528,3 +528,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Fifteen shipped systems (ranks, ops, rivals, surges, storms, shop, dice, radio, minimap, bomb mode, dash charges, akimbo, maps, difficulties, evolutions choice) had no in-game documentation; the manual only knew hostiles, bosses, relics, and lore. New players met mechanics with no explanation.
 - **Decision**: Fifth manual tab SYSTEMS with five compact rows (ranks, ops, rivals, surges+storms, shop+pickups), table-driven like the other tabs. Akimbo/choice-evolutions/difficulties are already covered by the skill codex and setup cards, so they stay out of this tab.
 - **Consequences**: 261/261 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One table, one branch, tab-count test re-pinned 4→5. Evidence: `shots/s5-manual-systems.png` (live capture, all rows visible).
+
+### ADR-070: Rival-beaten fanfare on the over screen (playtest P2-14)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Beating a house rival paid +25 shards with no on-screen moment; the board showed it later, but the run's climax stayed silent about the rivalry the report asked for.
+- **Decision**: Submit records per-run `G.rivalsBeatenRun` names; the after-action report prints `RIVALS BEATEN · ... (+N)` between the rewards line and the footer, pushing combos one row down (panel still fits). No live capture: the line needs a 5k+ run no scripted browser drive can reach, so the recorder fillText pin is the visual proof.
+- **Consequences**: 262/262 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One run-scoped list, one report line.

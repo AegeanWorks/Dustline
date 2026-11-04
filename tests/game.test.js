@@ -4448,6 +4448,23 @@ test('P2-14b beating rivals pays once and persists (playtest)', () => {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(s.save.rivalsBeaten.slice().sort())), JSON.parse(JSON.stringify(beaten.slice().sort())), 'beaten list stable');
 });
 
+test('P2-14c the over screen names the rivals you just beat (playtest visual)', () => {
+  const g = boot({ seed: 171, record: true });
+  deploy(g);
+  g.api.killEnemies();
+  g.api.setKills(1000);
+  for (let i = 0; i < 6; i++) g.api.spawnEnemy('tank', 25 + (i % 3) * 8, (i % 3) * 8);
+  let over = false;
+  for (let i = 0; i < 30 && !over; i++) {
+    g.steps(30);
+    over = g.api.snapshot().screen === 'over';
+  }
+  assert.ok(over, 'the run ends on the over screen');
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.some((t) => t.indexOf('RIVALS BEATEN') === 0), 'beaten rivals get their moment, got ' + JSON.stringify(labels.slice(0, 12)));
+});
+
 test('P2-13 the shop sells looks, never power (playtest)', () => {
   const store = makeStore();
   const g = boot({ seed: 151, storage: store });
