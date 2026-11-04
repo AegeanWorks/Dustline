@@ -4230,6 +4230,41 @@ test('P2-7b dashes spend charges and refill one at a time (playtest)', () => {
   g.key('d', false);
 });
 
+test('P2-8 bomb mode toggles and persists (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 105, storage: store });
+  assert.strictEqual(g.api.snapshot().settings.bombMode, 'manual', 'manual by default');
+  assert.ok(g.api.clickButton('settings'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('bomb-mode'), 'mode toggles');
+  assert.strictEqual(g.api.snapshot().settings.bombMode, 'auto', 'now automatic');
+  const g2 = boot({ seed: 106, storage: store });
+  assert.strictEqual(g2.api.snapshot().settings.bombMode, 'auto', 'auto persists across sessions');
+});
+
+test('P2-8b auto mode throws at crowds, manual waits for E (playtest)', () => {
+  const store = makeStore();
+  const g = boot({ seed: 107, storage: store });
+  assert.ok(g.api.clickButton('settings'));
+  g.steps(1);
+  assert.ok(g.api.clickButton('bomb-mode'));
+  assert.ok(g.api.clickButton('back-settings'));
+  g.steps(1);
+  deploy(g);
+  g.api.setInvulnerable(true);
+  for (let i = 0; i < 5; i++) g.api.spawnEnemy('grunt', 100 + (i % 5) * 10, (i % 5) * 10);
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().bomb.mode, 'auto', 'run follows the setting');
+  g.steps(5);
+  assert.ok(g.api.snapshot().bombs > 0, 'auto throws without E');
+  const h = boot({ seed: 109 });
+  deploy(h);
+  h.api.setInvulnerable(true);
+  for (let i = 0; i < 5; i++) h.api.spawnEnemy('grunt', 100 + (i % 5) * 10, (i % 5) * 10);
+  h.steps(30);
+  assert.strictEqual(h.api.snapshot().bombs, 0, 'manual never self-throws');
+});
+
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
   const g = boot({ seed: 77 });
   deploy(g, { weapon: 'beretta' });

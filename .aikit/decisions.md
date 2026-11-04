@@ -444,3 +444,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted the dash count upgraded to 3-5 and longer dash distance. The single 1.5s-cooldown dash was the only mobility lever.
 - **Decision**: Shock Boots now banks charges: `dashMax() = 1 + floor(dashPower/3)` (L3:2, L6:3, L9-10:4), one charge per 1.5s refill, burst-spendable. Dash duration `0.18 + 0.008/lvl` (L10: 0.26s, +44% distance at the same boost). HUD shows `SHIFT DASH xN` / refilling `DASH xN s.s`; `snapshot().dash` gains charges/max.
 - **Consequences**: 238/238 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One scalar pair, one pool, label + stat-line + details text. Next P2: manual/auto bomb key choice.
+
+### ADR-058: P2 manual/auto bomb mode (playtest P2-8)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest wanted the choice between throwing the E bomb manually and letting it fire automatically. The manual E throw and auto grenades already existed side by side; the manual bomb itself had no auto path.
+- **Decision**: `settings.bombMode` manual (default) / auto, toggled on the settings screen with persistence and old-save default. Auto calls the same range-clamped `throwBomb` whenever off cooldown with a hostile inside 550px. HUD panel reads `SHIFT DASH` style: `E BOMB` vs `AUTO BOMB`; `snapshot().bomb.mode` pinned.
+- **Consequences**: 240/240 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One setting, one auto block, label + snapshot field. Next P2: airstrike as a radio/plane pickup.

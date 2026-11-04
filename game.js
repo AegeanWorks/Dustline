@@ -158,7 +158,7 @@ function hash2(x, y) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true, outlines: false, flashes: true };
+const DEFAULT_SETTINGS = { volume: 70, shake: true, damageNumbers: true, outlines: false, flashes: true, bombMode: 'manual' };
 const SETTINGS_KEY = 'dustline.settings';
 const SAVE_KEY = 'dustline.save';
 const SAVE_VERSION = 2;
@@ -526,6 +526,7 @@ function loadSettings() {
     if (typeof raw.damageNumbers === 'boolean') merged.damageNumbers = raw.damageNumbers;
     if (typeof raw.outlines === 'boolean') merged.outlines = raw.outlines;
     if (typeof raw.flashes === 'boolean') merged.flashes = raw.flashes;
+    if (raw.bombMode === 'auto' || raw.bombMode === 'manual') merged.bombMode = raw.bombMode;
   }
   return merged;
 }
@@ -5311,6 +5312,14 @@ function updateRun(dt) {
   const bombHeld = !!keys['e'];
   if (bombHeld && !G.bomb.held) throwBomb();
   G.bomb.held = bombHeld;
+  if (settings.bombMode === 'auto' && G.bomb.cd <= 0 && screen === 'play') {
+    for (const e of G.enemies) {
+      if (!e.dead && dist2(e.x, e.y, G.player.x, G.player.y) < 550 * 550) {
+        throwBomb();
+        break;
+      }
+    }
+  }
 
   updateSkills(dt);
   updateSoldiers(dt);
@@ -7965,7 +7974,8 @@ function drawHUD() {
     ctx.fillStyle = dashReady ? '#9fd8ff' : 'rgba(159,216,255,0.38)';
     ctx.fillText(dashReady ? 'SHIFT ' + dashLabel : dashLabel, left + dw / 2, by + 13);
     ctx.fillStyle = bombReady ? '#ffcf5c' : 'rgba(255,207,92,0.38)';
-    ctx.fillText(bombReady ? 'E BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
+    const bombLabel = settings.bombMode === 'auto' ? 'AUTO' : 'E';
+    ctx.fillText(bombReady ? bombLabel + ' BOMB' : 'BOMB ' + G.bomb.cd.toFixed(1), left + dw + gap + dw / 2, by + 13);
     const odX = left + (dw + gap) * 2;
     ctx.fillStyle = odOn ? '#ff8a5c' : G.od.heat > 15 ? '#e0b13c' : 'rgba(255,138,92,0.35)';
     ctx.fillText(odOn ? 'OVERDRIVE' : 'R OD ' + Math.round(G.od.heat), odX + dw / 2, by + 13);
@@ -8924,11 +8934,15 @@ function drawSettingsScreen() {
   drawButton('flashes', settings.flashes ? 'ON' : 'OFF', 668, 349, 116, 32);
   lamp(settings.flashes, 598, 365);
 
-  drawButton('back-settings', 'BACK', W / 2, 424, 180, 38);
+  rowCard('BOMB MODE', 'E throws manually, AUTO throws at crowds', 396);
+  drawButton('bomb-mode', settings.bombMode === 'auto' ? 'AUTO' : 'MANUAL', 668, 403, 116, 32);
+  lamp(settings.bombMode === 'auto', 598, 419);
+
+  drawButton('back-settings', 'BACK', W / 2, 452, 180, 38);
   ctx.fillStyle = 'rgba(190,180,155,0.55)';
   ctx.font = '600 10px Consolas, monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 484);
+  ctx.fillText('SETTINGS ARE SAVED AUTOMATICALLY', W / 2, 512);
 }
 
 const BOARD_TABS = [
@@ -10840,6 +10854,11 @@ function pressButton(id) {
     writeStore(SETTINGS_KEY, settings);
     return;
   }
+  if (id === 'bomb-mode') {
+    settings.bombMode = settings.bombMode === 'auto' ? 'manual' : 'auto';
+    writeStore(SETTINGS_KEY, settings);
+    return;
+  }
   if (id === 'resume') {
     screen = 'play';
     return;
@@ -11338,7 +11357,7 @@ window.Dustline = {
       snap.bulletPierce = G.bullets.filter((b) => b.owner === 'p').map((b) => b.pierce || 0);
       snap.bannerT = G.bannerT;
       snap.dash = { ready: G.dash.charges > 0, cd: G.dash.cd, t: G.dash.t, charges: G.dash.charges, max: dashMax() };
-      snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd };
+      snap.bomb = { ready: G.bomb.cd <= 0, cd: G.bomb.cd, mode: settings.bombMode };
       snap.shield = { charges: G.shield.charges, max: shieldMax(), t: G.shield.t };
       snap.slow = G.slowT;
       snap.pools = G.pools.length;
