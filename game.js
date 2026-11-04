@@ -282,7 +282,10 @@ const ACHIEVEMENTS = [
   { id: 'daily_win', name: 'DAILY ACE', desc: 'Win a daily challenge', goal: (s) => s.dailyWins || 0, target: 1, reward: 80 },
   { id: 'legend', name: 'LEGEND', desc: 'Kill 500 enemies in one run', goal: (s) => s.bestKills || 0, target: 500, reward: 100 },
   { id: 'high_score', name: 'HIGH SCORE', desc: 'Score 10,000 in one run', goal: (s) => s.bestScore || 0, target: 10000, reward: 80 },
-  { id: 'secret_seeker', name: 'SECRET SEEKER', desc: 'Discover 3 secret combos', goal: (s) => s.secrets || 0, target: 3, reward: 70 }
+  { id: 'secret_seeker', name: 'SECRET SEEKER', desc: 'Discover 3 secret combos', goal: (s) => s.secrets || 0, target: 3, reward: 70 },
+  { id: 'rival_slayer', name: 'RIVAL SLAYER', desc: 'Beat 3 house rivals', goal: (s) => s.rivalsBeaten || 0, target: 3, reward: 50 },
+  { id: 'treasure_hunter', name: 'TREASURE HUNTER', desc: 'Unlock 4 maps', goal: (s) => s.mapsUnlocked || 0, target: 4, reward: 50 },
+  { id: 'operator', name: 'OPERATOR', desc: 'Win an OPS operation', goal: (s) => s.opsWins || 0, target: 1, reward: 60 }
 ];
 
 function achievementUnlocked() {
@@ -315,7 +318,10 @@ function achievementStats() {
     dailyDone: Object.keys(save.dailyBest || {}).length + (live && G.daily != null ? 1 : 0),
     dailyWins:
       Object.keys(save.dailyBest || {}).filter((day) => save.dailyBest[day].win).length +
-      (live && G.daily != null && G.victory ? 1 : 0)
+      (live && G.daily != null && G.victory ? 1 : 0),
+    rivalsBeaten: (save.rivalsBeaten || []).length,
+    opsWins: save.opsWins || 0,
+    mapsUnlocked: (save.unlocked && Array.isArray(save.unlocked.maps) ? save.unlocked.maps.length : 0)
   };
 }
 
@@ -395,6 +401,7 @@ function defaultSave() {
     rushClears: 0,
     rushBest: 0,
     bestWave: 1,
+    opsWins: 0,
     bestScore: 0,
     secrets: [],
     shieldSaves: 0,
@@ -490,7 +497,7 @@ function loadSave() {
   if (!merged.cosmetics.skins.includes(merged.cosmetics.skin)) merged.cosmetics.skin = merged.cosmetics.skins[0];
   merged.cosmetics.vip = Object.assign({ premium: false, items: [] }, merged.cosmetics.vip || {});
   if (!Array.isArray(merged.cosmetics.vip.items)) merged.cosmetics.vip.items = [];
-  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves']) {
+  for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves', 'opsWins']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
   for (const key of ['bestTime', 'bestKills', 'rushBest', 'bestScore']) merged[key] = Math.max(0, Number(merged[key]) || 0);
@@ -2255,6 +2262,7 @@ function recordRun(outcome) {
     }
   } else {
     save.bestWave = Math.max(save.bestWave || 1, G.wave);
+    if (G.mode === 'ops' && outcome === 'win') save.opsWins = (save.opsWins || 0) + 1;
   }
   if (G.score > (save.bestScore || 0)) save.bestScore = Math.round(G.score);
   if (!Array.isArray(save.boardBests)) save.boardBests = [];

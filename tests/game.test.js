@@ -4615,6 +4615,22 @@ test('P2-15b ops without extraction still wins at the horn (playtest)', () => {
   const s = g.api.snapshot();
   assert.strictEqual(s.screen, 'over', 'the horn ends the op');
   assert.strictEqual(s.victory, true, 'surviving wins');
+  assert.strictEqual(s.save.achievements.operator, true, 'the op earns OPERATOR');
+});
+
+test('P2-16 achievements cover rivals, maps and ops (playtest)', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({
+    v: 2,
+    rivalsBeaten: ['g:FLINT', 'g:PEBBLE', 't:CAKIL'],
+    unlocked: { weapons: ['ak'], maps: ['desert', 'frost', 'ash', 'jungle'] },
+    opsWins: 1
+  });
+  const g = boot({ seed: 165, storage: store });
+  const s = g.api.snapshot();
+  assert.strictEqual(s.save.achievements.rival_slayer, true, 'three beaten rivals unlock RIVAL SLAYER');
+  assert.strictEqual(s.save.achievements.treasure_hunter, true, 'four maps unlock TREASURE HUNTER');
+  assert.strictEqual(s.save.achievements.operator, true, 'an ops win unlocks OPERATOR');
 });
 
 test('P2-10 damage numbers climb white-yellow-orange-red (playtest)', () => {

@@ -577,3 +577,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Beating a house rival paid shards and (as of ADR-070) showed a line, but stayed silent while every sibling milestone plays a sting. No new synth: the existing reward arpeggio is the right voice and already plays safely headless.
 - **Decision**: One `sfx.reward()` call in the first-beat grant branch. Covered by the existing rival submit-run tests (the path already executes there).
 - **Consequences**: 266/266 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One line, no new audio surface.
+
+### ADR-077: Achievements cover rivals, maps and ops (engagement gap)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The achievement list predated every shipped system, so none of the new progression (rivals, unlocks, ops) fed back into the career chase.
+- **Decision**: Three table-driven rows — RIVAL SLAYER (3 beaten), TREASURE HUNTER (4 maps), OPERATOR (1 ops win) — reusing the goal/merge/evaluate pipeline; `save.opsWins` counted in recordRun like rushClears, with default + clamp + a pre-loaded-career test plus a live ops-win unlock.
+- **Consequences**: 267/267 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Three rows, one counter, zero render changes.
