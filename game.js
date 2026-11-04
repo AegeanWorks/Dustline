@@ -10957,7 +10957,7 @@ function drawOverScreen() {
   } else {
     ctx.fillStyle = '#ff6b52';
     ctx.font = '700 40px Consolas, monospace';
-    ctx.fillText('THE HORDE WINS', W / 2, 88);
+    ctx.fillText(G.mode === 'ops' ? 'MISSION FAILED' : 'THE HORDE WINS', W / 2, 88);
     ctx.fillStyle = '#e7eef3';
     ctx.font = '700 22px Consolas, monospace';
     ctx.fillText('SURVIVED ' + fmtTime(G.time), W / 2, 120);

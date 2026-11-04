@@ -605,3 +605,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The report asked which key throws the bomb, not just manual vs auto ("hangi tuşta olacağını ben seçeyim"). P2-8 had shipped only the mode half.
 - **Decision**: `settings.bombKey` e/q (default e, guarded migration) with a KEY button next to the mode toggle, HUD/footer/help labels reading the choice, saved and persisted. Q avoids WASD-hand travel for some players; nothing else moves.
 - **Consequences**: 268/268 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One setting, one key lookup, label updates. Evidence: `shots/s5-bombkey-settings.png` (live capture, KEY: E + MANUAL).
+
+### ADR-081: OPS defeat names the failed mission (symmetry)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The victory header learned OPERATION COMPLETE while defeats still showed the generic horde line.
+- **Decision**: `MISSION FAILED` for ops losses; survivors and boss rush untouched. Pinned by a death-run recorder test.
+- **Consequences**: 269/269 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One ternary.

@@ -4794,3 +4794,18 @@ test('P2-8c the throw key is choosable and persists (playtest)', () => {
   g2.key('q', false);
   assert.ok(g2.api.snapshot().bombs > 0, 'Q throws');
 });
+
+test('P2-15d ops defeat names the failed mission (playtest)', () => {
+  const g = boot({ seed: 191, record: true });
+  deploy(g, { mode: 'ops' });
+  for (let i = 0; i < 6; i++) g.api.spawnEnemy('tank', 25 + (i % 3) * 8, (i % 3) * 8);
+  let over = false;
+  for (let i = 0; i < 30 && !over; i++) {
+    g.steps(30);
+    over = g.api.snapshot().screen === 'over';
+  }
+  assert.ok(over, 'the op can fail');
+  g.steps(2);
+  const labels = g.texts.map((t) => t.text);
+  assert.ok(labels.includes('MISSION FAILED'), 'defeat names the operation');
+});
