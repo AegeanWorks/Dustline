@@ -157,6 +157,8 @@ dustline/
 │   ├── s4-setup-small.png    <- setup small-viewport capture
 │   ├── s4-setup-touch.png    <- setup touch-layout capture
 │   └── s4-game-touch.png     <- in-game touch-layout capture
+│   ├── s5-minimap-before.png <- P2-3 before: empty corner (ADR-053)
+│   └── s5-minimap-after.png  <- P2-3 after: round minimap (ADR-053)
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM
 │   ├── game.test.js          <- node:test suite for runs, combat, meta and screens

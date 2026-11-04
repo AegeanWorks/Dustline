@@ -416,3 +416,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Playtest wanted the map as a small round bottom-right widget instead of the M pause menu. Fullscreen `drawMapView` stays for detail; the minimap is an ambient viewport.
 - **Decision**: `drawMinimap` at (876, 516, r64) on the 960x600 canvas, drawn at the end of `drawHUD` (play + paused): dark clipped circle, explored cells in a bounded cell window (range 8, no full-map iteration), props/rooms via existing `propsNear`/`roomsNear`, nearby enemies as red dots (cap 80, boss = orange 4px), gold player arrow by facing. Player-centered ±900 world units, scale r/900. Geometry pinned in `snapshot().minimap`; fullscreen mapview untouched (existing M tests still green).
 - **Consequences**: 229/229 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One draw function + HUD hook + read-only snapshot field; no save, balance, or seed change. Evidence: `shots/s5-minimap-before.png` (empty corner, pre-change build, cache-busted reload) vs `shots/s5-minimap-after.png` (~20s live run, circle + dots + arrow). Next P2: difficulty income brutal +10% / nightmare +15%.
+
+### ADR-054: P2 difficulty income brutal +10% / nightmare +15% (playtest P2-4)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Playtest priced harder modes at +10% (brutal) / +15% (nightmare) extra income; the table paid +35% / +80% shard multipliers on top of already-heavier spawn/HP/damage scaling.
+- **Decision**: `DIFFICULTIES` shard 1.35→1.10 (brutal) and 1.8→1.15 (nightmare); blurbs now state the premium explicitly. Spawn/HP/damage untouched. Measured per-100-base income: brutal 135→110 (-18.5%), nightmare 180→115 (-36%).
+- **Consequences**: 230/230 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Two numbers + two blurbs; existing brutal-tougher/pays-more tests still pass. Next P2: 7 maps with 3 open + 4 unlockable with income bonuses.

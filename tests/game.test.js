@@ -4101,6 +4101,19 @@ test('P2-3 round minimap sits bottom-right clear of the HUD (playtest)', () => {
   assert.ok(m.x + m.r <= 960 && m.y - m.r >= 0, 'fully on screen');
 });
 
+test('P2-4 brutal pays +10% and nightmare +15% shards (playtest)', () => {
+  const rates = {};
+  for (const diff of ['normal', 'brutal', 'nightmare']) {
+    const g = boot({ seed: 83 });
+    deploy(g, diff === 'normal' ? {} : { difficulty: diff });
+    g.api.setKills(150);
+    rates[diff] = g.api.snapshot().unbanked;
+  }
+  assert.ok(rates.normal > 0, 'baseline pays');
+  assert.ok(Math.abs(rates.brutal / rates.normal - 1.1) < 1e-9, 'brutal +10%, got ' + rates.brutal / rates.normal);
+  assert.ok(Math.abs(rates.nightmare / rates.normal - 1.15) < 1e-9, 'nightmare +15%, got ' + rates.nightmare / rates.normal);
+});
+
 test('P2-2b twin berettas fire twin volleys and evolve into the duelist (playtest)', () => {
   const g = boot({ seed: 77 });
   deploy(g, { weapon: 'beretta' });

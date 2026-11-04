@@ -1257,8 +1257,8 @@ const TIME_LIMITS = [
 
 const DIFFICULTIES = [
   { id: 'normal', name: 'NORMAL', blurb: 'The intended fight', spawn: 1, hp: 1, dmg: 1, shard: 1, color: '#7fe0a0' },
-  { id: 'brutal', name: 'BRUTAL', blurb: 'More, tougher, hits harder', spawn: 1.25, hp: 1.4, dmg: 1.25, shard: 1.35, color: '#ffcf5c' },
-  { id: 'nightmare', name: 'NIGHTMARE', blurb: 'For the reckless', spawn: 1.5, hp: 1.9, dmg: 1.5, shard: 1.8, color: '#e2563f' }
+  { id: 'brutal', name: 'BRUTAL', blurb: 'More, tougher, hits harder · +10% shards', spawn: 1.25, hp: 1.4, dmg: 1.25, shard: 1.1, color: '#ffcf5c' },
+  { id: 'nightmare', name: 'NIGHTMARE', blurb: 'For the reckless · +15% shards', spawn: 1.5, hp: 1.9, dmg: 1.5, shard: 1.15, color: '#e2563f' }
 ];
 
 const DIFFICULTY_ORDER = ['normal', 'brutal', 'nightmare'];
