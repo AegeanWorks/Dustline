@@ -549,3 +549,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The P2-3 minimap landed exactly where the touch DASH/BOMB/OD buttons draw (bottom-right circle over the same pixels) — the player's phone/tablet worry made real. Desktop layout is untouched.
 - **Decision**: `minimapGeom()` lifts the circle 116px on touch devices (bottom edge 464 vs button top 470); `snapshot().minimap` reads the same helper instead of its old literal (which had drifted). Pinned both ways: default geometry unchanged, touch geometry clear.
 - **Consequences**: 264/264 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One branch + one snapshot fix. Evidence: `shots/s5-touch-minimap.png` (live touch capture, buttons clear of the circle).
+
+### ADR-073: Over-screen fanfare + combos share, tested together
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The ADR-070 rivals line and the combos line share the same after-action panel rows; the overlap branch (both present) had no coverage, and combos need each skill at 2+.
+- **Decision**: No layout change (the shift already fits panel bounds 338 < 346). Added a death-run test that earns both and asserts both lines render.
+- **Consequences**: 265/265 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates (re-run below). One test.
