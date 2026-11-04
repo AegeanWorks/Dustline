@@ -74,17 +74,29 @@ function createServer() {
   return http.createServer(handler);
 }
 
-function start(port) {
-  const chosen = port === undefined ? DEFAULT_PORT : port;
+function resolvePort(value) {
+  const n = Number(value);
+  if (Number.isInteger(n) && n >= 0 && n <= 65535) return n;
+  return DEFAULT_PORT;
+}
+
+function resolveHost(value) {
+  const h = String(value === undefined ? '' : value).trim();
+  return h === '' ? '127.0.0.1' : h;
+}
+
+function start(port, host) {
+  const chosen = resolvePort(port);
+  const bind = resolveHost(host);
   const server = createServer();
   server.on('error', (err) => {
     console.error('Why: ' + err.message);
     console.error('Fix: free port ' + chosen + ' or run with PORT=<other> npm start');
     process.exit(1);
   });
-  server.listen(chosen, '127.0.0.1', () => {
+  server.listen(chosen, bind, () => {
     const addr = server.address();
-    console.log('Dustline running at http://127.0.0.1:' + addr.port + '/');
+    console.log('Dustline running at http://' + bind + ':' + addr.port + '/');
     console.log('Press Ctrl+C to stop.');
   });
   process.on('SIGINT', () => server.close(() => process.exit(0)));
@@ -92,7 +104,7 @@ function start(port) {
 }
 
 if (require.main === module) {
-  start(process.env.PORT ? Number(process.env.PORT) : undefined);
+  start(process.env.PORT !== undefined ? process.env.PORT : undefined, process.env.HOST);
 }
 
-module.exports = { ROOT, createServer, start };
+module.exports = { ROOT, createServer, start, resolvePort, resolveHost };

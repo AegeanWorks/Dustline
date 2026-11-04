@@ -100,3 +100,16 @@ test('backslash traversal cannot reach dot-directories (S13-B2)', async (t) => {
   const legit = await fetch(base + '/game.js');
   assert.strictEqual(legit.status, 200, 'plain game.js still served');
 });
+
+test('port and host resolve safely (deferred K7-B2/B3)', () => {
+  const { resolvePort, resolveHost } = require('../scripts/serve');
+  assert.strictEqual(resolvePort(undefined), 5173);
+  assert.strictEqual(resolvePort('abc'), 5173);
+  assert.strictEqual(resolvePort(99999), 5173);
+  assert.strictEqual(resolvePort(-1), 5173);
+  assert.strictEqual(resolvePort(0), 0);
+  assert.strictEqual(resolvePort('8080'), 8080);
+  assert.strictEqual(resolveHost(undefined), '127.0.0.1');
+  assert.strictEqual(resolveHost(''), '127.0.0.1');
+  assert.strictEqual(resolveHost('0.0.0.0'), '0.0.0.0');
+});

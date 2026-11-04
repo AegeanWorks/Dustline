@@ -20,6 +20,9 @@ a Trusted Web Activity (TWA) wrapper, which needs no engine port: the same
 ## Verify locally
 
 1. `npm start` (serves with the correct manifest MIME).
+   `PORT=8080 npm start` overrides the port (default 5173, invalid values
+   fall back to it); `HOST=0.0.0.0 npm start` exposes the LAN for device
+   testing (default loopback only).
 2. Chrome DevTools → Application → Manifest: no errors, icons load.
 3. DevTools → Lighthouse → PWA category (needs HTTPS or localhost): target
    green installability before wrapping.
@@ -32,7 +35,10 @@ a Trusted Web Activity (TWA) wrapper, which needs no engine port: the same
    OUT of the repo; back it up offline.
 4. Upload the `.aab` in Play Console, link the domain via
    `assetlinks.json` (Digital Asset Links), complete content rating,
-   then staged rollout.
+   then staged rollout. The `assetlinks.json` file must be deployed at
+   `/.well-known/assetlinks.json` on the production host; the dev server
+   intentionally keeps blocking dot-directories locally, so verify the
+   link against the host, not `npm start`.
 
 ## Leaderboard backend contract (next step)
 

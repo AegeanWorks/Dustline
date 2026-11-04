@@ -1554,6 +1554,7 @@ function critChance() {
 function lifestealHeal(dmg) {
   const relicRate = hasRelic('bloodstone') ? 0.03 : 0;
   if (G.skills.lifesteal <= 0 && relicRate <= 0) return 0;
+  if (!(dmg > 0)) return 0;
   const rate =
     0.025 * G.skills.lifesteal * (hasCombo('vampire') ? 2 : 1) * (hasEvolution('dmr') ? 2 : 1) + relicRate;
   return Math.max(1, Math.round(dmg * rate));
@@ -1564,7 +1565,7 @@ function xpMult() {
 }
 
 function streakMult() {
-  return 1 + Math.min(0.5, G.streak * 0.015);
+  return 1 + Math.min(0.5, Math.max(0, (G.streak || 0) * 0.015));
 }
 
 function odActive() {
@@ -2906,7 +2907,8 @@ function spawnBullet(x, y, ang, speed, dmg, owner, color, opts) {
 }
 
 function rollCrit(base) {
-  if (critChance() > 0 && Math.random() < critChance()) {
+  const chance = critChance();
+  if (chance > 0 && Math.random() < chance) {
     G.stats.crits++;
     return { dmg: base * 2, crit: true };
   }
@@ -10060,7 +10062,7 @@ function drawOverScreen() {
   ctx.fillStyle = '#ffd27a';
   ctx.font = '700 22px Consolas, monospace';
   ctx.fillText('SCORE ' + Math.round(G.score).toLocaleString('en-US'), W / 2, panelY + 32);
-  const record = G.time > best.time - 0.001 && G.time > 0;
+  const record = G.score > 0 && Math.round(G.score) >= (save.bestScore || 0);
   ctx.fillStyle = record ? '#63dcc0' : 'rgba(200,190,165,0.7)';
   ctx.font = '600 10.5px Consolas, monospace';
   ctx.fillText(
@@ -11176,7 +11178,8 @@ if (window.__DUSTLINE_TEST__) {
 let last = 0;
 
 function frame(t) {
-  const dt = last === 0 ? 0.016 : Math.min(0.033, (t - last) / 1000);
+  if (!Number.isFinite(t)) t = (Number.isFinite(last) ? last : 0) + 16;
+  const dt = last === 0 ? 0.016 : Math.max(0, Math.min(0.033, (t - last) / 1000));
   last = t;
   update(dt);
   render();

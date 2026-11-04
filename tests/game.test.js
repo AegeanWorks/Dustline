@@ -3574,3 +3574,72 @@ test('setGhost(false) resumes the phantom cycle (swarm K6-B5)', () => {
   assert.ok(phantom, 'phantom still on field');
   assert.strictEqual(phantom.ghost, true, 'cycle resumed after manual clear');
 });
+
+test('frame clamps non-finite and negative dt so time never poisons (deferred K6-B2/B3)', () => {
+  const g = boot({ seed: 63 });
+  deploy(g);
+  const before = g.api.snapshot().time;
+  g.steps(1, NaN);
+  let s = g.api.snapshot();
+  assert.ok(Number.isFinite(s.time), 'time stays finite after NaN step, got ' + s.time);
+  g.steps(1, -1000);
+  s = g.api.snapshot();
+  assert.ok(s.time >= before, 'time never rewinds, before=' + before + ' after=' + s.time);
+});
+
+test('over-screen star tracks the score record, not time (deferred K6-B1)', () => {
+  const store = makeStore();
+  let g = boot({ seed: 61, storage: store, record: true });
+  deploy(g);
+  g.api.setTime(300);
+  g.api.hurt(99999);
+  g.steps(2);
+  let texts = g.texts.map((t) => t.text).join('\n');
+  assert.ok(!texts.includes('NEW PERSONAL BEST'), 'scoreless long run earns no star');
+  g = boot({ seed: 62, storage: store, record: true });
+  deploy(g);
+  for (let i = 0; i < 5; i++) g.api.spawnEnemy('grunt', 200, 0);
+  g.api.killEnemies();
+  g.steps(2);
+  g.api.setTime(10);
+  g.api.hurt(99999);
+  g.steps(2);
+  texts = g.texts.map((t) => t.text).join('\n');
+  assert.ok(texts.includes('NEW PERSONAL BEST'), 'new best score earns the star');
+});
+
+test('max crit always crits through a single chance evaluation (deferred K2-B3)', () => {
+  const g = boot({ seed: 71 });
+  deploy(g, { operator: 'marksman' });
+  for (let i = 0; i < 10; i++) g.api.applyUpgrade('crit');
+  g.api.grantRelic('voidlens');
+  g.api.setInvulnerable(true);
+  g.api.spawnEnemy('tank', 300, 0);
+  g.api.setEnemyHp(0, 50000);
+  g.api.spawnEnemy('tank', 120, 0);
+  g.api.setEnemyHp(1, 5);
+  g.api.hitEnemy(1, 1);
+  g.steps(120);
+  const s = g.api.snapshot();
+  assert.ok(s.shots.rifle > 0, 'rifle fired, shots=' + s.shots.rifle);
+  assert.strictEqual(s.stats.crits, s.shots.rifle, 'every max-crit bullet crits');
+});
+
+test('streak and lifesteal guards hold sane defaults (deferred K1-B12/B6)', () => {
+  const g = boot({ seed: 72 });
+  deploy(g);
+  assert.strictEqual(g.api.snapshot().streakMult, 1, 'fresh streak mult is 1');
+  g.api.hurt(45);
+  const low = g.api.snapshot().hp;
+  assert.ok(low < 100, 'hurt lowers hp, got ' + low);
+  g.api.setInvulnerable(true);
+  g.api.applyUpgrade('lifesteal');
+  g.api.applyUpgrade('lifesteal');
+  g.api.spawnEnemy('tank', 90, 0);
+  g.api.setEnemyHp(0, 5000);
+  g.api.hitEnemy(0, 4000);
+  const s = g.api.snapshot();
+  assert.ok(Number.isFinite(s.hp), 'hp stays finite, got ' + s.hp);
+  assert.ok(s.hp > low, 'lifesteal heals on damage dealt, ' + low + ' -> ' + s.hp);
+  assert.ok(Number.isFinite(s.streakMult) && s.streakMult >= 1, 'streak mult sane, got ' + s.streakMult);
+});
