@@ -612,3 +612,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The victory header learned OPERATION COMPLETE while defeats still showed the generic horde line.
 - **Decision**: `MISSION FAILED` for ops losses; survivors and boss rush untouched. Pinned by a death-run recorder test.
 - **Consequences**: 269/269 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One ternary.
+
+### ADR-082: After-action report names the earned rank (loop closure)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Ranks were earned mid-run and shown in the HUD, but the after-action report never said what the player discharged as.
+- **Decision**: Append `RANK <NAME>` to the existing over-screen footer line (mode, mutator, relics already live there). Zero layout change.
+- **Consequences**: 269/269 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One string segment, pinned in the fanfare death-run.

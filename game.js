@@ -11031,7 +11031,7 @@ function drawOverScreen() {
   const mut = MUTATIONS.find((m) => m.id === G.mutation);
   ctx.fillStyle = 'rgba(190,185,165,0.7)';
   ctx.font = '600 10px Consolas, monospace';
-  ctx.fillText(operatorDef().name + ' · ' + modeLine + (mut && mut.id !== 'none' ? ' · ' + mut.name : '') + (G.relics.length ? ' · RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, panelY + 158);
+  ctx.fillText(operatorDef().name + ' · ' + modeLine + ' · RANK ' + RANKS[G.rankIdx].name + (mut && mut.id !== 'none' ? ' · ' + mut.name : '') + (G.relics.length ? ' · RELICS ' + G.relics.length + '/' + RELICS.length : ''), W / 2, panelY + 158);
 
   const combo = activeCombos();
   const comboY = panelY + (G.rivalsBeatenRun && G.rivalsBeatenRun.length ? 196 : 178);

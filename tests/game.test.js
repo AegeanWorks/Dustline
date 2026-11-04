@@ -4478,6 +4478,7 @@ test('P2-14c the over screen names the rivals you just beat (playtest visual)', 
   g.steps(2);
   const labels = g.texts.map((t) => t.text);
   assert.ok(labels.some((t) => t.indexOf('RIVALS BEATEN') === 0), 'beaten rivals get their moment, got ' + JSON.stringify(labels.slice(0, 12)));
+  assert.ok(labels.some((t) => t.indexOf('RANK ') >= 0), 'the report names the earned rank');
 });
 
 test('P2-14e rivals line and combos share the over screen (playtest)', () => {
