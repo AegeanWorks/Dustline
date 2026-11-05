@@ -675,3 +675,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: The loader already guarded garbage JSON, wrong versions, and half-written fields, but no test pinned it — a future merge-guard edit could silently drop a fallback.
 - **Decision**: One test boots three poisoned stores (garbage JSON, v1 save, v3 with wrong-typed fields) and asserts clean defaults, the open-trio maps, and list-shaped fields.
 - **Consequences**: 274/274 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only; the loader needed no changes.
+
+### ADR-091: Seeded fuzz run guards every screen transition (robustness)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Directed tests drive happy paths; random input across play/levelup/relic/mapview/pause/over had never been exercised, and those transitions are where state machines break.
+- **Decision**: One deterministic fuzz test (fixed LCG seed, 300 mixed inputs) asserting no throw, no stuck screen, and finite, non-negative-HP entities throughout. Surfaced nothing — that is the point: the net now exists.
+- **Consequences**: 275/275 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only.

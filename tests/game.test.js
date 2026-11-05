@@ -4934,3 +4934,33 @@ test('corrupt, versioned-out or half-written saves boot clean defaults (robustne
   assert.ok(Array.isArray(s.unlocked.maps) && s.unlocked.maps.includes('desert'), 'maps heal to open trio');
   assert.ok(Array.isArray(s.rivalsBeaten), 'rivals stay a list');
 });
+
+test('randomized play never crashes or corrupts entities (fuzz)', () => {
+  const keys = ['w', 'a', 's', 'd', 'shift', 'e', 'q', 't', 'r'];
+  let rnd = 24680;
+  const frand = () => {
+    rnd = (rnd * 1103515245 + 12345) & 0x7fffffff;
+    return rnd / 0x7fffffff;
+  };
+  const g = boot({ seed: 206 });
+  deploy(g);
+  g.key('d');
+  for (let i = 0; i < 300; i++) {
+    const r = frand();
+    if (r < 0.3) g.key(keys[Math.floor(frand() * keys.length)]);
+    else if (r < 0.4) g.key(keys[Math.floor(frand() * keys.length)], false);
+    else g.steps(5);
+    const s = g.api.snapshot();
+    if (s.screen === 'levelup') g.api.chooseUpgrade(Math.floor(frand() * s.offers.length));
+    else if (s.screen === 'relic') {
+      const b = s.buttons.find((x) => x.id.indexOf('relic-') === 0);
+      if (b) g.api.clickButton(b.id);
+    } else if (s.screen === 'mapview') g.key('m');
+    else if (s.screen === 'paused') g.api.clickButton('resume');
+    else assert.ok(s.screen === 'play' || s.screen === 'over', 'no stuck screen, got ' + s.screen);
+    const q = g.api.snapshot();
+    assert.ok((q.enemies || []).every((e) => Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp >= -0.001), 'every entity stays sane');
+    if (q.screen === 'over') break;
+  }
+  assert.ok(true, 'fuzz run completes without throwing');
+});
