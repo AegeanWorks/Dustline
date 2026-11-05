@@ -6,7 +6,7 @@
 <!-- aegean:media:end -->
 
 
-Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world with open combat arenas, auto-firing weapons, seven maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, a 10-minute OPS extraction mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 21 skills across 6 offense and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker, a permanent out-of-run armory and a nine-entry field-notes codex.
+Dustline: Survivors is a top-down horde-survival shooter in the spirit of Vampire Survivors: an endless procedural world with open combat arenas, auto-firing weapons, seven maps, eighteen mob types plus NetWatch hunters, five rotating bosses with random affixes plus three mega bosses, a dedicated eight-boss Boss Rush mode, a 10-minute OPS extraction mode, weapon and active-skill evolutions, champion affixes, supply caches, three difficulty tiers, run mutators, map hazards, 21 skills across 6 offense slots and 6 defense slots with 10 ranks each, kill-streak milestones and a score, LAST STAND, per-run mutations, kill-gated war chests, discoverable secret combos, boss salvage relics, achievements, risky extraction banking, sector events, destructible interactables, a nuclear bunker, a permanent out-of-run armory and a nine-entry field-notes codex.
 
 A century after the sky burned, the dust never settled. NetWatch calls the quarantine belt the Dustline; the people still inside call it home. Every run is a salvage shift: recover what the dead left, stay ahead of the horde, and extract before the signal closes. The Field Manual records what is known about each sector, and the pause screen carries the current map's note.
 
@@ -158,27 +158,27 @@ dustline/
 │   ├── s4-setup-weapon.png   <- setup weapon-row capture
 │   ├── s4-setup-small.png    <- setup small-viewport capture
 │   ├── s4-setup-touch.png    <- setup touch-layout capture
-│   └── s4-game-touch.png     <- in-game touch-layout capture
+│   ├── s4-game-touch.png     <- in-game touch-layout capture
 │   ├── s5-minimap-before.png <- P2-3 before: empty corner (ADR-053)
-│   └── s5-minimap-after.png  <- P2-3 after: round minimap (ADR-053)
-│   └── s5-maps-after.png     <- P2-5 after: LOCK badges + bonuses (ADR-055)
+│   ├── s5-minimap-after.png  <- P2-3 after: round minimap (ADR-053)
+│   ├── s5-maps-after.png     <- P2-5 after: LOCK badges + bonuses (ADR-055)
 │   ├── s5-visuals-before.png <- P2-10 before: gold/pink numbers (ADR-060)
-│   └── s5-visuals-after.png  <- P2-10 after: red ramp + star gem (ADR-060)
+│   ├── s5-visuals-after.png  <- P2-10 after: red ramp + star gem (ADR-060)
 │   ├── s5-shop-skins.png     <- P2-13 after: skin shop (ADR-063)
-│   └── s5-shop-vip.png       <- P2-13 after: VIP, no billing (ADR-063)
+│   ├── s5-shop-vip.png       <- P2-13 after: VIP, no billing (ADR-063)
 │   ├── s5-board-before.png   <- P2-14 before: empty board (ADR-064)
 │   ├── s5-board-after.png    <- P2-14 after: 8 rivals (ADR-064)
-│   └── s5-board-rivals.png  <- P2-14 after: rivals + own runs (ADR-064)
-│   └── s5-ops-modes.png      <- P2-ops after: 3 mode cards (ADR-065)
-│   └── s5-perf-gems.png        <- perf after: clean diamonds (ADR-066)
-│   └── s5-perf-storm.png      <- live sandstorm, tracers (ADR-067)
-│   └── s5-manual-systems.png   <- manual SYSTEMS tab (ADR-069)
-│   └── s5-help-refresh.png    <- refreshed HOW TO PLAY (ADR-075)
-│   └── s5-bombkey-settings.png <- bomb key choice (ADR-080)
-│   └── s5-pause-verify.png    <- pause screen verified live
-│   └── s5-career-rivals.png  <- career rivals row (ADR-071)
-│   └── s5-touch-minimap.png    <- touch minimap lift (ADR-072)
-│   └── s5-dogfood-run.png      <- live 3-min keyboard run, no defects found
+│   ├── s5-board-rivals.png  <- P2-14 after: rivals + own runs (ADR-064)
+│   ├── s5-ops-modes.png      <- P2-ops after: 3 mode cards (ADR-065)
+│   ├── s5-perf-gems.png        <- perf after: clean diamonds (ADR-066)
+│   ├── s5-perf-storm.png      <- live sandstorm, tracers (ADR-067)
+│   ├── s5-manual-systems.png   <- manual SYSTEMS tab (ADR-069)
+│   ├── s5-help-refresh.png    <- refreshed HOW TO PLAY (ADR-075)
+│   ├── s5-bombkey-settings.png <- bomb key choice (ADR-080)
+│   ├── s5-pause-verify.png    <- pause screen verified live
+│   ├── s5-career-rivals.png  <- career rivals row (ADR-071)
+│   ├── s5-touch-minimap.png    <- touch minimap lift (ADR-072)
+│   ├── s5-dogfood-run.png      <- live 3-min keyboard run, no defects found
 │   └── s5-defeat-aar.png         <- live defeat: rank footer on AAR
 ├── tests/
 │   ├── harness.js            <- seeded, headless canvas stub that boots game.js in a VM

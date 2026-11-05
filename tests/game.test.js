@@ -4964,3 +4964,38 @@ test('randomized play never crashes or corrupts entities (fuzz)', () => {
   }
   assert.ok(true, 'fuzz run completes without throwing');
 });
+
+test('ops locks the clock even when a limit card is picked (robustness)', () => {
+  const g = boot({ seed: 301 });
+  enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  assert.ok(g.api.clickButton('mode-ops'), 'ops mode selects');
+  g.steps(1);
+  const before = g.api.snapshot().setup.limit;
+  g.api.clickButton('limit-5');
+  g.steps(1);
+  assert.strictEqual(g.api.snapshot().setup.limit, before, 'limit cards stay fixed while ops is selected');
+  g.api.clickButton('setup-start');
+  g.steps(1);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.mode, 'ops');
+  assert.strictEqual(s.limitSec, 600, 'ops still fixes ten minutes');
+});
+
+test('ops after-action footer shows run progress (robustness)', () => {
+  const g = boot({ seed: 303, record: true });
+  deploy(g, { mode: 'ops' });
+  g.api.setInvulnerable(true);
+  g.api.setTime(600);
+  g.steps(2);
+  const s = g.api.snapshot();
+  assert.strictEqual(s.screen, 'over');
+  assert.ok(g.texts.some((t) => t.text.indexOf('OPS · ') >= 0 && t.text.indexOf('/ 10:00') > 0), 'footer tracks elapsed op time, got ' + JSON.stringify(g.texts.map((t) => t.text).slice(0, 20)));
+});
+
+test('squad card line stays safe with no active run (robustness)', () => {
+  const g = boot({ seed: 305 });
+  assert.doesNotThrow(() => g.api.skillStatLine('squad', 1), 'no-run squad line never throws');
+  assert.ok(g.api.skillStatLine('squad', 1).indexOf('AK-47') >= 0, 'falls back to the rifle family, got ' + g.api.skillStatLine('squad', 1));
+});

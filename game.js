@@ -1979,7 +1979,7 @@ function progressContracts() {
 }
 
 function primarySkill() {
-  return G.weapon && WEAPONS[G.weapon] ? WEAPONS[G.weapon].skill : 'rifle';
+  return G && G.weapon && WEAPONS[G.weapon] ? WEAPONS[G.weapon].skill : 'rifle';
 }
 
 function soldierBulletColor() {
@@ -2118,6 +2118,7 @@ function startRun(options) {
     rankIdx: 0,
     streakRewards: [],
     callout: null,
+    calloutQueue: [],
     flashT: 0,
     flashColor: '#ffffff',
     lastStand: false,
@@ -4447,8 +4448,11 @@ function announceCallout(text, sub, color, dur) {
   if (!G) return;
   const max = dur || 2.4;
   const item = { text, sub: sub || '', color: color || '#ffd27a', t: max, max };
+  G.calloutQueue = G.calloutQueue || [];
+  if (G.callout && G.callout.t <= 0) {
+    G.callout = G.calloutQueue.length ? G.calloutQueue.shift() : null;
+  }
   if (G.callout && G.callout.t > 0) {
-    G.calloutQueue = G.calloutQueue || [];
     if (G.calloutQueue.length < 24) G.calloutQueue.push(item);
     return;
   }
@@ -8915,16 +8919,17 @@ function drawSetupScreen() {
 
   ctx.fillStyle = '#e0b25c';
   ctx.font = '700 12px Consolas, monospace';
-  if (setupTab === 1) ctx.fillText('TIME LIMIT', 548, 224);
+  if (setupTab === 1) ctx.fillText(setup.mode === 'ops' ? 'TIME LIMIT · FIXED 10 MIN OP' : 'TIME LIMIT', 548, 224);
   TIME_LIMITS.forEach((lim, i) => {
     const chosen = setup.limit === lim.id;
+    const locked = setup.mode === 'ops';
     const x = 548 + i * 96;
     const y = 232;
     uiButtons.push({ id: 'limit-' + lim.id, label: lim.label, x, y, w: 90, h: 48, page: 1 });
     if (setupTab !== 1) return;
-    const hover = mouse.x >= x && mouse.x <= x + 90 && mouse.y >= y && mouse.y <= y + 48;
-    ctx.fillStyle = chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
-    ctx.strokeStyle = chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
+    const hover = !locked && mouse.x >= x && mouse.x <= x + 90 && mouse.y >= y && mouse.y <= y + 48;
+    ctx.fillStyle = locked ? 'rgba(16,20,24,0.55)' : chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
+    ctx.strokeStyle = locked ? 'rgba(224,178,92,0.12)' : chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
     ctx.lineWidth = chosen ? 2 : 1;
     rr(x, y, 90, 48, 6);
     ctx.fill();
@@ -11044,7 +11049,7 @@ function drawOverScreen() {
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
       : G.mode === 'ops'
-        ? 'OPS · ' + fmtTime(Math.max(0, 600 - G.time)) + ' LEFT'
+        ? 'OPS · ' + fmtTime(G.time) + ' / 10:00'
         : 'SURVIVORS · WAVE ' + G.wave;
   const mut = MUTATIONS.find((m) => m.id === G.mutation);
   ctx.fillStyle = 'rgba(190,185,165,0.7)';
@@ -11184,6 +11189,7 @@ function pressButton(id) {
     return;
   }
   if (id.indexOf('limit-') === 0) {
+    if (setup.mode === 'ops') return;
     const limit = id.slice(6);
     if (TIME_LIMITS.some((l) => l.id === limit)) setup.limit = limit;
     return;

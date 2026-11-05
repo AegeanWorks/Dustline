@@ -682,3 +682,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Directed tests drive happy paths; random input across play/levelup/relic/mapview/pause/over had never been exercised, and those transitions are where state machines break.
 - **Decision**: One deterministic fuzz test (fixed LCG seed, 300 mixed inputs) asserting no throw, no stuck screen, and finite, non-negative-HP entities throughout. Surfaced nothing — that is the point: the net now exists.
 - **Consequences**: 275/275 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only.
+
+### ADR-092: Harden ops setup, callouts and squad seams (review pass)
+- **Date**: 2026-11-05
+- **Status**: Accepted
+- **Context**: Post-push review of the 30-commit run found five small gaps: `primarySkill()` crashed when `G` is null, expired callouts could reorder the queue, the OPS footer showed `00:00 LEFT` on wins, limit cards stayed live while OPS fixes the clock, and the README tree reused `└──` for non-final rows.
+- **Decision**: Null-safe `primarySkill()`, explicit `calloutQueue: []` plus expired-flush in `announceCallout`, OPS footer tracks `elapsed / 10:00`, limit cards dim and ignore taps while OPS is selected (`startRun` still forces 600), README tree and skill-slot wording fixed. Pinned by three tests: ops-ignore-limit, ops-footer progress, no-run squad line.
+- **Consequences**: 278/278 `node --test tests` green. Four game.js hunks, README touch-up, three regression tests; no balance or save-format change.
