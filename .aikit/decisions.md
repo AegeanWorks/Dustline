@@ -668,3 +668,10 @@ Next P2: unified class+weapon select with akimbo.
 - **Context**: Ranks, milestones, streaks and secrets all announce through one slot, so coincident unlocks (kill 25 = RAMPAGE + CORPORAL; kill 500 = LEGENDARY + MAJOR) silently ate one announcement — worse as new systems piled on.
 - **Decision**: `announceCallout` queues behind the live callout (cap 24, drop-newest past it — far above the ~17 possible single-run announcements); the tick pops the next on expiry. Draw, snapshot and banner interplay unchanged.
 - **Consequences**: 273/273 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. One queue + one pop; milestone/streak/promotion tests re-pinned from overwrite to in-turn order.
+
+### ADR-090: Corrupt saves boot clean defaults (robustness pin)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: The loader already guarded garbage JSON, wrong versions, and half-written fields, but no test pinned it — a future merge-guard edit could silently drop a fallback.
+- **Decision**: One test boots three poisoned stores (garbage JSON, v1 save, v3 with wrong-typed fields) and asserts clean defaults, the open-trio maps, and list-shaped fields.
+- **Consequences**: 274/274 `node --test tests` green plus 5/5 `python aikit.py check dustline` gates. Test-only; the loader needed no changes.

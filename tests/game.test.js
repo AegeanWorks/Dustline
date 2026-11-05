@@ -4916,3 +4916,21 @@ test('P2-9d touch players can call the plane from a RADIO button (playtest)', ()
   g.handlers.touchend({ preventDefault() {}, changedTouches: [{ identifier: 9 }] });
   g.steps(1);
 });
+
+test('corrupt, versioned-out or half-written saves boot clean defaults (robustness)', () => {
+  const bad = makeStore();
+  bad.data['dustline.save'] = '{oops not json';
+  let g = boot({ seed: 201, storage: bad });
+  assert.strictEqual(g.api.snapshot().save.shards, 0, 'garbage JSON falls back to defaults');
+  const old = makeStore();
+  old.data['dustline.save'] = JSON.stringify({ v: 1, shards: 9999 });
+  g = boot({ seed: 203, storage: old });
+  assert.strictEqual(g.api.snapshot().screen, 'menu', 'ancient saves still boot');
+  const half = makeStore();
+  half.data['dustline.save'] = JSON.stringify({ v: 3, shards: 'lots', unlocked: null, cosmetics: 7, rivalsBeaten: 'x' });
+  g = boot({ seed: 205, storage: half });
+  const s = g.api.snapshot().save;
+  assert.strictEqual(typeof s.shards, 'number', 'shards stay numeric');
+  assert.ok(Array.isArray(s.unlocked.maps) && s.unlocked.maps.includes('desert'), 'maps heal to open trio');
+  assert.ok(Array.isArray(s.rivalsBeaten), 'rivals stay a list');
+});
