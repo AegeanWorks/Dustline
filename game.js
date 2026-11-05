@@ -482,28 +482,58 @@ function loadSave() {
   }
   const merged = Object.assign(fresh, raw);
   merged.v = SAVE_VERSION;
-  merged.meta = Object.assign({ power: 0, armor: 0, speed: 0, greed: 0, magnet: 0, luck: 0 }, raw.meta || {});
+  merged.meta = {};
+  var rawMeta = raw.meta && typeof raw.meta === 'object' && !Array.isArray(raw.meta) ? raw.meta : {};
   for (const key of META_ORDER) {
-    merged.meta[key] = clamp(Math.round(Number(merged.meta[key]) || 0), 0, META[key].max);
+    merged.meta[key] = clamp(Math.round(Number(rawMeta[key]) || 0), 0, META[key].max);
   }
   merged.killsByType = Object.assign({}, raw.killsByType || {});
-  merged.achievements = Object.assign({}, raw.achievements || {});
-  merged.unlocked = Object.assign({ weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }, raw.unlocked || {});
+  for (const key of Object.keys(merged.killsByType)) {
+    const n = Math.max(0, Math.round(Number(merged.killsByType[key]) || 0));
+    if (!Number.isFinite(n)) delete merged.killsByType[key];
+    else merged.killsByType[key] = n;
+  }
+  var okAch = {};
+  for (const a of ACHIEVEMENTS) okAch[a.id] = 1;
+  merged.achievements = {};
+  if (raw.achievements && typeof raw.achievements === 'object' && !Array.isArray(raw.achievements)) {
+    for (const key of Object.keys(raw.achievements)) {
+      if (okAch[key] && raw.achievements[key]) merged.achievements[key] = true;
+    }
+  }
+  merged.unlocked = raw.unlocked && typeof raw.unlocked === 'object' && !Array.isArray(raw.unlocked)
+    ? Object.assign({ weapons: ['ak'], maps: ['desert', 'frost', 'ash'] }, raw.unlocked)
+    : { weapons: ['ak'], maps: ['desert', 'frost', 'ash'] };
+  if (!Array.isArray(merged.unlocked.weapons)) merged.unlocked.weapons = ['ak'];
+  // NOTE: weapon/map allow-lists are inlined (not WEAPONS/MAP_ORDER) because loadSave runs before those consts init.
+  var okWeapons = { ak: 1, smg: 1, spas: 1, dmr: 1, rail: 1, beretta: 1 };
+  merged.unlocked.weapons = merged.unlocked.weapons.filter((id) => typeof id === 'string' && okWeapons[id]);
+  if (!merged.unlocked.weapons.length) merged.unlocked.weapons = ['ak'];
   if (!Array.isArray(merged.unlocked.maps)) merged.unlocked.maps = [];
+  var okMaps = { desert: 1, frost: 1, ash: 1, jungle: 1, crater: 1, toxic: 1, glass: 1 };
+  merged.unlocked.maps = merged.unlocked.maps.filter((id) => typeof id === 'string' && okMaps[id]);
   for (const id of ['desert', 'frost', 'ash']) if (merged.unlocked.maps.indexOf(id) < 0) merged.unlocked.maps.push(id);
-  merged.cosmetics = Object.assign({ skins: ['ranger'], skin: 'ranger', vip: { premium: false, items: [] } }, raw.cosmetics || {});
+  merged.cosmetics = Object.assign({ skins: ['ranger'], skin: 'ranger', vip: { premium: false, items: [] } }, raw.cosmetics && typeof raw.cosmetics === 'object' && !Array.isArray(raw.cosmetics) ? raw.cosmetics : {});
   if (!Array.isArray(merged.cosmetics.skins) || !merged.cosmetics.skins.length) merged.cosmetics.skins = ['ranger'];
+  merged.cosmetics.skins = merged.cosmetics.skins.filter((id) => typeof id === 'string' && id);
+  if (!merged.cosmetics.skins.length) merged.cosmetics.skins = ['ranger'];
   if (typeof merged.cosmetics.skin !== 'string' || !merged.cosmetics.skin) merged.cosmetics.skin = 'ranger';
   if (!merged.cosmetics.skins.includes(merged.cosmetics.skin)) merged.cosmetics.skin = merged.cosmetics.skins[0];
-  merged.cosmetics.vip = Object.assign({ premium: false, items: [] }, merged.cosmetics.vip || {});
+  merged.cosmetics.vip = merged.cosmetics.vip && typeof merged.cosmetics.vip === 'object' && !Array.isArray(merged.cosmetics.vip)
+    ? Object.assign({ premium: false, items: [] }, merged.cosmetics.vip)
+    : { premium: false, items: [] };
+  merged.cosmetics.vip.premium = !!merged.cosmetics.vip.premium;
   if (!Array.isArray(merged.cosmetics.vip.items)) merged.cosmetics.vip.items = [];
+  else merged.cosmetics.vip.items = merged.cosmetics.vip.items.filter((id) => typeof id === 'string');
   for (const key of ['shards', 'totalKills', 'runs', 'wins', 'bossKills', 'damageDealt', 'jackpots', 'nearMisses', 'hunters', 'contracts', 'bankedTotal', 'lostTotal', 'champions', 'chests', 'megaKills', 'rushClears', 'shieldSaves', 'opsWins']) {
     merged[key] = Math.max(0, Math.round(Number(merged[key]) || 0));
   }
   for (const key of ['bestTime', 'bestKills', 'rushBest', 'bestScore']) merged[key] = Math.max(0, Number(merged[key]) || 0);
   merged.bestWave = Math.max(1, Math.round(Number(merged.bestWave) || 1));
+  // NOTE: secret ids inlined (not COMBOS) because loadSave runs before that const init.
+  var okSecrets = { executioner: 1, singularity: 1, gunner: 1 };
   merged.secrets = Array.isArray(raw.secrets)
-    ? raw.secrets.filter((id) => typeof id === 'string').slice(0, 24)
+    ? raw.secrets.filter((id) => typeof id === 'string' && okSecrets[id]).slice(0, 3)
     : [];
   merged.lastSeed = (Number(merged.lastSeed) >>> 0) || 20261029;
   const cleanBest = {};
@@ -529,6 +559,7 @@ function loadSave() {
     : newDeviceId();
   merged.boardBests = cleanBoardBests(raw.boardBests);
   if (!Array.isArray(merged.rivalsBeaten)) merged.rivalsBeaten = [];
+  else merged.rivalsBeaten = merged.rivalsBeaten.filter((id) => typeof id === 'string' && id).slice(0, 32);
   merged.friends = cleanFriends(raw.friends, merged.deviceId);
   return merged;
 }
@@ -8930,12 +8961,12 @@ function drawSetupScreen() {
     const hover = !locked && mouse.x >= x && mouse.x <= x + 90 && mouse.y >= y && mouse.y <= y + 48;
     ctx.fillStyle = locked ? 'rgba(16,20,24,0.55)' : chosen ? 'rgba(224,178,92,0.24)' : hover ? 'rgba(30,34,38,0.95)' : 'rgba(16,20,24,0.9)';
     ctx.strokeStyle = locked ? 'rgba(224,178,92,0.12)' : chosen ? '#ffd27a' : 'rgba(224,178,92,0.3)';
-    ctx.lineWidth = chosen ? 2 : 1;
+    ctx.lineWidth = !locked && chosen ? 2 : 1;
     rr(x, y, 90, 48, 6);
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'center';
-    ctx.fillStyle = chosen ? '#fff3d6' : '#cfc6ad';
+    ctx.fillStyle = locked ? 'rgba(207,198,173,0.45)' : chosen ? '#fff3d6' : '#cfc6ad';
     ctx.font = '700 11px Consolas, monospace';
     ctx.fillText(lim.label, x + 45, y + 29);
     ctx.textAlign = 'left';
@@ -9028,8 +9059,8 @@ function drawSetupScreen() {
   ctx.fillText([1, 2, 3].map((n, i) => (i === setupTab ? '[ ' + n + ' ]' : '  ' + n + '  ')).join('   '), W / 2, 452);
 
   var deploySub = WEAPONS[setup.weapon].name + ' · ' + MAPS[setup.map].name + ' · ' +
-    findLimit(setup.limit).label + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
-    operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : 'SURVIVORS');
+    (setup.mode === 'ops' ? '10 MIN OP' : findLimit(setup.limit).label) + ' · ' + findDifficulty(setup.difficulty).name + ' · ' +
+    operatorDefName() + ' · ' + (setup.mode === 'bossrush' ? RUSH_TARGET + ' BOSSES' : setup.mode === 'ops' ? 'OPS' : 'SURVIVORS');
   if (deploySub.length > 64) deploySub = deploySub.slice(0, 61) + '…';
   drawButton(
     'setup-start',
@@ -11049,7 +11080,7 @@ function drawOverScreen() {
     G.mode === 'bossrush'
       ? 'BOSS RUSH · ' + G.rush.index + ' / ' + G.rush.target + ' BOSSES'
       : G.mode === 'ops'
-        ? 'OPS · ' + fmtTime(G.time) + ' / 10:00'
+        ? 'OPS · ' + fmtTime(Math.min(G.time, G.limitSec || 600)) + ' / ' + fmtTime(G.limitSec || 600)
         : 'SURVIVORS · WAVE ' + G.wave;
   const mut = MUTATIONS.find((m) => m.id === G.mutation);
   ctx.fillStyle = 'rgba(190,185,165,0.7)';

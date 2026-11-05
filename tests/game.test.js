@@ -4999,3 +4999,61 @@ test('squad card line stays safe with no active run (robustness)', () => {
   assert.doesNotThrow(() => g.api.skillStatLine('squad', 1), 'no-run squad line never throws');
   assert.ok(g.api.skillStatLine('squad', 1).indexOf('AK-47') >= 0, 'falls back to the rifle family, got ' + g.api.skillStatLine('squad', 1));
 });
+
+test('ops deploy preview names the fixed clock (robustness)', () => {
+  const g = boot({ seed: 307, record: true });
+  enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  assert.ok(g.api.clickButton('mode-ops'), 'ops mode selects');
+  g.steps(1);
+  const subs = g.texts.map((t) => t.text);
+  assert.ok(subs.some((t) => t.indexOf('10 MIN OP') >= 0 && t.indexOf('OPS') >= 0), 'deploy line shows fixed op clock, got ' + JSON.stringify(subs.slice(0, 30)));
+  assert.ok(!subs.some((t) => t.indexOf('ENDLESS') >= 0 && t.indexOf('DEPLOY') < 0 && t.length > 20 && t.indexOf('OPS') < 0 && t.indexOf('AK-47') >= 0), 'no stale endless preview leaks into the deploy line');
+});
+
+test('ops locks limit cards visually as well as logically (robustness)', () => {
+  const g = boot({ seed: 309, record: true });
+  enterSetup(g);
+  g.api.clickButton('setup-tab-1');
+  g.steps(1);
+  assert.ok(g.api.clickButton('mode-ops'), 'ops mode selects');
+  g.steps(1);
+  const labels = ['ENDLESS', '5 MIN', '10 MIN', '15 MIN'];
+  const hits = g.texts.filter((t) => labels.indexOf(t.text) >= 0);
+  assert.ok(hits.length >= 4, 'all four limit cards render, got ' + JSON.stringify(g.texts.map((t) => t.text).slice(0, 40)));
+  for (const h of hits) {
+    assert.strictEqual(h.fillStyle, 'rgba(207,198,173,0.45)', 'locked limit label stays dim, got ' + h.text + ' / ' + h.fillStyle);
+  }
+});
+
+test('poisoned v2 saves heal to clean shapes (robustness)', () => {
+  const store = makeStore();
+  store.data['dustline.save'] = JSON.stringify({
+    v: 2,
+    shards: 'lots',
+    unlocked: { weapons: 'ak', maps: ['desert', 'evil', 7, 'frost'] },
+    cosmetics: { skins: ['ranger', 7, null], skin: 7, vip: { premium: 'yes', items: 'x' } },
+    rivalsBeaten: ['r1', 7, null],
+    achievements: 7,
+    killsByType: { grunt: 'lots', wyrm: 3 },
+    boardBests: [{ s: 'x', k: 1, t: 2 }],
+    friends: [{ code: 'zzzz', name: 7 }],
+    meta: { power: 'lots', evil: 999 },
+    secrets: ['a', 'b', 'c', 'executioner'],
+    achievementsMap: null
+  });
+  const g = boot({ seed: 311, storage: store });
+  const s = g.api.snapshot().save;
+  assert.strictEqual(typeof s.shards, 'number', 'shards stay numeric');
+  assert.strictEqual(JSON.stringify(s.unlocked.weapons), JSON.stringify(['ak']), 'bad weapons heal to ak, got ' + JSON.stringify(s.unlocked.weapons));
+  assert.ok(s.unlocked.maps.includes('desert') && s.unlocked.maps.includes('frost') && s.unlocked.maps.includes('ash'), 'open trio survives');
+  assert.ok(!s.unlocked.maps.includes('evil'), 'unknown maps are dropped, got ' + JSON.stringify(s.unlocked.maps));
+  assert.ok(Array.isArray(s.rivalsBeaten) && s.rivalsBeaten.every((id) => typeof id === 'string'), 'rivals stay strings');
+  assert.ok(s.achievements && typeof s.achievements === 'object' && !Array.isArray(s.achievements), 'achievements stay a map');
+  assert.strictEqual(typeof s.killsByType.grunt, 'number', 'kill counts stay numeric');
+  assert.ok(Array.isArray(s.cosmetics.skins) && s.cosmetics.skins.every((id) => typeof id === 'string'), 'skins stay strings');
+  assert.strictEqual(typeof s.cosmetics.skin, 'string', 'skin stays a string');
+  assert.ok(!('evil' in (s.meta || {})), 'unknown meta keys are dropped');
+  assert.ok(!((s.secrets || []).includes('a')), 'unknown secrets are dropped, got ' + JSON.stringify(s.secrets));
+});

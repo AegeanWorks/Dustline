@@ -48,7 +48,7 @@ Before every run you pick:
 - **Operator**: Ranger (baseline), Vanguard (+30 health, −10% damage taken), Marksman (+15% bullet speed, +8% crit), Engineer (turrets live 60% longer, +15% aura radius), Scavenger (+20% shards, four relic picks instead of three) or Arcanist (violet piercing rounds; every fourth kill arcs into a nearby hostile).
 - **Mode**: Survivors (endless waves), OPS (a 10:00 operation: extract at the 9:30 beacon for +200 shards or survive to the horn) or Boss Rush (eight bosses back to back, cleared in order with a 4-second intermission and a 30% heal between fights).
 - **Map**: Dust Basin, Whiteout Ridge, Ashfall, Greenfall, Crater Field, Dead Zone or Glass Wastes. Each has its own palette, cover and hazard. The first three are open; the rest unlock with shards and pay shard-income bonuses.
-- **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run.
+- **Time limit**: Endless, 5, 10 or 15 minutes. Reaching the limit wins the run (ignored in OPS — OPS always runs the fixed 10:00 clock).
 - **Difficulty**: Normal, Brutal (tougher mobs, faster spawns, +10% shards) or Nightmare (much tougher, +15% shards).
 - **Mutators**: pick up to two run modifiers — Glass Cannon, Swarm, Elite Hunt, Fog, Vampiric Horde or Bounty — each raising shard loot.
 - **Mutation**: pick one run-long twist — Standard, Explosive Blood (a death blast), Berserker (+45% damage under 35% health), Overclock (+20% fire rate) or War Veteran (+10% damage per boss kill).
